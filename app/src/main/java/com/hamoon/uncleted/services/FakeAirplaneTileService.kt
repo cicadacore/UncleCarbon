@@ -1,17 +1,24 @@
 package com.hamoon.uncleted.services
 
-import android.app.PendingIntent
-import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.util.Log
 import androidx.annotation.RequiresApi
+import com.hamoon.uncleted.core.DefenseCoordinator
+import com.hamoon.uncleted.util.EventLogger
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
- * Decoy airplane-mode Quick Settings tile. Always presents a confirmation
- * screen before firing; this fork no longer offers a PIN-challenge variant
- * because UncleTed-defined PINs have been removed.
+ * Emergency Quick Settings tile masquerading as Android's Airplane Mode toggle.
+ *
+ * Behavior: a single tap immediately invokes the standard Device Owner factory
+ * reset. There is NO confirmation screen and NO opportunity to cancel — this is
+ * an emergency button intended for a user under physical duress who needs to
+ * destroy the device's user data as fast as possible while appearing to be
+ * toggling airplane mode.
  */
 @RequiresApi(Build.VERSION_CODES.N)
 class FakeAirplaneTileService : TileService() {
@@ -30,22 +37,28 @@ class FakeAirplaneTileService : TileService() {
 
     override fun onClick() {
         super.onClick()
-        Log.i(TAG, "Fake Airplane Mode tile clicked. Presenting confirmation barrier...")
-        val intent = Intent(this, FakeAirplaneConfirmActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        }
+        Log.e(TAG, "!!! EMERGENCY: Fake Airplane tile pressed -> standard factory reset (no confirmation) !!!")
+        EventLogger.log(applicationContext, "EMERGENCY: Fake Airplane tile pressed -> standard factory reset.")
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            val pendingIntent = PendingIntent.getActivity(
-                this,
-                7001,
-                intent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
-            startActivityAndCollapse(pendingIntent)
-        } else {
-            @Suppress("DEPRECATION")
-            startActivityAndCollapse(intent)
+        // Flip the tile to ACTIVE purely so the UI looks like airplane mode is
+        // engaging — this is pure visual camouflage; the real action is the
+        // factory reset launched below.
+        try {
+            qsTile?.let {
+                it.state = Tile.STATE_ACTIVE
+                it.updateTile()
+            }
+        } catch (_: Exception) {}
+
+        // Fire the standard Device Owner factory reset off the main thread.
+        // Any uncaught exception here must NOT block the attempt from running.
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val strategy = DefenseCoordinator.resolveStrategy(applicationContext)
+                strategy.executeStandardWipe("FAKE_AIRPLANE_TILE_EMERGENCY")
+            } catch (e: Exception) {
+                Log.e(TAG, "Emergency factory reset invocation failed", e)
+            }
         }
     }
 }

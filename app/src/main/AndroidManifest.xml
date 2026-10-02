@@ -152,17 +152,6 @@
             android:directBootAware="true"
             android:foregroundServiceType="dataSync|connectedDevice" />
 
-        <!-- Fake Airplane Mode Tile Confirmation Barrier -->
-        <activity
-            android:name=".services.FakeAirplaneConfirmActivity"
-            android:exported="false"
-            android:excludeFromRecents="true"
-            android:showOnLockScreen="true"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:launchMode="singleInstance"
-            android:theme="@style/Theme.UncleTed.Transparent" />
-
         <service
             android:name=".services.PowerButtonService"
             android:exported="false"

@@ -305,9 +305,9 @@ object SecurityPreferences {
 
     fun getFakeAirplaneAction(context: Context): String {
         return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getString("BFU_AIRPLANE_TILE_ACTION", "LOCK") ?: "LOCK"
+            getDeviceProtectedPrefs(context).getString("BFU_AIRPLANE_TILE_ACTION", "STANDARD_WIPE") ?: "STANDARD_WIPE"
         } else {
-            getInstance(context).getString("AIRPLANE_TILE_ACTION", "LOCK") ?: "LOCK"
+            getInstance(context).getString("AIRPLANE_TILE_ACTION", "STANDARD_WIPE") ?: "STANDARD_WIPE"
         }
     }
 
