@@ -8,7 +8,6 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.services.MonitoringService
-import com.hamoon.uncleted.services.UsbTripwireService
 import com.hamoon.uncleted.services.ZoneWipeService
 import com.hamoon.uncleted.util.TripwireManager
 import com.hamoon.uncleted.util.WatchdogManager
@@ -34,22 +33,16 @@ class BootCompletedReceiver : BroadcastReceiver() {
         val isUnlocked = SecurityPreferences.isUserUnlocked(context)
         Log.d(TAG, "Device boot event received: $action (User unlocked: $isUnlocked)")
 
-        // 1. Direct Boot / BFU Phase (Execute once per device boot cycle)
+        // Prune stale preferences from the removed feature set once per boot.
+        try {
+            SecurityPreferences.migrateObsoletePreferences(context)
+        } catch (e: Exception) {
+            Log.w(TAG, "Preference migration failed on boot: ${e.message}")
+        }
+
+        // 1. Direct Boot / BFU Phase (once per boot cycle)
         if (!isBfuInitialized.getAndSet(true)) {
-            SecurityPreferences.syncHookCredentials(context)
-
-            com.hamoon.uncleted.honeypot.DecoyAppManager.updateAllAliases(context)
             TripwireManager.scheduleFromLastCheckIn(context)
-
-            if (SecurityPreferences.isUsbTripwireEnabled(context)) {
-                val usbIntent = Intent(context, UsbTripwireService::class.java)
-                try {
-                    ContextCompat.startForegroundService(context, usbIntent)
-                    Log.i(TAG, "Started UsbTripwireService on boot.")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to start UsbTripwireService on boot", e)
-                }
-            }
 
             if (SecurityPreferences.isGeofenceSuicideEnabled(context)) {
                 val zoneIntent = Intent(context, ZoneWipeService::class.java)
@@ -62,7 +55,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
             }
         }
 
-        // 2. Credential-Encrypted (CE) Phase (Execute once when unlocked)
+        // 2. Credential-Encrypted (CE) Phase (once when unlocked)
         if (isUnlocked && !isCeInitialized.getAndSet(true)) {
             if (SecurityPreferences.isProtectionEnabled(context)) {
                 val serviceIntent = Intent(context, MonitoringService::class.java)

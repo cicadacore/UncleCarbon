@@ -3,12 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- PROTECTED BROADCAST DECLARATIONS -->
-    <protected-broadcast android:name="com.hamoon.uncleted.ACTION_DURESS_TRIGGERED" />
-    <protected-broadcast android:name="com.hamoon.uncleted.ACTION_HONEYPOT_TRIGGERED" />
-    <protected-broadcast android:name="com.hamoon.uncleted.ACTION_LOCKSCREEN_FAILED_ATTEMPT" />
-    <protected-broadcast android:name="com.hamoon.uncleted.ACTION_LOCKSCREEN_SUCCESS" />
     <protected-broadcast android:name="com.hamoon.uncleted.ACTION_TRIPWIRE_EXPIRED" />
-    <protected-broadcast android:name="com.hamoon.uncleted.ACTION_FARADAY_EXPIRED" />
 
     <!-- CAMERA AND TELEPHONY FEATURES -->
     <uses-feature
@@ -23,16 +18,9 @@
         android:name="android.hardware.bluetooth_le"
         android:required="false" />
 
-    <!-- SYSTEM-LEVEL & DEVICE OWNER PRIVILEGED PERMISSIONS -->
-    <uses-permission android:name="android.permission.MASTER_CLEAR" tools:ignore="ProtectedPermissions" />
+    <!-- DEVICE OWNER PRIVILEGED PERMISSIONS -->
     <uses-permission android:name="android.permission.REBOOT" tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL" tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.MANAGE_USERS" tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.STATUS_BAR_SERVICE" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.MANAGE_DEVICE_ADMINS" tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.MANAGE_USB" tools:ignore="ProtectedPermissions" />
 
     <!-- BLUETOOTH PROXIMITY PERMISSIONS -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
@@ -100,22 +88,6 @@
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="34">
 
-        <meta-data
-            android:name="xposedmodule"
-            android:value="true" />
-        <meta-data
-            android:name="xposeddescription"
-            android:value="Uncle Ted v10.0.1 - NIST PQC Hybrid, OHTTP Canary, Hardware StrongBox, MTE, and Vold Eviction." />
-        <meta-data
-            android:name="xposedminversion"
-            android:value="93" />
-        <meta-data
-            android:name="xposedsharedprefs"
-            android:value="false" />
-        <meta-data
-            android:name="xposedscope"
-            android:resource="@array/xposed_scope" />
-
         <!-- Main UI Activity -->
         <activity
             android:name=".MainActivity"
@@ -152,15 +124,6 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- Lockscreen Activity -->
-        <activity
-            android:name=".LockScreenActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:launchMode="singleInstance"
-            android:showOnLockScreen="true"
-            android:theme="@style/Theme.UncleTed.NoActionBar.FullScreen" />
-
         <!-- Foreground Launch Broker Activity -->
         <activity
             android:name=".CameraPermissionBrokerActivity"
@@ -171,130 +134,6 @@
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
             android:theme="@style/Theme.UncleTed.Transparent" />
-
-        <!-- Honeypot Bait Activities -->
-        <activity
-            android:name=".honeypot.HoneypotLauncherActivity"
-            android:exported="true"
-            android:excludeFromRecents="true"
-            android:launchMode="singleTask"
-            android:showOnLockScreen="true"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:theme="@style/Theme.UncleTed" />
-
-        <activity
-            android:name=".honeypot.FakeBankingActivity"
-            android:exported="false"
-            android:excludeFromRecents="true"
-            android:theme="@style/Theme.UncleTed" />
-
-        <activity
-            android:name=".honeypot.FakeGalleryActivity"
-            android:exported="false"
-            android:excludeFromRecents="true"
-            android:theme="@style/Theme.UncleTed" />
-
-        <activity
-            android:name=".honeypot.FakeNotesActivity"
-            android:exported="false"
-            android:excludeFromRecents="true"
-            android:theme="@style/Theme.UncleTed" />
-
-        <!-- Decoy Launcher Apps (Wasted Integration) -->
-        <activity
-            android:name=".honeypot.DecoyAppActivity"
-            android:taskAffinity=".honeypot.decoy"
-            android:noHistory="true"
-            android:excludeFromRecents="true"
-            android:theme="@style/Theme.UncleTed.Transparent"
-            android:enabled="true"
-            android:exported="false" />
-
-        <activity-alias
-            android:name=".honeypot.SignalActivity"
-            android:targetActivity=".honeypot.DecoyAppActivity"
-            android:label="@string/decoy_app_signal"
-            android:icon="@mipmap/ic_decoy_signal"
-            android:roundIcon="@mipmap/ic_decoy_signal_round"
-            android:noHistory="true"
-            android:excludeFromRecents="true"
-            android:theme="@style/Theme.UncleTed.Transparent"
-            android:enabled="false"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".honeypot.TelegramActivity"
-            android:targetActivity=".honeypot.DecoyAppActivity"
-            android:label="@string/decoy_app_telegram"
-            android:icon="@mipmap/ic_decoy_telegram"
-            android:roundIcon="@mipmap/ic_decoy_telegram_round"
-            android:noHistory="true"
-            android:excludeFromRecents="true"
-            android:theme="@style/Theme.UncleTed.Transparent"
-            android:enabled="false"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".honeypot.ThreemaActivity"
-            android:targetActivity=".honeypot.DecoyAppActivity"
-            android:label="@string/decoy_app_threema"
-            android:icon="@mipmap/ic_decoy_threema"
-            android:roundIcon="@mipmap/ic_decoy_threema_round"
-            android:noHistory="true"
-            android:excludeFromRecents="true"
-            android:theme="@style/Theme.UncleTed.Transparent"
-            android:enabled="false"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".honeypot.WhatsAppActivity"
-            android:targetActivity=".honeypot.DecoyAppActivity"
-            android:label="@string/decoy_app_whatsapp"
-            android:icon="@mipmap/ic_decoy_whatsapp"
-            android:roundIcon="@mipmap/ic_decoy_whatsapp_round"
-            android:noHistory="true"
-            android:excludeFromRecents="true"
-            android:theme="@style/Theme.UncleTed.Transparent"
-            android:enabled="false"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias
-            android:name=".honeypot.SessionActivity"
-            android:targetActivity=".honeypot.DecoyAppActivity"
-            android:label="@string/decoy_app_session"
-            android:icon="@mipmap/ic_decoy_session"
-            android:roundIcon="@mipmap/ic_decoy_session_round"
-            android:noHistory="true"
-            android:excludeFromRecents="true"
-            android:theme="@style/Theme.UncleTed.Transparent"
-            android:enabled="false"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity-alias>
 
         <!-- Background Services -->
         <service
@@ -344,18 +183,6 @@
             android:exported="false"
             android:directBootAware="true"
             android:foregroundServiceType="location" />
-
-        <!-- USB Tripwire Service -->
-        <service
-            android:name=".services.UsbTripwireService"
-            android:enabled="true"
-            android:exported="false"
-            android:directBootAware="true"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="security_monitoring" />
-        </service>
 
         <!-- Notification Listener Service for Data-Only eSIM C2 -->
         <service
@@ -453,15 +280,6 @@
         </receiver>
 
         <receiver
-            android:name=".receivers.FaradayReceiver"
-            android:exported="false"
-            android:directBootAware="true">
-            <intent-filter>
-                <action android:name="com.hamoon.uncleted.ACTION_FARADAY_EXPIRED" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
             android:name=".receivers.BootCompletedReceiver"
             android:exported="true"
             android:directBootAware="true">
@@ -486,18 +304,6 @@
             android:directBootAware="true">
             <intent-filter>
                 <action android:name="android.intent.action.SIM_STATE_CHANGED" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".receivers.DuressHookReceiver"
-            android:exported="true"
-            android:directBootAware="true">
-            <intent-filter>
-                <action android:name="com.hamoon.uncleted.ACTION_DURESS_TRIGGERED" />
-                <action android:name="com.hamoon.uncleted.ACTION_HONEYPOT_TRIGGERED" />
-                <action android:name="com.hamoon.uncleted.ACTION_LOCKSCREEN_FAILED_ATTEMPT" />
-                <action android:name="com.hamoon.uncleted.ACTION_LOCKSCREEN_SUCCESS" />
             </intent-filter>
         </receiver>
 

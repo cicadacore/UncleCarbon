@@ -21,8 +21,6 @@ import com.hamoon.uncleted.databinding.ActivityMainBinding
 import com.hamoon.uncleted.fragments.*
 import com.hamoon.uncleted.services.MonitoringService
 import com.hamoon.uncleted.util.BiometricAuthManager
-import com.hamoon.uncleted.util.GodMode
-import com.hamoon.uncleted.util.RootChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -79,27 +77,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private suspend fun initializeSystemRequirements(): InitializationResult = withContext(Dispatchers.IO) {
-        val isPrimaryUser = (Process.myUid() / 100000) == 0
-        val isRooted = if (isPrimaryUser) RootChecker.isDeviceRooted() else false
-
-        if (isRooted && isPrimaryUser) {
-            try {
-                GodMode.whitelistFromBatteryOptimizations(applicationContext)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed executing God Mode startup routines", e)
-            }
-        }
-
         val isBiometricEnabled = SecurityPreferences.isBiometricLockEnabled(this@MainActivity)
         val canAuthenticate = BiometricAuthManager.isBiometricAvailable(this@MainActivity)
 
         InitializationResult(
-            requiresBiometric = isBiometricEnabled && canAuthenticate,
-            isRooted = isRooted
+            requiresBiometric = isBiometricEnabled && canAuthenticate
         )
     }
 
-    data class InitializationResult(val requiresBiometric: Boolean, val isRooted: Boolean)
+    data class InitializationResult(val requiresBiometric: Boolean)
 
     private fun promptBiometricAuth() {
         BiometricAuthManager.authenticateUser(this,

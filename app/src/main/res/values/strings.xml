@@ -11,7 +11,7 @@
     <string name="menu_dashboard">Dashboard &amp; Telemetry</string>
     <string name="menu_hardware_sentinels">Silicon &amp; Hardware Defense</string>
     <string name="menu_crypto_engine">Cryptography &amp; Deniability</string>
-    <string name="menu_authentication">Authentication &amp; Decoys</string>
+    <string name="menu_authentication">Authentication</string>
     <string name="menu_proximity_tripwire">Proximity &amp; Dead-Man</string>
     <string name="menu_remote_signaling">Covert Signaling &amp; C2</string>
     <string name="menu_surveillance">Surveillance &amp; Evidence</string>
@@ -21,12 +21,6 @@
     <string name="menu_settings">Application Settings</string>
     <string name="menu_about">About &amp; Attribution</string>
 
-    <!-- Legacy / Compatibility Menu Aliases -->
-    <string name="menu_pins">Authentication</string>
-    <string name="menu_remote">Remote Control</string>
-    <string name="menu_features">Features</string>
-    <string name="menu_manual_actions">Manual Actions</string>
-
     <!-- General UI Controls -->
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
@@ -34,75 +28,29 @@
     <string name="next">Next</string>
     <string name="previous">Previous</string>
 
-    <!-- Lockscreen Authentication & Anti-Coercion -->
-    <string name="lock_screen_title">Device Secured</string>
-    <string name="lock_screen_subtitle">Enter PIN to authenticate</string>
-    <string name="lock_screen_pin_hint">PIN</string>
-    <string name="lock_screen_unlock_button">Authenticate</string>
-    <string name="unauthorized_action_title">Security Intervention</string>
-    <string name="unauthorized_action_subtitle">Enter PIN to verify physical operator authority</string>
-    <string name="config_error_title">Configuration Error</string>
-    <string name="config_error_pins_not_set">Master credentials not provisioned.</string>
-    <string name="incorrect_pin_toast">Incorrect PIN</string>
+    <!-- Authentication (GrapheneOS Device Owner build) -->
+    <string name="authentication_header">Device Credential (GrapheneOS)</string>
+    <string name="authentication_graphene_notice">The GrapheneOS lockscreen PIN is the only credential UncleTed relies on. For a duress credential, use GrapheneOS Settings → Security → Duress password/PIN. UncleTed does not implement its own PINs on this fork.</string>
+    <string name="max_failed_attempts_title">Max Failed Keyguard Attempts</string>
+    <string name="max_failed_attempts_summary">After this many consecutive wrong attempts at the GrapheneOS lockscreen, UncleTed invokes a standard Device Owner factory reset.</string>
+    <string name="feature_biometric_lock_summary">Require biometric authentication to open UncleTed.</string>
     <string name="biometric_auth_title">Uncle Ted Zero-Trust Gate</string>
     <string name="biometric_auth_subtitle">Authenticate biometric sensor to unlock defense suite</string>
     <string name="biometric_auth_failed_exit">Authentication rejected. Terminating session.</string>
 
-    <!-- PIN Matrix & Deception -->
-    <string name="pins_category_title">Credential Matrix</string>
-    <string name="pins_normal_hint">Normal Unlock PIN</string>
-    <string name="pins_duress_hint">Duress (Silent Alert Trap) PIN</string>
-    <string name="pins_save_button">Save &amp; Arm Credentials</string>
-    <string name="pins_saved_toast">All credentials successfully synchronized to platform bridge!</string>
-    <string name="wipe_pin_hint">Hardware Wipe Lock PIN (Lethal)</string>
-    <string name="honeypot_pin_hint">Honeypot Decoy PIN (Session Migration)</string>
-    <string name="max_failed_attempts_wipe_hint">Max Failed Passwords Before Hardware Wipe</string>
-    <string name="pin_guide_title">Operational Credential Matrix Guide</string>
-    <string name="pin_guide_normal_title">1. Normal Unlock PIN</string>
-    <string name="pin_guide_normal_desc">Authenticates primary user session and resets failed attempt counters.</string>
-    <string name="pin_guide_duress_title">2. Duress PIN (Covert Trap)</string>
-    <string name="pin_guide_duress_desc">Halts authentication at framework level, displays authentic \'Wrong PIN\' error, and silently captures dual camera photos, room audio, and GPS coordinates.</string>
-    <string name="pin_guide_wipe_title">3. Wipe PIN (Silicon Erasure)</string>
-    <string name="pin_guide_wipe_desc">Immediately commands discrete HSM to revoke master keys, executes JEDEC silicon discard on FBE headers, and forces reboot into recovery.</string>
-    <string name="pin_guide_honeypot_title">4. Honeypot Decoy PIN</string>
-    <string name="pin_guide_honeypot_desc">Purges User 0 Credential-Encrypted keys from kernel keyring via Vold, locks User 0 to BFU, and migrates the active session to an isolated secondary Android profile.</string>
-
-    <!-- Silicon & Hardware Sentinels -->
+    <!-- Hardware Sentinels (GrapheneOS supported subset) -->
     <string name="hardware_sentinels_title">Silicon &amp; Hardware Sentinels</string>
-    <string name="pmic_battery_tamper_title">PMIC Micro-Telemetry &amp; Anti-Disassembly</string>
-    <string name="pmic_battery_tamper_desc">Monitors electrochemical battery impedance (R_int) and thermal gradient shock against bench power supply micro-clamp attachment and chassis unsealing.</string>
-    <string name="pmic_toggle_label">Enable PMIC Battery Bus Interrogation</string>
-    <string name="pmic_recalibrate_button">Lock Current Battery Baseline</string>
-    <string name="pmic_impedance_threshold_hint">Impedance Shift Delta (Threshold: 35 mΩ)</string>
-    <string name="pmic_thermal_threshold_hint">Thermal Shock Drop (Threshold: 12.0°C)</string>
-    <string name="pmic_selinux_blocked_toast">Battery SysFS nodes are blocked by platform SELinux policy (GrapheneOS/AOSP). PMIC micro-telemetry is unavailable in this domain.</string>
-    <string name="spectral_sentinel_title">Sub-Second Spectral Collapse Sentinel</string>
-    <string name="spectral_sentinel_desc">Monitors simultaneous Cellular, Wi-Fi, and GNSS extinction paired with physical micro-motion to detect immediate Faraday bag seizure.</string>
-    <string name="spectral_toggle_label">Enable 4-Second Spectral Collapse Trap</string>
-    <string name="spectral_window_hint">Extinction Confirmation Window (ms)</string>
-    <string name="spectral_motion_required_label">Require Micro-Motion (Anti-Nightstand False-Positive)</string>
-    <string name="faraday_blackout_title">180-Minute Autonomous Faraday Sentinel</string>
-    <string name="faraday_blackout_desc">Hardware RTC AlarmManager wakeup. Forces automatic BFU key eviction if phone remains isolated in an evidence locker or Faraday container past the limit.</string>
-    <string name="faraday_toggle_label">Enable Continuous RF Loss Watchdog</string>
-    <string name="faraday_duration_hint">Continuous Isolation Limit (Hours)</string>
-    <string name="baseband_sentinel_title">Modem Baseband &amp; IMSI-Catcher Sentinel</string>
-    <string name="baseband_sentinel_desc">Permanently strips legacy 2G frequencies at the modem firmware layer and traps impossible high-RSRP / high-Timing Advance Stingray topologies.</string>
-    <string name="baseband_2g_mask_toggle">Modem-Level 2G Frequency Masking</string>
-    <string name="baseband_sentinel_toggle">Enable Rogue Cell &amp; Timing Advance Trap</string>
-    <string name="baseband_timing_advance_hint">Max Timing Advance (Threshold: 30 ~ 2.3km)</string>
-    <string name="usb_tripwire_title">Physical USB Bus &amp; Peripheral Sentinel</string>
-    <string name="usb_tripwire_desc">Monitors Linux Kernel UDC gadget controller states and physically severs D+/D- lines via USB HAL v1.3+ while locked.</string>
-    <string name="usb_tripwire_toggle">Enable Physical USB Data Severing</string>
-    <string name="usb_filter_hint">Transients Debounce Filter (Consecutive Hits)</string>
 
-    <!-- Safe Boot Interception Strings -->
+    <!-- Safe Boot Interception -->
     <string name="safe_boot_title">Safe Boot Interception (Anti-Bypass)</string>
-    <string name="safe_boot_desc">Prevents rebooting into Android Safe Mode where third-party apps are disabled. When blocked, adversaries cannot bypass Uncle Ted by holding hardware buttons on boot.</string>
-    <string name="safe_boot_toggle_label">Block Safe Boot (Device Owner)</string>
+    <string name="safe_boot_switch_label">Block Safe Boot (Device Owner)</string>
+    <string name="safe_boot_summary">When enabled, the Device Owner refuses reboots into Android Safe Mode so adversaries cannot neutralize UncleTed sentinels by holding hardware keys at boot.</string>
     <string name="safe_boot_warning_title">Allow Safe Mode?</string>
-    <string name="safe_boot_warning_message">WARNING: Allowing Safe Mode enables anyone with physical access to reboot the device into Safe Mode, neutralizing Uncle Ted\'s background sentinels, USB defense, and lockscreen hooks without requiring a PIN. Are you sure you want to allow Safe Mode?</string>
+    <string name="safe_boot_warning_message">Allowing Safe Mode lets anyone with physical access reboot the device into Safe Mode, which disables UncleTed background sentinels. Are you sure?</string>
     <string name="safe_boot_allow_button">Allow Safe Mode</string>
     <string name="safe_boot_keep_blocked_button">Keep Blocked</string>
+
+    <string name="save_button_label">Save</string>
 
     <!-- Cryptographic Engine & Deniability Vault -->
     <string name="crypto_engine_title">Cryptography &amp; Vaults</string>
@@ -122,11 +70,6 @@
     <string name="vault_store_button">Conceal in DNG Container</string>
     <string name="vault_extract_button">Extract &amp; Decrypt Secret</string>
     <string name="vault_purge_button">Permanently Overwrite &amp; Purge Carrier</string>
-    <string name="zram_hardening_title">Volatile RAM Scrubbing &amp; ZRAM Re-Keying</string>
-    <string name="zram_hardening_desc">Forces kernel pagecache, dentry, and unpinned inode drops on ACTION_SCREEN_OFF and dynamically resets ephemeral swap encryption keys.</string>
-    <string name="zram_scrubbing_toggle">Purge Caches on Screen-Off (drop_caches)</string>
-    <string name="zram_rekeying_toggle">Ephemeral ZRAM Swap Re-Keying (Root)</string>
-    <string name="zram_manual_scrub_button">Execute Volatile Memory Scrubbing Pass</string>
 
     <!-- Physical Proximity & Dead-Man Tripwires -->
     <string name="proximity_tripwire_title">Proximity &amp; Dead-Man Tripwires</string>
@@ -219,30 +162,18 @@
     <string name="feature_intruder_selfie">Intruder Selfie (3+ Consecutive Failed Passcodes)</string>
     <string name="save_selfie_locally">Persist Intruder Selfie to Public Pictures/UncleTed</string>
     <string name="feature_sim_change">Hardware SIM Card Identity Sentinel</string>
-    <string name="feature_wipe_on_sim_removal">Wipe Device Instantly on SIM Removal (Lethal)</string>
+    <string name="feature_wipe_on_sim_removal">Factory Reset on SIM Removal</string>
     <string name="shake_to_panic_feature">Micro-Motion &amp; Accelerometer Shake Sentinel</string>
-    <string name="root_surveillance_title">Kernel &amp; Input Surveillance (Root)</string>
-    <string name="root_feature_stealth_screenshot">Stealth Framebuffer Surface Screenshot (/system/bin/screencap)</string>
-    <string name="root_feature_keylogger">Hybrid Hardware (/dev/input/) &amp; Virtual Keylogger</string>
-    <string name="root_feature_stealth_media">Suppress Camera Privacy Indicator Overlays</string>
-
-    <!-- Emergency Destruction Protocols -->
-    <string name="destruction_title">Emergency Destruction Protocols</string>
-    <string name="destruction_desc">Lethal, irreversible data sanitization pipelines bypassing userspace wear-leveling pitfalls via sub-millisecond cryptographic header erasure and JEDEC silicon commands.</string>
-    <string name="feature_wipe_device">Wipe Device on Critical Alert (Extreme)</string>
-    <string name="feature_hardware_wipe">Rapid Volume Sequence Wipe (VOL UP-DOWN-UP-DOWN)</string>
-    <string name="destruction_level_1_title">Level 1: Standard Android Platform Factory Reset</string>
-    <string name="destruction_level_1_desc">Invokes RecoverySystem.rebootWipeUserData() or stages BCB command under /cache/recovery/command.</string>
-    <string name="destruction_level_2_title">Level 2: Fast Cryptographic Shred (JEDEC BLKSECDISCARD)</string>
-    <string name="destruction_level_2_desc">Destroys discrete StrongBox keys, shreds Vold keys, and issues direct JEDEC BLKSECDISCARD IOCTLs to /dev/block/by-name/metadata.</string>
-    <string name="destruction_level_3_title">Level 3: OS Suicide (Soft Brick)</string>
-    <string name="destruction_level_3_desc">Executes Level 2 cryptographic shred, then zeroes core boot and ramdisk partitions (boot, vendor_boot, init_boot). Requires full firmware reflash.</string>
-    <string name="destruction_level_4_title">Level 4: Nuclear Winter (Hard Brick Risk)</string>
-    <string name="destruction_level_4_desc">Zeroes partition table headers, boot blocks, and executes low-level kernel SysRq hardware triggers. High risk of permanent hardware brick.</string>
-    <string name="destruction_execute_level_1">Execute Level 1: Platform Reset</string>
-    <string name="destruction_execute_level_2">Execute Level 2: JEDEC Silicon Shred</string>
-    <string name="destruction_execute_level_3">Execute Level 3: OS Suicide (Soft Brick)</string>
-    <string name="destruction_execute_level_4">EXECUTE LEVEL 4: NUCLEAR WINTER</string>
+    <!-- Destruction Protocol (standard Device Owner factory reset only) -->
+    <string name="destruction_title">Standard Factory Reset Controls</string>
+    <string name="destruction_desc">Device Owner standard factory reset is the only destructive action in this GrapheneOS fork. Level 2/3/4 kernel/raw-partition routines were removed because they require root or raw block device access that is unavailable on an unrooted locked GrapheneOS install.</string>
+    <string name="feature_wipe_device">Allow Factory Reset on Critical Alerts</string>
+    <string name="feature_hardware_wipe">Rapid Volume Sequence Factory Reset</string>
+    <string name="feature_hardware_wipe_summary">Press VOL UP → VOL DOWN → VOL UP → VOL DOWN quickly to invoke a standard Device Owner factory reset. Requires UncleTed\'s Accessibility Service to be enabled.</string>
+    <string name="destruction_level_1_title">Standard Device Owner Factory Reset</string>
+    <string name="destruction_level_1_desc">Invokes DevicePolicyManager.wipeDevice() on Android 14+ or wipeData() on earlier supported versions. External storage is included; the device reboots and user data is removed.</string>
+    <string name="destruction_execute_level_1">Execute Standard Factory Reset</string>
+    <string name="feature_wipe_on_sim_replacement">Factory Reset on SIM Replacement</string>
 
     <!-- Automated Features & Categories -->
     <string name="features_panic_category">Panic &amp; Evidence Features</string>
@@ -267,55 +198,8 @@
     <string name="feature_maintenance_enabled_toast">Maintenance Mode Enabled.</string>
     <string name="feature_event_log_button">View Security Event Log</string>
 
-    <!-- Root Feature Descriptions -->
-    <string name="root_features_title">Root-Exclusive Features</string>
-    <string name="root_features_unavailable">Root access not detected. These features are unavailable.</string>
-    <string name="root_feature_gps_spoof">GPS Spoofing on Duress</string>
-    <string name="decoy_gps_location_hint">Decoy Location (e.g., 40.7128,-74.0060)</string>
-    <string name="root_feature_silent_install">Remote Silent App Installer</string>
-    <string name="remote_apk_url_hint">Remote APK URL for Installation</string>
-    <string name="root_feature_firewall_tripwire">Firewall Tripwire</string>
-    <string name="root_feature_secure_wipe">Secure Wipe+ (Physical Overwrite)</string>
-    <string name="root_feature_system_app">Make System App (Permanent)</string>
-    <string name="root_feature_system_app_desc">Moves the app to /system/priv-app. Compatible with Magisk, KernelSU, and APatch.</string>
-    <string name="system_app_warning_title">Reboot Required</string>
-    <string name="system_app_warning_message">This will integrate Uncle Ted as a privileged system application across Magisk/KernelSU. A reboot is required. Proceed?</string>
-    <string name="system_app_converting_toast">Configuring system priv-app module and rebooting…</string>
-    <string name="system_app_failed_toast">Failed to convert to system app. Check logs.</string>
-    <string name="root_ultimate_stealth_title">Ultimate Stealth &amp; Persistence</string>
-    <string name="root_feature_unkillable_service">Unkillable Background Service</string>
-    <string name="root_feature_unkillable_service_desc">Installs a root-level init daemon script that monitors and restarts core defense services if stopped.</string>
-    <string name="unkillable_enabled_toast">Unkillable service enabled.</string>
-    <string name="unkillable_disabled_toast">Unkillable service disabled.</string>
-    <string name="operation_failed_toast">Operation failed. Check logs.</string>
-    <string name="root_feature_hide_process">Hide Process from Task Managers</string>
-    <string name="root_feature_hide_process_desc">Enforces process hiding and namespace isolation across Magisk and KernelSU.</string>
-    <string name="process_hiding_enabled_toast">Process hiding enabled.</string>
-    <string name="process_hiding_disabled_toast">Process hiding disabled.</string>
-    <string name="process_hiding_failed_toast">Process hiding failed.</string>
-    <string name="root_feature_survive_reset">Survive Factory Reset (AVB Guarded)</string>
-    <string name="root_feature_survive_reset_desc">Stages an emergency loader script. Blocked automatically if AVB 2.0 is locked to prevent hard bricks.</string>
-    <string name="loader_script_url_hint">Loader Script URL</string>
-    <string name="factory_reset_warning_title">AVB &amp; Recovery Warning</string>
-    <string name="factory_reset_warning_message">Direct recovery modifications will fail if AVB 2.0 is locked. Proceed only on fully unlocked engineering devices.</string>
-    <string name="factory_reset_dialog_proceed">I Understand, Proceed</string>
-    <string name="factory_reset_flashing_toast">Attempting to flash loader…</string>
-    <string name="factory_reset_success_toast">Loader flashed successfully.</string>
-    <string name="factory_reset_failed_toast">FLASH FAILED. CHECK LOGS.</string>
-
-    <!-- Manual Actions Legacy Strings -->
-    <string name="manual_actions_title">Manual Actions</string>
+    <!-- Manual Actions (shared) -->
     <string name="manual_action_location">Send Location Alert</string>
-    <string name="manual_action_lock">Lock Device</string>
-    <string name="manual_action_siren">Trigger Siren</string>
-    <string name="manual_action_wipe">Wipe Data (Critical)</string>
-    <string name="manual_wipe_confirmation_title">Confirm Data Wipe</string>
-    <string name="manual_wipe_confirmation_message">Are you absolutely sure? This will permanently erase all user data.</string>
-    <string name="manual_wipe_confirm_button">Yes, Wipe Device</string>
-    <string name="manual_action_honeypot">Switch to Decoy Space</string>
-    <string name="manual_honeypot_confirmation_title">Switch to Decoy Space?</string>
-    <string name="manual_honeypot_confirmation_message">This switches the active OS profile to the isolated secondary Android user space.</string>
-    <string name="manual_honeypot_confirm_button">Yes, Switch Space</string>
 
     <!-- Permissions Screen & Guide -->
     <string name="permissions_category_core">System Privilege Boundaries</string>
@@ -385,16 +269,6 @@
     <string name="event_log_title">Security Event Audit Log</string>
     <string name="event_log_info">All security events, sentinel trips, and remote signals are recorded locally in Device-Protected storage.</string>
 
-    <!-- Decoy Launcher Messenger Trap Strings -->
-    <string name="decoy_app_signal">Signal</string>
-    <string name="decoy_app_telegram">Telegram</string>
-    <string name="decoy_app_threema">Threema</string>
-    <string name="decoy_app_session">Session</string>
-    <string name="decoy_launcher_traps_title">Decoy App Launcher Tripwires</string>
-    <string name="decoy_launcher_traps_desc">Places authentic fake messenger apps in your home screen/launcher. Opening any selected decoy app immediately triggers the configured defense protocol.</string>
-    <string name="decoy_app_action_hint">Trap Execution Response</string>
-    <string name="decoy_app_whatsapp">WhatsApp</string>
-
     <!-- Dashboard & Threat Assessment -->
     <string name="dashboard_threat_critical">CRITICAL HARDWARE TAMPER DETECTED</string>
     <string name="dashboard_threat_critical_desc">Immediate defensive action required. Silicon breach or RF isolation in progress.</string>
@@ -427,26 +301,21 @@
     <string name="level_4_desc">Device Owner, PQC hybrid, and spectral traps fully operational.</string>
     <string name="level_5_title">Posture: Maximum Zero-Trust</string>
     <string name="level_5_desc">All silicon, PQC, OHTTP, and BLE sharding sentinels active.</string>
-    <string name="level_root_title">Posture: God Mode (Root / LSPosed)</string>
-    <string name="level_root_desc">Low-level kernel manipulation, cold Vold eviction, and native hooks operational.</string>
-
     <!-- Checklist Items -->
-    <string name="check_root_title">Privileged Execution State</string>
-    <string name="check_root_desc">Verifies Magisk, KernelSU, or APatch superuser status.</string>
-    <string name="check_pins_title">Operational Credential Matrix</string>
-    <string name="check_pins_desc">Normal, Duress, Wipe, and Honeypot PINs provisioned.</string>
-    <string name="check_admin_title">Hardware Security Policy Authority</string>
-    <string name="check_admin_desc">Required for Device Owner USB port severing and platform wipe.</string>
+    <string name="check_device_owner_title">Device Owner Provisioned</string>
+    <string name="check_device_owner_desc">UncleTed is provisioned as the GrapheneOS Device Owner (dpm.isDeviceOwnerApp).</string>
+    <string name="check_admin_title">Device Admin Active</string>
+    <string name="check_admin_desc">Required for standard Device Owner factory reset and USB signaling policy.</string>
     <string name="check_accessibility_title">Hardware Key Input Filtering</string>
-    <string name="check_accessibility_desc">Interprets physical hardware volume panic sequences.</string>
+    <string name="check_accessibility_desc">Required for the rapid-volume factory-reset sequence (VOL UP/DOWN/UP/DOWN).</string>
     <string name="check_permissions_title">System Capabilities</string>
-    <string name="check_permissions_desc">Camera, Micro-telemetry, Telephony, and Foreground Services.</string>
+    <string name="check_permissions_desc">Camera, Microphone, Location, SMS, and Notifications.</string>
     <string name="check_contact_title">Remote Signaling Dispatch</string>
     <string name="check_contact_desc">Authenticated emergency signaling channel.</string>
     <string name="check_intruder_title">Anti-Tamper Surveillance</string>
     <string name="check_intruder_desc">Intruder photo and audio dossier capture.</string>
     <string name="check_sim_title">SIM Identity Anchor</string>
-    <string name="check_sim_desc">Detects IMSI/ICCID hardware changes without throwing exceptions.</string>
+    <string name="check_sim_desc">Detects SIM removal and SIM replacement; routes to standard factory reset when armed.</string>
 
     <!-- About Screen -->
     <string name="about_title">About Uncle Ted</string>

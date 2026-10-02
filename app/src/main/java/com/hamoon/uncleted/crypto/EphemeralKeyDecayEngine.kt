@@ -13,8 +13,6 @@ import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.util.EventLogger
 import com.hamoon.uncleted.util.NativeSecurityBridge
-import com.hamoon.uncleted.util.RootChecker
-import com.hamoon.uncleted.util.RootExecutor
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -209,16 +207,7 @@ object EphemeralKeyDecayEngine : SensorEventListener {
     }
 
     private suspend fun evictPlatformFbeKeys(context: Context) {
-        Log.e(TAG, "Evicting memory caches and locking device...")
-
-        if (RootChecker.isDeviceRooted()) {
-            val fbeEvictionCommands = listOf(
-                "sync",
-                "echo 3 > /proc/sys/vm/drop_caches",
-                "input keyevent 26"
-            )
-            RootExecutor.runMultiple(fbeEvictionCommands, logErrors = false)
-        }
+        Log.e(TAG, "Evicting in-memory ephemeral keys and locking device...")
 
         try {
             val strategy = DefenseCoordinator.resolveStrategy(context)

@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.util
 
+import android.app.admin.DevicePolicyManager
 import android.content.Context
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
@@ -28,33 +29,33 @@ object SecurityScoreCalculator {
     )
 
     suspend fun getChecklistItems(context: Context): List<ChecklistItem> = withContext(Dispatchers.IO) {
-        val isRooted = RootChecker.isDeviceRooted()
+        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
+        val isDeviceOwner = dpm?.isDeviceOwnerApp(context.packageName) == true
         val isAdmin = PermissionUtils.isDeviceAdminActive(context)
-        val isAccessibility = isRooted || PermissionUtils.isAccessibilityServiceEnabled(context, PowerButtonService::class.java)
+        val isAccessibility = PermissionUtils.isAccessibilityServiceEnabled(context, PowerButtonService::class.java)
         val hasPerms = PermissionUtils.hasCameraPermission(context) &&
                 PermissionUtils.hasLocationPermissions(context) &&
                 PermissionUtils.hasSmsPermissions(context) &&
                 PermissionUtils.hasPostNotificationsPermission(context)
-        val normalPin = SecurityPreferences.getNormalPin(context)
-        val duressPin = SecurityPreferences.getDuressPin(context)
-        val hasPins = !normalPin.isNullOrEmpty() && !duressPin.isNullOrEmpty()
         val hasContact = !SecurityPreferences.getEmergencyContact(context).isNullOrEmpty()
         val isIntruder = SecurityPreferences.isIntruderSelfieEnabled(context)
-        val isSim = SecurityPreferences.isSimChangeAlertEnabled(context)
+        val isSim = SecurityPreferences.isSimChangeAlertEnabled(context) ||
+                SecurityPreferences.isWipeOnSimRemovalEnabled(context) ||
+                SecurityPreferences.isWipeOnSimReplacementEnabled(context)
 
         listOf(
             ChecklistItem(
-                iconRes = R.drawable.ic_alert_triangle_24,
-                titleRes = R.string.check_root_title,
-                descriptionRes = R.string.check_root_desc,
-                weight = 0,
-                isMet = { isRooted }
+                iconRes = R.drawable.ic_key_24,
+                titleRes = R.string.check_device_owner_title,
+                descriptionRes = R.string.check_device_owner_desc,
+                weight = 30,
+                isMet = { isDeviceOwner }
             ),
             ChecklistItem(
-                iconRes = R.drawable.ic_key_24,
+                iconRes = R.drawable.ic_shield_check_24,
                 titleRes = R.string.check_admin_title,
                 descriptionRes = R.string.check_admin_desc,
-                weight = 25,
+                weight = 20,
                 isMet = { isAdmin }
             ),
             ChecklistItem(
@@ -68,15 +69,8 @@ object SecurityScoreCalculator {
                 iconRes = R.drawable.ic_smartphone_24,
                 titleRes = R.string.check_permissions_title,
                 descriptionRes = R.string.check_permissions_desc,
-                weight = 20,
-                isMet = { hasPerms }
-            ),
-            ChecklistItem(
-                iconRes = R.drawable.ic_pin_24,
-                titleRes = R.string.check_pins_title,
-                descriptionRes = R.string.check_pins_desc,
                 weight = 15,
-                isMet = { hasPins }
+                isMet = { hasPerms }
             ),
             ChecklistItem(
                 iconRes = R.drawable.ic_contact_24,
@@ -104,16 +98,8 @@ object SecurityScoreCalculator {
 
     suspend fun calculateSecurityLevel(context: Context): SecurityLevel = withContext(Dispatchers.IO) {
         val items = getChecklistItems(context)
-        val isRooted = items.firstOrNull { it.titleRes == R.string.check_root_title }?.isMet?.invoke() ?: false
-
-        if (isRooted) {
-            return@withContext SecurityLevel(6, R.string.level_root_title, R.string.level_root_desc, R.color.level_root_god_mode)
-        }
-
-        val nonRootItems = items.filter { it.weight > 0 }
-        val maxScore = nonRootItems.sumOf { it.weight }
-        val currentScore = nonRootItems.filter { it.isMet() }.sumOf { it.weight }
-
+        val maxScore = items.sumOf { it.weight }
+        val currentScore = items.filter { it.isMet() }.sumOf { it.weight }
         val percentage = if (maxScore > 0) (currentScore.toFloat() / maxScore.toFloat()) * 100 else 0f
 
         when {

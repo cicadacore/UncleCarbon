@@ -2,19 +2,16 @@ package com.hamoon.uncleted.services
 
 import android.app.Notification
 import android.content.Context
-import android.content.Intent
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Base64
 import android.util.Log
-import com.hamoon.uncleted.LockScreenActivity
 import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.crypto.CryptoPreferences
 import com.hamoon.uncleted.crypto.OneTimeTokenManager
 import com.hamoon.uncleted.crypto.SecureWireValidator
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.util.EventLogger
-import com.hamoon.uncleted.util.RootActions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -46,12 +43,11 @@ class NotificationCommandListener : NotificationListenerService() {
                 cancelNotification(sbn.key)
                 val isValid = OneTimeTokenManager.validateAndBurnToken(applicationContext, token)
                 if (isValid) {
-                    Log.e(TAG, "AUTHENTICATED OTC TOKEN RECEIVED VIA NOTIFICATION: Burning and triggering wipe.")
+                    Log.e(TAG, "AUTHENTICATED OTC TOKEN RECEIVED VIA NOTIFICATION: Burning and triggering standard factory reset.")
                     EventLogger.log(applicationContext, "NOTIFICATION DISPATCH: Single-use emergency recovery token executed.")
                     CoroutineScope(Dispatchers.IO).launch {
                         val strategy = DefenseCoordinator.resolveStrategy(applicationContext)
-                        strategy.executeWipe("NOTIFICATION_OTC_WIPE")
-                        PanicActionService.trigger(applicationContext, "REMOTE_WIPE", PanicActionService.Severity.CRITICAL)
+                        strategy.executeStandardWipe("NOTIFICATION_OTC_WIPE")
                     }
                 } else {
                     Log.w(TAG, "Rejected invalid or burned OTC token received in notification.")
@@ -136,8 +132,7 @@ class NotificationCommandListener : NotificationListenerService() {
         val strategy = DefenseCoordinator.resolveStrategy(context)
         when (packet.opCode.toInt()) {
             0x01 -> {
-                strategy.executeWipe("NOTIFICATION_ED25519_WIPE")
-                PanicActionService.trigger(context, "REMOTE_WIPE", PanicActionService.Severity.CRITICAL)
+                strategy.executeStandardWipe("NOTIFICATION_ED25519_WIPE")
             }
             0x02 -> {
                 strategy.setUsbDataPortEnabled(false)
@@ -159,8 +154,7 @@ class NotificationCommandListener : NotificationListenerService() {
             "WIPE" -> {
                 CoroutineScope(Dispatchers.IO).launch {
                     val strategy = DefenseCoordinator.resolveStrategy(context)
-                    strategy.executeWipe("NOTIFICATION_CLEARTEXT_WIPE")
-                    PanicActionService.trigger(context, "REMOTE_WIPE", PanicActionService.Severity.CRITICAL)
+                    strategy.executeStandardWipe("NOTIFICATION_CLEARTEXT_WIPE")
                 }
             }
             "EVIDENCE" -> {
@@ -170,10 +164,11 @@ class NotificationCommandListener : NotificationListenerService() {
                 PanicActionService.trigger(context, "REMOTE_SIREN", PanicActionService.Severity.HIGH)
             }
             "LOCK" -> {
-                val lockIntent = Intent(context, LockScreenActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        DefenseCoordinator.resolveStrategy(context).evictMemoryKeysAndLock()
+                    } catch (_: Exception) {}
                 }
-                context.startActivity(lockIntent)
             }
             "LOCATE" -> {
                 PanicActionService.trigger(context, "MANUAL_LOCATION", PanicActionService.Severity.LOW)
@@ -182,11 +177,6 @@ class NotificationCommandListener : NotificationListenerService() {
                 val duration = args.firstOrNull()?.toIntOrNull() ?: 60
                 PanicActionService.pendingAudioDuration = duration
                 PanicActionService.trigger(context, "REMOTE_AUDIO_RECORD", PanicActionService.Severity.HIGH)
-            }
-            "REBOOT" -> {
-                CoroutineScope(Dispatchers.IO).launch {
-                    RootActions.rebootDevice(context)
-                }
             }
         }
     }

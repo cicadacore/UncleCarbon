@@ -117,30 +117,15 @@ class DashboardFragment : Fragment() {
             checklistItemBinding.tvFeatureTitle.text = getString(item.titleRes)
             checklistItemBinding.tvFeatureDescription.text = getString(item.descriptionRes)
             if (item.isMet()) {
-                if (item.titleRes == R.string.check_root_title) {
-                    checklistItemBinding.ivStatusIcon.setImageResource(R.drawable.ic_check_circle_24)
-                    checklistItemBinding.ivStatusIcon.setColorFilter(ContextCompat.getColor(context, R.color.level_root_god_mode))
-                    checklistItemBinding.tvStatusText.text = "Detected"
-                    checklistItemBinding.tvStatusText.setTextColor(ContextCompat.getColor(context, R.color.level_root_god_mode))
-                    checklistItemBinding.ivFeatureIcon.setColorFilter(ContextCompat.getColor(context, R.color.level_root_god_mode))
-                } else {
-                    checklistItemBinding.ivStatusIcon.setImageResource(R.drawable.ic_check_circle_24)
-                    checklistItemBinding.ivStatusIcon.setColorFilter(ContextCompat.getColor(context, R.color.status_green))
-                    checklistItemBinding.tvStatusText.text = "Active"
-                    checklistItemBinding.tvStatusText.setTextColor(ContextCompat.getColor(context, R.color.status_green))
-                }
+                checklistItemBinding.ivStatusIcon.setImageResource(R.drawable.ic_check_circle_24)
+                checklistItemBinding.ivStatusIcon.setColorFilter(ContextCompat.getColor(context, R.color.status_green))
+                checklistItemBinding.tvStatusText.text = "Active"
+                checklistItemBinding.tvStatusText.setTextColor(ContextCompat.getColor(context, R.color.status_green))
             } else {
-                if (item.titleRes == R.string.check_root_title) {
-                    checklistItemBinding.ivStatusIcon.setImageResource(R.drawable.ic_cancel_24)
-                    checklistItemBinding.ivStatusIcon.setColorFilter(ContextCompat.getColor(context, R.color.md_theme_light_outline))
-                    checklistItemBinding.tvStatusText.text = "Not Found"
-                    checklistItemBinding.tvStatusText.setTextColor(ContextCompat.getColor(context, R.color.md_theme_light_outline))
-                } else {
-                    checklistItemBinding.ivStatusIcon.setImageResource(R.drawable.ic_cancel_24)
-                    checklistItemBinding.ivStatusIcon.setColorFilter(ContextCompat.getColor(context, R.color.status_red))
-                    checklistItemBinding.tvStatusText.text = "Inactive"
-                    checklistItemBinding.tvStatusText.setTextColor(ContextCompat.getColor(context, R.color.status_red))
-                }
+                checklistItemBinding.ivStatusIcon.setImageResource(R.drawable.ic_cancel_24)
+                checklistItemBinding.ivStatusIcon.setColorFilter(ContextCompat.getColor(context, R.color.status_red))
+                checklistItemBinding.tvStatusText.text = "Inactive"
+                checklistItemBinding.tvStatusText.setTextColor(ContextCompat.getColor(context, R.color.status_red))
             }
             binding.checklistContainer.addView(checklistItemBinding.root)
         }

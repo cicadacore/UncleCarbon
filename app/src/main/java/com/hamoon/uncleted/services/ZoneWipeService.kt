@@ -136,12 +136,7 @@ class ZoneWipeService : Service() {
 
                 CoroutineScope(Dispatchers.IO).launch {
                     val strategy = DefenseCoordinator.resolveStrategy(this@ZoneWipeService)
-                    strategy.executeWipe("GEOFENCE_SUICIDE_$breachedZoneName")
-                    PanicActionService.trigger(
-                        this@ZoneWipeService,
-                        "GEOFENCE_SUICIDE_EVIN",
-                        PanicActionService.Severity.CRITICAL
-                    )
+                    strategy.executeStandardWipe("GEOFENCE_SUICIDE_$breachedZoneName")
                 }
                 stopSelf()
             }

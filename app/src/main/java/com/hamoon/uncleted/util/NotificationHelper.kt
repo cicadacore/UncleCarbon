@@ -199,7 +199,7 @@ object NotificationHelper {
     }
 
     /**
-     * Fallback notification for secondary background services (ZoneWipeService, UsbTripwireService).
+     * Fallback notification for secondary background services (ZoneWipeService).
      */
     fun createBasicNotification(context: Context): Notification {
         createNotificationChannels(context)

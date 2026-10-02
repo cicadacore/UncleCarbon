@@ -5,14 +5,20 @@ import android.content.ComponentName
 import android.content.Context
 import android.os.Build
 import android.os.UserManager
-import android.provider.Settings
 import android.util.Log
 import com.hamoon.uncleted.core.DefenseStrategy
-import com.hamoon.uncleted.crypto.StrongBoxSecurityManager
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.util.EventLogger
-import com.hamoon.uncleted.util.RadioIsolationManager
 
+/**
+ * GrapheneOS Device Owner strategy. All privileged operations route through
+ * DevicePolicyManager supported APIs; this fork never bypasses platform
+ * boundaries with root, LSPosed, kernel SysFS, or privileged shell commands.
+ *
+ * Standard factory reset is the only destructive operation; UncleTed does not
+ * perform StrongBox suicide-key preprocessing, partition destruction, raw block
+ * device operations, or Level 2/3/4 routines in this fork.
+ */
 class DeviceOwnerStrategy(
     private val context: Context,
     private val dpm: DevicePolicyManager,
@@ -23,32 +29,26 @@ class DeviceOwnerStrategy(
         private const val TAG = "DeviceOwnerStrategy"
     }
 
-    override val profileName: String = "DEVICE_OWNER_AVB_LOCKED"
+    override val profileName: String = "DEVICE_OWNER_GRAPHENEOS"
     override val isHardwareSecured: Boolean = true
+    override val isDeviceOwnerProvisioned: Boolean
+        get() = dpm.isDeviceOwnerApp(context.packageName)
 
     init {
         enforcePersistentBaselineRestrictions()
     }
 
     private fun enforcePersistentBaselineRestrictions() {
+        if (!isDeviceOwnerProvisioned) return
         try {
-            if (SecurityPreferences.isSafeBootBlocked(context)) {
-                applySafeBootPolicy(true)
-            } else {
-                applySafeBootPolicy(false)
-            }
-
-            if (SecurityPreferences.isHardware2GDisabled(context)) {
-                applyCellular2GPolicy(true)
-            } else {
-                applyCellular2GPolicy(false)
-            }
+            applySafeBootPolicy(SecurityPreferences.isSafeBootBlocked(context))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to apply baseline restrictions", e)
         }
     }
 
     private fun applySafeBootPolicy(blocked: Boolean) {
+        if (!isDeviceOwnerProvisioned) return
         try {
             if (blocked) {
                 dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
@@ -68,36 +68,18 @@ class DeviceOwnerStrategy(
         applySafeBootPolicy(blocked)
     }
 
-    private fun applyCellular2GPolicy(blocked: Boolean) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            try {
-                if (blocked) {
-                    dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CELLULAR_2G)
-                    Log.i(TAG, "Device Owner applied DISALLOW_CELLULAR_2G user restriction.")
-                    EventLogger.log(context, "POLICY: 2G cellular disallowed by Device Owner.")
-                } else {
-                    dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_CELLULAR_2G)
-                    Log.i(TAG, "Device Owner cleared DISALLOW_CELLULAR_2G user restriction.")
-                    EventLogger.log(context, "POLICY: 2G cellular restriction removed by Device Owner.")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed updating DISALLOW_CELLULAR_2G policy: ${e.message}", e)
-            }
-        } else {
-            Log.w(TAG, "DISALLOW_CELLULAR_2G requires Android 14+ (API 34+). Skipping Device Owner user restriction.")
-        }
-    }
-
-    override suspend fun setCellular2GBlocked(blocked: Boolean) {
-        applyCellular2GPolicy(blocked)
-    }
-
     /**
      * Unified whole-device factory reset routine for Device Owner installations.
-     * Uses dpm.wipeDevice() on Android 14+ (API 34+) to avoid IllegalStateException on User 0,
-     * and cleanly falls back to dpm.wipeData() on older supported versions.
+     * Uses dpm.wipeDevice() on Android 14+ (API 34+) to avoid IllegalStateException
+     * on User 0, and cleanly falls back to dpm.wipeData() on older supported versions.
      */
     private fun requestWholeDeviceWipe(reason: String) {
+        if (!isDeviceOwnerProvisioned) {
+            Log.w(TAG, "Standard wipe requested but Device Owner is not provisioned: $reason")
+            EventLogger.log(context, "WIPE_SKIPPED: Device Owner not provisioned ($reason).")
+            return
+        }
+
         val flags = DevicePolicyManager.WIPE_EXTERNAL_STORAGE or DevicePolicyManager.WIPE_SILENTLY
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -119,29 +101,17 @@ class DeviceOwnerStrategy(
         }
     }
 
-    override suspend fun executeWipe(reason: String) {
-        Log.e(TAG, "Executing hardware cryptographic erasure via Secure Element (Reason: $reason)")
-        EventLogger.log(context, "CRITICAL: Hardware-backed cryptographic wipe triggered: $reason")
-
-        // 1. Immediately destroy discrete StrongBox Master Suicide Key in silicon
-        StrongBoxSecurityManager.executeMasterKeySuicide(context)
-
-        // 2. Sever all radio communications
-        isolateRadiosAndNetwork()
-
-        // 3. Command Titan M2 / Weaver / KeyMint to revoke all File-Based Encryption keys via platform reset
-        requestWholeDeviceWipe(reason)
-    }
-
     override suspend fun executeStandardWipe(reason: String) {
         Log.i(TAG, "Executing standard platform wipe / factory reset (Reason: $reason)")
         EventLogger.log(context, "STANDARD_WIPE: Executing normal factory reset via Device Owner.")
-
-        // Do NOT destroy discrete StrongBox suicide key in silicon; trigger standard platform reset
         requestWholeDeviceWipe(reason)
     }
 
     override suspend fun setUsbDataPortEnabled(enabled: Boolean) {
+        if (!isDeviceOwnerProvisioned) {
+            Log.w(TAG, "USB policy change skipped: Device Owner not provisioned.")
+            return
+        }
         Log.i(TAG, "Configuring hardware USB data signaling: enabled=$enabled")
         EventLogger.log(context, "HARDWARE: USB data signaling toggled: enabled=$enabled")
 
@@ -178,6 +148,7 @@ class DeviceOwnerStrategy(
     }
 
     override suspend fun configureBruteForceThreshold(maxFailedAttempts: Int) {
+        if (!isDeviceOwnerProvisioned) return
         try {
             dpm.setMaximumFailedPasswordsForWipe(adminComponent, maxFailedAttempts)
             Log.i(TAG, "Hardware Gatekeeper/Weaver max failed attempts configured to: $maxFailedAttempts")
@@ -187,6 +158,12 @@ class DeviceOwnerStrategy(
     }
 
     override suspend fun evictMemoryKeysAndLock() {
+        if (!isDeviceOwnerProvisioned) {
+            try {
+                dpm.lockNow()
+            } catch (_: Exception) {}
+            return
+        }
         Log.w(TAG, "Evicting Credential-Encrypted (CE) keys to cold BFU state via native Device Owner reboot.")
         EventLogger.log(context, "ANTI-FORENSICS: Executing Device Owner native cold reboot to revert into BFU state.")
 
@@ -203,6 +180,7 @@ class DeviceOwnerStrategy(
     }
 
     override suspend fun disableBiometrics(disable: Boolean) {
+        if (!isDeviceOwnerProvisioned) return
         val flags = if (disable) {
             DevicePolicyManager.KEYGUARD_DISABLE_BIOMETRICS or
                     DevicePolicyManager.KEYGUARD_DISABLE_FINGERPRINT or
@@ -216,21 +194,5 @@ class DeviceOwnerStrategy(
         } catch (e: Exception) {
             Log.e(TAG, "Failed modifying Keyguard disabled features", e)
         }
-    }
-
-    override suspend fun isolateRadiosAndNetwork() {
-        Log.e(TAG, "Applying Device Owner radio isolation policies...")
-        try {
-            dpm.setGlobalSetting(adminComponent, Settings.Global.AIRPLANE_MODE_ON, "1")
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed enforcing global airplane mode via DPM: ${e.message}")
-        }
-        RadioIsolationManager.isolateAllCommunications(context)
-    }
-
-    override suspend fun cutBasebandRadioHardware() {
-        Log.e(TAG, "Cutting baseband radio via Device Owner global network isolation...")
-        EventLogger.log(context, "BASEBAND: Cutting cellular radio via Device Owner policy.")
-        isolateRadiosAndNetwork()
     }
 }

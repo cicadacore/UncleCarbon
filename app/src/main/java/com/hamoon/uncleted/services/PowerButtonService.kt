@@ -8,20 +8,38 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
+import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.data.SecurityPreferences
-import com.hamoon.uncleted.util.DeviceAdminHelper
+import com.hamoon.uncleted.util.EventLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 
+/**
+ * Rapid Volume Sequence AccessibilityService.
+ *
+ * Monitors VOL UP -> VOL DOWN -> VOL UP -> VOL DOWN pressed quickly to trigger
+ * the standard Device Owner factory reset. The service requests the hardware
+ * key filtering capability both in `res/xml/accessibility_service_config.xml`
+ * (via `canRequestFilterKeyEvents="true"` and `accessibilityFlags` that include
+ * `flagRequestFilterKeyEvents`) and here, by unioning the required flag into
+ * the live `AccessibilityServiceInfo` without overwriting defaults with zeros.
+ *
+ * Enabling the service is a runtime prerequisite: if the user has not enabled
+ * Accessibility access for this app, the UI explains that. This is NOT a
+ * GrapheneOS-specific restriction, and the volume sequence must not fall back
+ * to any root/kernel path.
+ */
 class PowerButtonService : AccessibilityService() {
 
     private val tag = "PowerButtonService"
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     // Hardware Wipe Sequence: [VOL_UP, VOL_DOWN, VOL_UP, VOL_DOWN]
-    private val WIPE_SEQUENCE = listOf(
+    private val wipeSequence = listOf(
         KeyEvent.KEYCODE_VOLUME_UP,
         KeyEvent.KEYCODE_VOLUME_DOWN,
         KeyEvent.KEYCODE_VOLUME_UP,
@@ -29,18 +47,29 @@ class PowerButtonService : AccessibilityService() {
     )
     private var sequenceIndex = 0
     private var lastPressTime = 0L
-    private val SEQUENCE_TIMEOUT = 2000L
+    private val sequenceTimeoutMs = 2000L
+
+    // Guards against duplicate wipe calls from repeated key events during the
+    // tiny window between sequence detection and the Device Owner wipe actually
+    // tearing down the service.
+    private val wipeTriggered = AtomicBoolean(false)
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         Log.i(tag, "Accessibility Service connected.")
 
-        val info = serviceInfo ?: AccessibilityServiceInfo()
-        info.packageNames = null
-        info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-        info.eventTypes = 0
-        info.flags = 0
-        serviceInfo = info
+        // Merge the hardware key filtering flag into the live service info without
+        // wiping other flags/eventTypes to zero. The config XML already declares
+        // canRequestFilterKeyEvents and the required accessibilityFlags; this is a
+        // defensive runtime union in case the system has reset the live info.
+        try {
+            val info = serviceInfo ?: AccessibilityServiceInfo()
+            info.flags = info.flags or AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
+            serviceInfo = info
+            Log.i(tag, "AccessibilityServiceInfo.flags=${info.flags} (FILTER_KEY_EVENTS requested)")
+        } catch (e: Exception) {
+            Log.e(tag, "Failed updating AccessibilityServiceInfo flags", e)
+        }
 
         Handler(Looper.getMainLooper()).post {
             Toast.makeText(applicationContext, "Uncle Ted Service: ACTIVE", Toast.LENGTH_SHORT).show()
@@ -52,46 +81,62 @@ class PowerButtonService : AccessibilityService() {
             return super.onKeyEvent(event)
         }
 
-        if (event.action == KeyEvent.ACTION_UP) {
-            val keyCode = event.keyCode
-
-            if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                val now = System.currentTimeMillis()
-
-                if (now - lastPressTime > SEQUENCE_TIMEOUT) {
-                    sequenceIndex = 0
-                }
-
-                if (keyCode == WIPE_SEQUENCE[sequenceIndex]) {
-                    sequenceIndex++
-                    lastPressTime = now
-
-                    if (sequenceIndex == WIPE_SEQUENCE.size) {
-                        Log.e(tag, "Hardware wipe sequence matched. Initiating wipe protocol.")
-                        sequenceIndex = 0
-
-                        Handler(Looper.getMainLooper()).post {
-                            Toast.makeText(applicationContext, "⚠️ EMERGENCY WIPE TRIGGERED ⚠️", Toast.LENGTH_LONG).show()
-                        }
-
-                        triggerHardwareWipe()
-                        return true
-                    }
-                } else {
-                    sequenceIndex = if (keyCode == WIPE_SEQUENCE[0]) 1 else 0
-                    lastPressTime = now
-                }
-            }
+        if (event.action != KeyEvent.ACTION_UP) {
+            return super.onKeyEvent(event)
         }
+
+        val keyCode = event.keyCode
+        if (keyCode != KeyEvent.KEYCODE_VOLUME_UP && keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) {
+            return super.onKeyEvent(event)
+        }
+
+        val now = System.currentTimeMillis()
+        if (now - lastPressTime > sequenceTimeoutMs) {
+            sequenceIndex = 0
+        }
+
+        if (keyCode == wipeSequence[sequenceIndex]) {
+            sequenceIndex++
+            lastPressTime = now
+
+            if (sequenceIndex == wipeSequence.size) {
+                sequenceIndex = 0
+                if (wipeTriggered.compareAndSet(false, true)) {
+                    Log.e(tag, "Rapid volume sequence matched. Initiating standard factory reset.")
+                    EventLogger.log(this, "ACCESSIBILITY: Rapid volume sequence matched -> standard factory reset.")
+
+                    Handler(Looper.getMainLooper()).post {
+                        Toast.makeText(applicationContext, "EMERGENCY FACTORY RESET TRIGGERED", Toast.LENGTH_LONG).show()
+                    }
+
+                    triggerStandardFactoryReset()
+                } else {
+                    Log.d(tag, "Standard factory reset already in flight; ignoring repeated match.")
+                }
+                return true
+            }
+        } else {
+            // If this key is the start of a new attempt, remember it; otherwise reset.
+            sequenceIndex = if (keyCode == wipeSequence[0]) 1 else 0
+            lastPressTime = now
+        }
+
         return super.onKeyEvent(event)
     }
 
-    private fun triggerHardwareWipe() {
-        PanicActionService.trigger(this, "HARDWARE_BUTTON_WIPE", PanicActionService.Severity.CRITICAL)
-        try {
-            DeviceAdminHelper.wipeDeviceImmediately(this)
-        } catch (e: Exception) {
-            Log.e(tag, "Wipe execution error: ${e.message}")
+    /**
+     * Routes to the single standard Device Owner factory-reset path. No
+     * StrongBox suicide preprocessing, no raw storage destruction, no root
+     * commands. Exactly one wipe request per completed sequence.
+     */
+    private fun triggerStandardFactoryReset() {
+        serviceScope.launch {
+            try {
+                val strategy = DefenseCoordinator.resolveStrategy(applicationContext)
+                strategy.executeStandardWipe("RAPID_VOLUME_SEQUENCE")
+            } catch (e: Exception) {
+                Log.e(tag, "Standard factory reset invocation failed: ${e.message}", e)
+            }
         }
     }
 

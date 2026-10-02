@@ -50,26 +50,6 @@
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant" />
 
-            <!-- Optional PIN Challenge -->
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/layout_pin_challenge"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:visibility="gone"
-                app:passwordToggleEnabled="true">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_pin_entry"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Enter PIN to confirm"
-                    android:inputType="numberPassword"
-                    android:maxLength="8"
-                    android:textAlignment="center" />
-            </com.google.android.material.textfield.TextInputLayout>
-
             <!-- Buttons -->
             <LinearLayout
                 android:layout_width="match_parent"

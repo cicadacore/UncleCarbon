@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?attr/colorSurfaceVariant">
@@ -12,7 +11,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- 1. EVIDENCE LOCKER & MEDIA VIEWER -->
+        <!-- 1. EVIDENCE LOCKER -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -67,7 +66,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 2. RECORDING DURATIONS & HARDWARE CONFIGURATION -->
+        <!-- 2. RECORDING DURATIONS -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -88,15 +87,6 @@
                     android:textAppearance="?attr/textAppearanceTitleMedium"
                     android:textColor="?attr/colorPrimary" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="Configure exact surveillance capture duration and enabled optical hardware."
-                    android:textAppearance="?attr/textAppearanceBodySmall"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
-
-                <!-- Video Duration Dropdown -->
                 <com.google.android.material.textfield.TextInputLayout
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
@@ -111,7 +101,6 @@
                         android:inputType="none" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- Audio Duration Dropdown -->
                 <com.google.android.material.textfield.TextInputLayout
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
@@ -213,7 +202,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Hardware Sensors &amp; Identity Anchors"
+                    android:text="Hardware Sensors &amp; SIM Tripwires"
                     android:textAppearance="?attr/textAppearanceTitleMedium" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
@@ -232,6 +221,14 @@
                     android:textColor="?attr/colorError" />
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_wipe_on_sim_replacement"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/feature_wipe_on_sim_replacement"
+                    android:textColor="?attr/colorError" />
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/switch_shake_to_panic"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -241,58 +238,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 5. PRIVILEGED INPUT & SURFACE SURVEILLANCE (ROOT) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_root_surveillance"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/root_surveillance_title"
-                    android:textAppearance="?attr/textAppearanceTitleMedium" />
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switch_stealth_screenshot"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/root_feature_stealth_screenshot" />
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switch_keylogger"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/root_feature_keylogger" />
-
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switch_stealth_media"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/root_feature_stealth_media" />
-
-                <Button
-                    android:id="@+id/btn_view_keylog_buffer"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="Inspect &amp; Export Captured Keylog Buffer" />
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- 6. MANUAL EVIDENCE CAPTURE ACTIONS -->
+        <!-- 5. MANUAL EVIDENCE CAPTURE ACTIONS -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -327,15 +273,6 @@
                     android:layout_marginTop="8dp"
                     android:text="Capture Full Evidence Dossier"
                     app:icon="@drawable/ic_selfie_24" />
-
-                <Button
-                    android:id="@+id/btn_manual_stealth_screenshot"
-                    style="@style/Widget.Material3.Button.OutlinedButton.Icon"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Capture Stealth Surface Screenshot"
-                    app:icon="@drawable/ic_touch_app_24" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

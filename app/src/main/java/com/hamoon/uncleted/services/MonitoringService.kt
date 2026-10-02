@@ -19,13 +19,9 @@ import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.proximity.BleProximitySentinel
 import com.hamoon.uncleted.receivers.ScreenStateReceiver
 import com.hamoon.uncleted.sentinels.AdvancedBasebandSentinel
-import com.hamoon.uncleted.sentinels.FaradayBlackoutSentinel
-import com.hamoon.uncleted.sentinels.PmicTamperSentinel
 import com.hamoon.uncleted.sentinels.SpectralSentinel
-import com.hamoon.uncleted.util.Keylogger
 import com.hamoon.uncleted.util.MotionDetector
 import com.hamoon.uncleted.util.NotificationHelper
-import com.hamoon.uncleted.util.RootChecker
 import com.hamoon.uncleted.util.ShakeDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -42,7 +38,6 @@ class MonitoringService : LifecycleService(), SensorEventListener {
 
     private var advancedBasebandSentinel: AdvancedBasebandSentinel? = null
     private var spectralSentinel: SpectralSentinel? = null
-    private var pmicSentinel: PmicTamperSentinel? = null
     private var bleProximitySentinel: BleProximitySentinel? = null
     private var screenStateReceiver: ScreenStateReceiver? = null
 
@@ -85,13 +80,13 @@ class MonitoringService : LifecycleService(), SensorEventListener {
             )
 
             val strategy = DefenseCoordinator.resolveStrategy(applicationContext)
-            activeProfileName = if (strategy.isHardwareSecured) "Route A (Device Owner)" else "Route B (Root/LSPosed)"
-            val isRooted = RootChecker.isDeviceRooted()
+            activeProfileName = if (strategy.isDeviceOwnerProvisioned) {
+                "GrapheneOS Device Owner"
+            } else {
+                "Device Owner Not Provisioned"
+            }
 
             spectralSentinel = SpectralSentinel(applicationContext)
-            pmicSentinel = PmicTamperSentinel(applicationContext).apply {
-                probeSupportAsync()
-            }
 
             withContext(Dispatchers.Main) {
                 if (accelerometer != null) {
@@ -108,8 +103,6 @@ class MonitoringService : LifecycleService(), SensorEventListener {
                     start()
                 }
 
-                FaradayBlackoutSentinel.initialize(applicationContext)
-
                 if (SecurityPreferences.isProximityShardingEnabled(applicationContext)) {
                     bleProximitySentinel = BleProximitySentinel(applicationContext).apply {
                         start()
@@ -123,15 +116,11 @@ class MonitoringService : LifecycleService(), SensorEventListener {
                 screenStateReceiver = ScreenStateReceiver()
                 registerReceiver(screenStateReceiver, screenFilter)
 
-                if (isRooted && (SecurityPreferences.isHardwareWipeEnabled(this@MonitoringService) || SecurityPreferences.isKeyloggerEnabled(this@MonitoringService))) {
-                    Keylogger.startHardwareKeyMonitor(applicationContext)
-                }
-
                 refreshNotificationTelemetry()
                 startSentinelPoller()
             }
 
-            Log.i(TAG, "MonitoringService: Sensors, Spectral, PMIC, Baseband, and Proximity Sentinels active.")
+            Log.i(TAG, "MonitoringService: Sensors, Spectral, Baseband, and Proximity Sentinels active.")
         } catch (e: Exception) {
             Log.e(TAG, "Failed initializing monitoring components: ${e.message}", e)
         }
@@ -145,7 +134,6 @@ class MonitoringService : LifecycleService(), SensorEventListener {
             while (isActive) {
                 try {
                     spectralSentinel?.evaluateSpectralCollapse()
-                    pmicSentinel?.inspectHardwareTelemetry()
 
                     val now = System.currentTimeMillis()
                     if (now - lastNotificationUpdate >= NOTIFICATION_UPDATE_INTERVAL_MS) {
@@ -181,7 +169,6 @@ class MonitoringService : LifecycleService(), SensorEventListener {
         val list = mutableListOf<String>()
         if (SecurityPreferences.isSpectralSentinelEnabled(this)) list.add("Spectral")
         if (SecurityPreferences.isBasebandSentinelEnabled(this)) list.add("Baseband")
-        if (SecurityPreferences.isPmicTamperEnabled(this)) list.add("PMIC")
         if (SecurityPreferences.isProximityShardingEnabled(this)) list.add("BLE")
         return if (list.isNotEmpty()) list.joinToString(" • ") else "Baseline Active"
     }
@@ -244,7 +231,6 @@ class MonitoringService : LifecycleService(), SensorEventListener {
         advancedBasebandSentinel?.stop()
         advancedBasebandSentinel = null
         spectralSentinel = null
-        pmicSentinel = null
         Log.d(TAG, "MonitoringService stopped.")
         super.onDestroy()
     }

@@ -9,14 +9,10 @@ import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.services.PanicActionService
 import com.hamoon.uncleted.util.EventLogger
 import com.hamoon.uncleted.util.PermissionUtils
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 class BasebandDowngradeSentinel(private val context: Context) {
 
@@ -149,18 +145,10 @@ class BasebandDowngradeSentinel(private val context: Context) {
     }
 
     private fun triggerRadioCountermeasures() {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val strategy = DefenseCoordinator.resolveStrategy(context)
-                strategy.isolateRadiosAndNetwork()
-                PanicActionService.trigger(
-                    context,
-                    "STINGRAY_2G_DOWNGRADE_DETECTED",
-                    PanicActionService.Severity.HIGH
-                )
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed executing radio cutoff countermeasures", e)
-            }
-        }
+        PanicActionService.trigger(
+            context,
+            "STINGRAY_2G_DOWNGRADE_DETECTED",
+            PanicActionService.Severity.HIGH
+        )
     }
 }

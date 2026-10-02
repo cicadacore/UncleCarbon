@@ -1,17 +1,12 @@
 package com.hamoon.uncleted.fragments
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.TextView
 import android.widget.Toast
-import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -20,9 +15,6 @@ import com.hamoon.uncleted.R
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.databinding.FragmentSurveillanceBinding
 import com.hamoon.uncleted.services.PanicActionService
-import com.hamoon.uncleted.util.Keylogger
-import com.hamoon.uncleted.util.RootActions
-import com.hamoon.uncleted.util.RootChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -30,11 +22,18 @@ import java.io.File
 import java.io.RandomAccessFile
 import java.util.Locale
 
+/**
+ * Surveillance / Evidence configuration.
+ *
+ * Removed from this fork (root-only, unavailable on GrapheneOS unrooted):
+ *   - Stealth root screencap screenshots
+ *   - /dev/input kernel keylogger
+ *   - Stealth-media capture using privileged APIs
+ */
 class SurveillanceFragment : Fragment() {
 
     private var _binding: FragmentSurveillanceBinding? = null
     private val binding get() = _binding!!
-    private var isRooted = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -48,12 +47,6 @@ class SurveillanceFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         loadSettings()
         setupListeners()
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            isRooted = withContext(Dispatchers.IO) { RootChecker.isDeviceRooted() }
-            binding.cardRootSurveillance.isVisible = isRooted
-            binding.btnManualStealthScreenshot.isVisible = isRooted
-        }
     }
 
     override fun onResume() {
@@ -64,31 +57,23 @@ class SurveillanceFragment : Fragment() {
     private fun loadSettings() {
         val context = requireContext()
 
-        // 1. Camera & Audio Toggles
         binding.switchRecordVideo.isChecked = SecurityPreferences.isRecordVideoEnabled(context)
         binding.switchAmbientAudio.isChecked = SecurityPreferences.isAmbientAudioEnabled(context)
 
-        // 2. Durations and Optical Hardware Dropdowns
         setupVideoDurationDropdown(SecurityPreferences.getVideoRecordingDurationSeconds(context))
         setupAudioDurationDropdown(SecurityPreferences.getAudioRecordingDurationSeconds(context))
         binding.switchFrontCamera.isChecked = SecurityPreferences.isFrontCameraCaptureEnabled(context)
         binding.switchBackCamera.isChecked = SecurityPreferences.isBackCameraCaptureEnabled(context)
 
-        // 3. Intruder Selfie
         val intruderEnabled = SecurityPreferences.isIntruderSelfieEnabled(context)
         binding.switchIntruderSelfie.isChecked = intruderEnabled
         binding.switchSaveSelfieToStorage.isChecked = SecurityPreferences.isSaveSelfieToStorageEnabled(context)
         binding.switchSaveSelfieToStorage.isEnabled = intruderEnabled
 
-        // 4. Environmental Sensors
         binding.switchSimChange.isChecked = SecurityPreferences.isSimChangeAlertEnabled(context)
         binding.switchWipeOnSimRemoval.isChecked = SecurityPreferences.isWipeOnSimRemovalEnabled(context)
+        binding.switchWipeOnSimReplacement.isChecked = SecurityPreferences.isWipeOnSimReplacementEnabled(context)
         binding.switchShakeToPanic.isChecked = SecurityPreferences.isShakeToPanicEnabled(context)
-
-        // 5. Privileged Root Surveillance
-        binding.switchStealthScreenshot.isChecked = SecurityPreferences.isStealthScreenshotEnabled(context)
-        binding.switchKeylogger.isChecked = SecurityPreferences.isKeyloggerEnabled(context)
-        binding.switchStealthMedia.isChecked = SecurityPreferences.isStealthMediaCaptureEnabled(context)
     }
 
     private fun setupVideoDurationDropdown(currentSeconds: Int) {
@@ -122,8 +107,7 @@ class SurveillanceFragment : Fragment() {
                 files?.forEach { f ->
                     val name = f.name
                     if (name.startsWith("IMG_") || name.startsWith("VID_") ||
-                        name.startsWith("AUD_") || name.startsWith("sc_") ||
-                        name.endsWith(".dng", ignoreCase = true)) {
+                        name.startsWith("AUD_") || name.endsWith(".dng", ignoreCase = true)) {
                         count++
                         bytes += f.length()
                     }
@@ -156,17 +140,15 @@ class SurveillanceFragment : Fragment() {
     private fun setupListeners() {
         val context = requireContext()
 
-        // Evidence Gallery Launch
         binding.btnOpenEvidenceGallery.setOnClickListener {
             val intent = Intent(context, EvidenceGalleryActivity::class.java)
             startActivity(intent)
         }
 
-        // Purge All Evidence
         binding.btnPurgeAllEvidence.setOnClickListener {
             MaterialAlertDialogBuilder(context)
-                .setTitle("⚠️ PURGE ALL EVIDENCE FILES ⚠️")
-                .setMessage("Zero-fill and permanently delete all recorded surveillance videos, audio files, photos, and screenshots?")
+                .setTitle("Purge All Evidence Files")
+                .setMessage("Zero-fill and permanently delete all recorded surveillance videos, audio files, and photos?")
                 .setPositiveButton("Shred All") { _, _ ->
                     viewLifecycleOwner.lifecycleScope.launch {
                         withContext(Dispatchers.IO) {
@@ -174,8 +156,7 @@ class SurveillanceFragment : Fragment() {
                             context.filesDir.listFiles()?.forEach { f ->
                                 val name = f.name
                                 if (name.startsWith("IMG_") || name.startsWith("VID_") ||
-                                    name.startsWith("AUD_") || name.startsWith("sc_") ||
-                                    name.endsWith(".dng", ignoreCase = true)) {
+                                    name.startsWith("AUD_") || name.endsWith(".dng", ignoreCase = true)) {
                                     targets.add(f)
                                 }
                             }
@@ -211,7 +192,6 @@ class SurveillanceFragment : Fragment() {
                 .show()
         }
 
-        // Video Duration Selection
         binding.autoVideoDuration.setOnItemClickListener { _, _, position, _ ->
             val values = resources.getStringArray(R.array.video_duration_values)
             val selectedSec = values[position].toInt()
@@ -219,7 +199,6 @@ class SurveillanceFragment : Fragment() {
             Toast.makeText(context, "Video duration set to $selectedSec seconds.", Toast.LENGTH_SHORT).show()
         }
 
-        // Audio Duration Selection
         binding.autoAudioDuration.setOnItemClickListener { _, _, position, _ ->
             val values = resources.getStringArray(R.array.audio_duration_values)
             val selectedSec = values[position].toInt()
@@ -259,11 +238,11 @@ class SurveillanceFragment : Fragment() {
         binding.switchWipeOnSimRemoval.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 MaterialAlertDialogBuilder(context)
-                    .setTitle("WIPE ON SIM REMOVAL")
-                    .setMessage("WARNING: If the SIM card is ejected or lost, the device will immediately trigger cryptographic destruction. Proceed?")
+                    .setTitle("Factory Reset on SIM Removal")
+                    .setMessage("If the SIM card is ejected after this is armed, the device will immediately execute a standard Device Owner factory reset. Proceed?")
                     .setPositiveButton("Enable Tripwire") { _, _ ->
                         SecurityPreferences.setWipeOnSimRemovalEnabled(context, true)
-                        Toast.makeText(context, "SIM Removal Wipe Armed.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "SIM Removal factory reset armed.", Toast.LENGTH_SHORT).show()
                     }
                     .setNegativeButton("Cancel") { _, _ ->
                         binding.switchWipeOnSimRemoval.isChecked = false
@@ -275,29 +254,27 @@ class SurveillanceFragment : Fragment() {
             }
         }
 
-        binding.switchShakeToPanic.setOnCheckedChangeListener { _, isChecked ->
-            SecurityPreferences.setShakeToPanicEnabled(context, isChecked)
-        }
-
-        binding.switchStealthScreenshot.setOnCheckedChangeListener { _, isChecked ->
-            SecurityPreferences.setStealthScreenshotEnabled(context, isChecked)
-        }
-
-        binding.switchKeylogger.setOnCheckedChangeListener { _, isChecked ->
-            SecurityPreferences.setKeyloggerEnabled(context, isChecked)
+        binding.switchWipeOnSimReplacement.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
-                Keylogger.start(context)
+                MaterialAlertDialogBuilder(context)
+                    .setTitle("Factory Reset on SIM Replacement")
+                    .setMessage("If the SIM card is swapped for a different one, the device will immediately execute a standard Device Owner factory reset. Proceed?")
+                    .setPositiveButton("Enable Tripwire") { _, _ ->
+                        SecurityPreferences.setWipeOnSimReplacementEnabled(context, true)
+                        Toast.makeText(context, "SIM Replacement factory reset armed.", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Cancel") { _, _ ->
+                        binding.switchWipeOnSimReplacement.isChecked = false
+                        SecurityPreferences.setWipeOnSimReplacementEnabled(context, false)
+                    }
+                    .show()
             } else {
-                Keylogger.stop()
+                SecurityPreferences.setWipeOnSimReplacementEnabled(context, false)
             }
         }
 
-        binding.switchStealthMedia.setOnCheckedChangeListener { _, isChecked ->
-            SecurityPreferences.setStealthMediaCaptureEnabled(context, isChecked)
-        }
-
-        binding.btnViewKeylogBuffer.setOnClickListener {
-            showKeylogBufferDialog()
+        binding.switchShakeToPanic.setOnCheckedChangeListener { _, isChecked ->
+            SecurityPreferences.setShakeToPanicEnabled(context, isChecked)
         }
 
         binding.btnManualLocationAlert.setOnClickListener {
@@ -309,48 +286,6 @@ class SurveillanceFragment : Fragment() {
             Toast.makeText(context, "Capturing multi-modal evidence burst...", Toast.LENGTH_SHORT).show()
             PanicActionService.trigger(context, "REMOTE_EVIDENCE", PanicActionService.Severity.HIGH)
         }
-
-        binding.btnManualStealthScreenshot.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                val sc = RootActions.takeStealthScreenshot(context)
-                withContext(Dispatchers.Main) {
-                    if (sc != null && sc.exists()) {
-                        refreshEvidenceMetrics()
-                        Toast.makeText(context, "Screenshot captured: ${sc.name}", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Stealth screenshot failed.", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-    }
-
-    private fun showKeylogBufferDialog() {
-        val context = requireContext()
-        val keylogData = SecurityPreferences.getKeylogData(context)
-
-        val textView = TextView(context).apply {
-            text = if (keylogData.isBlank()) "(Keylog buffer is currently empty)" else keylogData
-            setPadding(48, 24, 48, 24)
-            setTextIsSelectable(true)
-            typeface = android.graphics.Typeface.MONOSPACE
-            textSize = 12f
-        }
-
-        MaterialAlertDialogBuilder(context)
-            .setTitle("Captured Input Log Buffer")
-            .setView(textView)
-            .setPositiveButton("Copy") { _, _ ->
-                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("UncleTed_Keylogs", keylogData))
-                Toast.makeText(context, "Keylog data copied to clipboard.", Toast.LENGTH_SHORT).show()
-            }
-            .setNeutralButton("Clear Buffer") { _, _ ->
-                SecurityPreferences.clearKeylogData(context)
-                Toast.makeText(context, "Keylog buffer cleared.", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("Close", null)
-            .show()
     }
 
     override fun onDestroyView() {

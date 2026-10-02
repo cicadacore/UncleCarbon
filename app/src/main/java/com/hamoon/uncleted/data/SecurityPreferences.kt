@@ -7,11 +7,7 @@ import android.os.UserManager
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import com.hamoon.uncleted.util.CredentialBridge
 import com.hamoon.uncleted.util.PolygonUtils
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -84,6 +80,82 @@ object SecurityPreferences {
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
+    }
+
+    /**
+     * Removes legacy preference keys that correspond to features removed from this
+     * GrapheneOS fork (root/LSPosed hooks, PIN/Honeypot subsystem, PMIC telemetry,
+     * raw USB UDC tripwire, 2G user restriction, Level 2/3/4 destruction protocols,
+     * kernel memory hardening). Safe to call repeatedly.
+     */
+    fun migrateObsoletePreferences(context: Context) {
+        val obsoleteKeys = listOf(
+            // PIN / Honeypot / Decoy subsystem
+            "NORMAL_PIN", "DURESS_PIN", "WIPE_PIN", "HONEYPOT_PIN", "DECOY_USER_ID",
+            "BFU_NORMAL_PIN", "BFU_DURESS_PIN", "BFU_WIPE_PIN", "BFU_HONEYPOT_PIN", "BFU_DECOY_USER_ID",
+            "HONEYPOT_INTEL",
+            "DECOY_WHATSAPP_ENABLED", "DECOY_SIGNAL_ENABLED", "DECOY_TELEGRAM_ENABLED",
+            "DECOY_THREEMA_ENABLED", "DECOY_SESSION_ENABLED", "DECOY_APP_ACTION",
+            "BFU_DECOY_WHATSAPP_ENABLED", "BFU_DECOY_SIGNAL_ENABLED",
+            "BFU_DECOY_TELEGRAM_ENABLED", "BFU_DECOY_THREEMA_ENABLED",
+            "BFU_DECOY_SESSION_ENABLED", "BFU_DECOY_APP_ACTION",
+            "AIRPLANE_PIN_CHALLENGE", "BFU_AIRPLANE_PIN_CHALLENGE",
+            // Root-exclusive features
+            "ROOT_GPS_SPOOFING", "ROOT_DECOY_GPS_LOCATION", "ROOT_SILENT_INSTALL",
+            "ROOT_REMOTE_APK_URL", "ROOT_FIREWALL_TRIPWIRE", "ROOT_SECURE_WIPE",
+            "ROOT_SYSTEM_APP", "ROOT_UNKILLABLE_SERVICE", "ROOT_PROCESS_HIDDEN",
+            "ROOT_STEALTH_SCREENSHOT", "ROOT_KEYLOGGER", "ROOT_STEALTH_MEDIA",
+            "KEYLOG_DATA",
+            // ZRAM / kernel memory scrubbing
+            "ZRAM_SCRUBBING_ENABLED", "BFU_ZRAM_SCRUBBING_ENABLED",
+            "ZRAM_REKEYING_ENABLED", "BFU_ZRAM_REKEYING_ENABLED",
+            // PMIC telemetry
+            "PMIC_TAMPER_ENABLED", "BFU_PMIC_TAMPER_ENABLED",
+            "PMIC_IMPEDANCE_DELTA", "BFU_PMIC_IMPEDANCE_DELTA",
+            "PMIC_THERMAL_DELTA", "BFU_PMIC_THERMAL_DELTA",
+            // Raw USB UDC tripwire
+            "USB_TRIPWIRE_ENABLED", "BFU_USB_TRIPWIRE_ENABLED",
+            "USB_REQUIRED_HITS", "BFU_USB_REQUIRED_HITS",
+            // UncleTed 2G restriction (GrapheneOS has its own OS-level 2G control)
+            "HARDWARE_2G_DISABLED", "BFU_HARDWARE_2G_DISABLED",
+            // Faraday blackout receiver removed
+            "FARADAY_BLACKOUT_ENABLED", "BFU_FARADAY_BLACKOUT_ENABLED",
+            "FARADAY_DURATION_HOURS", "BFU_FARADAY_DURATION_HOURS"
+        )
+
+        try {
+            if (isUserUnlocked(context)) {
+                val editor = getInstance(context).edit()
+                obsoleteKeys.forEach { editor.remove(it) }
+                editor.apply()
+            }
+        } catch (_: Exception) {
+            // Encrypted prefs may not initialize for stale installs; ignore.
+        }
+
+        try {
+            val deEditor = getDeviceProtectedPrefs(context).edit()
+            obsoleteKeys.forEach { deEditor.remove(it) }
+            deEditor.apply()
+        } catch (_: Exception) {}
+
+        // Migrate single-toggle SIM wipe preference into separate removal/replacement toggles
+        try {
+            val dePrefs = getDeviceProtectedPrefs(context)
+            if (dePrefs.contains("BFU_WIPE_ON_SIM_REMOVAL") &&
+                !dePrefs.contains("BFU_WIPE_ON_SIM_REPLACEMENT")) {
+                val legacy = dePrefs.getBoolean("BFU_WIPE_ON_SIM_REMOVAL", false)
+                dePrefs.edit().putBoolean("BFU_WIPE_ON_SIM_REPLACEMENT", legacy).apply()
+            }
+            if (isUserUnlocked(context)) {
+                val prefs = getInstance(context)
+                if (prefs.contains("WIPE_ON_SIM_REMOVAL") &&
+                    !prefs.contains("WIPE_ON_SIM_REPLACEMENT")) {
+                    val legacy = prefs.getBoolean("WIPE_ON_SIM_REMOVAL", false)
+                    prefs.edit().putBoolean("WIPE_ON_SIM_REPLACEMENT", legacy).apply()
+                }
+            }
+        } catch (_: Exception) {}
     }
 
     // =========================================================================
@@ -189,7 +261,7 @@ object SecurityPreferences {
     }
 
     // =========================================================================
-    // 0.3 SIM Removal Wipe Action
+    // 0.3 SIM Removal / SIM Replacement Standard Factory Reset
     // =========================================================================
     fun isWipeOnSimRemovalEnabled(context: Context): Boolean {
         return if (!isUserUnlocked(context)) {
@@ -206,24 +278,24 @@ object SecurityPreferences {
         }
     }
 
+    fun isWipeOnSimReplacementEnabled(context: Context): Boolean {
+        return if (!isUserUnlocked(context)) {
+            getDeviceProtectedPrefs(context).getBoolean("BFU_WIPE_ON_SIM_REPLACEMENT", false)
+        } else {
+            getInstance(context).getBoolean("WIPE_ON_SIM_REPLACEMENT", false)
+        }
+    }
+
+    fun setWipeOnSimReplacementEnabled(context: Context, enabled: Boolean) {
+        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_WIPE_ON_SIM_REPLACEMENT", enabled).apply()
+        if (isUserUnlocked(context)) {
+            getInstance(context).edit().putBoolean("WIPE_ON_SIM_REPLACEMENT", enabled).apply()
+        }
+    }
+
     // =========================================================================
     // 0.4 Fake Airplane Mode Quick Settings Safety & Trap Controls
     // =========================================================================
-    fun setFakeAirplanePinChallengeEnabled(context: Context, enabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_AIRPLANE_PIN_CHALLENGE", enabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("AIRPLANE_PIN_CHALLENGE", enabled).apply()
-        }
-    }
-
-    fun isFakeAirplanePinChallengeEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_AIRPLANE_PIN_CHALLENGE", false)
-        } else {
-            getInstance(context).getBoolean("AIRPLANE_PIN_CHALLENGE", false)
-        }
-    }
-
     fun setFakeAirplaneAction(context: Context, action: String) {
         getDeviceProtectedPrefs(context).edit().putString("BFU_AIRPLANE_TILE_ACTION", action).apply()
         if (isUserUnlocked(context)) {
@@ -406,134 +478,6 @@ object SecurityPreferences {
     }
 
     // =========================================================================
-    // 2.1 Decoy Messenger App Launchers (WhatsApp, Signal, Telegram, Threema, Session)
-    // =========================================================================
-    fun setDecoyWhatsAppEnabled(context: Context, enabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_DECOY_WHATSAPP_ENABLED", enabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("DECOY_WHATSAPP_ENABLED", enabled).apply()
-        }
-    }
-
-    fun isDecoyWhatsAppEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_DECOY_WHATSAPP_ENABLED", false)
-        } else {
-            getInstance(context).getBoolean("DECOY_WHATSAPP_ENABLED", false)
-        }
-    }
-
-    fun setDecoySignalEnabled(context: Context, enabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_DECOY_SIGNAL_ENABLED", enabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("DECOY_SIGNAL_ENABLED", enabled).apply()
-        }
-    }
-
-    fun isDecoySignalEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_DECOY_SIGNAL_ENABLED", false)
-        } else {
-            getInstance(context).getBoolean("DECOY_SIGNAL_ENABLED", false)
-        }
-    }
-
-    fun setDecoyTelegramEnabled(context: Context, enabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_DECOY_TELEGRAM_ENABLED", enabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("DECOY_TELEGRAM_ENABLED", enabled).apply()
-        }
-    }
-
-    fun isDecoyTelegramEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_DECOY_TELEGRAM_ENABLED", false)
-        } else {
-            getInstance(context).getBoolean("DECOY_TELEGRAM_ENABLED", false)
-        }
-    }
-
-    fun setDecoyThreemaEnabled(context: Context, enabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_DECOY_THREEMA_ENABLED", enabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("DECOY_THREEMA_ENABLED", enabled).apply()
-        }
-    }
-
-    fun isDecoyThreemaEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_DECOY_THREEMA_ENABLED", false)
-        } else {
-            getInstance(context).getBoolean("DECOY_THREEMA_ENABLED", false)
-        }
-    }
-
-    fun setDecoySessionEnabled(context: Context, enabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_DECOY_SESSION_ENABLED", enabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("DECOY_SESSION_ENABLED", enabled).apply()
-        }
-    }
-
-    fun isDecoySessionEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_DECOY_SESSION_ENABLED", false)
-        } else {
-            getInstance(context).getBoolean("DECOY_SESSION_ENABLED", false)
-        }
-    }
-
-    fun setDecoyAppAction(context: Context, action: String) {
-        getDeviceProtectedPrefs(context).edit().putString("BFU_DECOY_APP_ACTION", action).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putString("DECOY_APP_ACTION", action).apply()
-        }
-    }
-
-    fun getDecoyAppAction(context: Context): String {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getString("BFU_DECOY_APP_ACTION", "DURESS") ?: "DURESS"
-        } else {
-            getInstance(context).getString("DECOY_APP_ACTION", "DURESS") ?: "DURESS"
-        }
-    }
-
-    // =========================================================================
-    // 3. Volatile Memory Hardening & ZRAM Scrubbing
-    // =========================================================================
-    fun setZramScrubbingEnabled(context: Context, isEnabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_ZRAM_SCRUBBING_ENABLED", isEnabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("ZRAM_SCRUBBING_ENABLED", isEnabled).apply()
-        }
-    }
-
-    fun isZramScrubbingEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_ZRAM_SCRUBBING_ENABLED", true)
-        } else {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_ZRAM_SCRUBBING_ENABLED", true) &&
-                    getInstance(context).getBoolean("ZRAM_SCRUBBING_ENABLED", true)
-        }
-    }
-
-    fun setZramReKeyingEnabled(context: Context, isEnabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_ZRAM_REKEYING_ENABLED", isEnabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("ZRAM_REKEYING_ENABLED", isEnabled).apply()
-        }
-    }
-
-    fun isZramReKeyingEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_ZRAM_REKEYING_ENABLED", false)
-        } else {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_ZRAM_REKEYING_ENABLED", false) &&
-                    getInstance(context).getBoolean("ZRAM_REKEYING_ENABLED", false)
-        }
-    }
-
-    // =========================================================================
     // 4. Plausible Deniability Vault (DNG Container)
     // =========================================================================
     fun setVaultCarrierFileName(context: Context, fileName: String) {
@@ -567,7 +511,7 @@ object SecurityPreferences {
     }
 
     // =========================================================================
-    // 5. Baseband 2G Hardware Mask & IMSI-Catcher Sentinel
+    // 5. Baseband IMSI-Catcher Sentinel (Advanced only, no 2G user restriction)
     // =========================================================================
     fun setBasebandSentinelEnabled(context: Context, isEnabled: Boolean) {
         getDeviceProtectedPrefs(context).edit().putBoolean("BFU_BASEBAND_SENTINEL_ENABLED", isEnabled).apply()
@@ -582,22 +526,6 @@ object SecurityPreferences {
         } else {
             getDeviceProtectedPrefs(context).getBoolean("BFU_BASEBAND_SENTINEL_ENABLED", true) &&
                     getInstance(context).getBoolean("BASEBAND_SENTINEL_ENABLED", true)
-        }
-    }
-
-    fun setHardware2GDisabled(context: Context, disabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_HARDWARE_2G_DISABLED", disabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("HARDWARE_2G_DISABLED", disabled).apply()
-        }
-    }
-
-    fun isHardware2GDisabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_HARDWARE_2G_DISABLED", true)
-        } else {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_HARDWARE_2G_DISABLED", true) &&
-                    getInstance(context).getBoolean("HARDWARE_2G_DISABLED", true)
         }
     }
 
@@ -620,7 +548,7 @@ object SecurityPreferences {
     }
 
     // =========================================================================
-    // 6. Spectral Collapse & Faraday Bag Sentinels
+    // 6. Spectral Collapse Sentinel
     // =========================================================================
     fun setSpectralSentinelEnabled(context: Context, isEnabled: Boolean) {
         getDeviceProtectedPrefs(context).edit().putBoolean("BFU_SPECTRAL_SENTINEL_ENABLED", isEnabled).apply()
@@ -669,133 +597,6 @@ object SecurityPreferences {
         } else {
             getDeviceProtectedPrefs(context).getBoolean("BFU_SPECTRAL_MOTION_REQUIRED", true) &&
                     getInstance(context).getBoolean("SPECTRAL_MOTION_REQUIRED", true)
-        }
-    }
-
-    fun setFaradayBlackoutEnabled(context: Context, isEnabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_FARADAY_BLACKOUT_ENABLED", isEnabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("FARADAY_BLACKOUT_ENABLED", isEnabled).apply()
-        }
-    }
-
-    fun isFaradayBlackoutEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_FARADAY_BLACKOUT_ENABLED", true)
-        } else {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_FARADAY_BLACKOUT_ENABLED", true) &&
-                    getInstance(context).getBoolean("FARADAY_BLACKOUT_ENABLED", true)
-        }
-    }
-
-    fun setFaradayBlackoutDurationHours(context: Context, hours: Int) {
-        getDeviceProtectedPrefs(context).edit().putInt("BFU_FARADAY_DURATION_HOURS", hours).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putInt("FARADAY_DURATION_HOURS", hours).apply()
-        }
-    }
-
-    fun getFaradayBlackoutDurationHours(context: Context): Int {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getInt("BFU_FARADAY_DURATION_HOURS", 3)
-        } else {
-            getDeviceProtectedPrefs(context).getInt(
-                "BFU_FARADAY_DURATION_HOURS",
-                getInstance(context).getInt("FARADAY_DURATION_HOURS", 3)
-            )
-        }
-    }
-
-    // =========================================================================
-    // 7. PMIC Battery Micro-Telemetry & Anti-Disassembly Tripwire
-    // =========================================================================
-    fun setPmicTamperEnabled(context: Context, isEnabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_PMIC_TAMPER_ENABLED", isEnabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("PMIC_TAMPER_ENABLED", isEnabled).apply()
-        }
-    }
-
-    fun isPmicTamperEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_PMIC_TAMPER_ENABLED", false)
-        } else {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_PMIC_TAMPER_ENABLED", false) &&
-                    getInstance(context).getBoolean("PMIC_TAMPER_ENABLED", false)
-        }
-    }
-
-    fun setPmicImpedanceDeltaThreshold(context: Context, deltaUohm: Long) {
-        getDeviceProtectedPrefs(context).edit().putLong("BFU_PMIC_IMPEDANCE_DELTA", deltaUohm).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putLong("PMIC_IMPEDANCE_DELTA", deltaUohm).apply()
-        }
-    }
-
-    fun getPmicImpedanceDeltaThreshold(context: Context): Long {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getLong("BFU_PMIC_IMPEDANCE_DELTA", 35000L)
-        } else {
-            getDeviceProtectedPrefs(context).getLong(
-                "BFU_PMIC_IMPEDANCE_DELTA",
-                getInstance(context).getLong("PMIC_IMPEDANCE_DELTA", 35000L)
-            )
-        }
-    }
-
-    fun setPmicThermalShockDelta(context: Context, deltaTenthsCelsius: Long) {
-        getDeviceProtectedPrefs(context).edit().putLong("BFU_PMIC_THERMAL_DELTA", deltaTenthsCelsius).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putLong("PMIC_THERMAL_DELTA", deltaTenthsCelsius).apply()
-        }
-    }
-
-    fun getPmicThermalShockDelta(context: Context): Long {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getLong("BFU_PMIC_THERMAL_DELTA", 150L)
-        } else {
-            getDeviceProtectedPrefs(context).getLong(
-                "BFU_PMIC_THERMAL_DELTA",
-                getInstance(context).getLong("PMIC_THERMAL_DELTA", 150L)
-            )
-        }
-    }
-
-    // =========================================================================
-    // 8. Physical USB Gadget Controller Tripwire & Transients Debounce Filter
-    // =========================================================================
-    fun setUsbTripwireEnabled(context: Context, isEnabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_USB_TRIPWIRE_ENABLED", isEnabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("USB_TRIPWIRE_ENABLED", isEnabled).apply()
-        }
-    }
-
-    fun isUsbTripwireEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_USB_TRIPWIRE_ENABLED", false)
-        } else {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_USB_TRIPWIRE_ENABLED", false) ||
-                    getInstance(context).getBoolean("USB_TRIPWIRE_ENABLED", false)
-        }
-    }
-
-    fun setUsbRequiredConsecutiveHits(context: Context, hits: Int) {
-        val bounded = hits.coerceIn(1, 10)
-        getDeviceProtectedPrefs(context).edit().putInt("BFU_USB_REQUIRED_HITS", bounded).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putInt("USB_REQUIRED_HITS", bounded).apply()
-        }
-    }
-
-    fun getUsbRequiredConsecutiveHits(context: Context): Int {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getInt("BFU_USB_REQUIRED_HITS", 3)
-        } else {
-            getDeviceProtectedPrefs(context).getInt(
-                "BFU_USB_REQUIRED_HITS",
-                getInstance(context).getInt("USB_REQUIRED_HITS", 3)
-            )
         }
     }
 
@@ -860,123 +661,10 @@ object SecurityPreferences {
     }
 
     // =========================================================================
-    // 11. Authentication, Decoy Users & Multi-User Honeypot
+    // 11. Authentication Counters (Device credential tracked by Android itself;
+    //     this just mirrors the hardware Keyguard failure count for intruder
+    //     capture decisions.)
     // =========================================================================
-    fun setNormalPin(context: Context, pin: String) {
-        getInstance(context).edit().putString("NORMAL_PIN", pin).apply()
-        getDeviceProtectedPrefs(context).edit().putString("BFU_NORMAL_PIN", pin).apply()
-    }
-
-    fun getNormalPin(context: Context): String? {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getString("BFU_NORMAL_PIN", null)
-        } else {
-            getInstance(context).getString("NORMAL_PIN", null)
-        }
-    }
-
-    fun setDuressPin(context: Context, pin: String) {
-        getInstance(context).edit().putString("DURESS_PIN", pin).apply()
-        getDeviceProtectedPrefs(context).edit().putString("BFU_DURESS_PIN", pin).apply()
-        syncHookCredentials(context)
-    }
-
-    fun getDuressPin(context: Context): String? {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getString("BFU_DURESS_PIN", null)
-        } else {
-            getInstance(context).getString("DURESS_PIN", null)
-        }
-    }
-
-    fun setWipePin(context: Context, pin: String) {
-        getInstance(context).edit().putString("WIPE_PIN", pin).apply()
-        getDeviceProtectedPrefs(context).edit().putString("BFU_WIPE_PIN", pin).apply()
-        syncHookCredentials(context)
-    }
-
-    fun getWipePin(context: Context): String? {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getString("BFU_WIPE_PIN", null)
-        } else {
-            getInstance(context).getString("WIPE_PIN", null)
-        }
-    }
-
-    fun setHoneypotPin(context: Context, pin: String) {
-        getInstance(context).edit().putString("HONEYPOT_PIN", pin).apply()
-        getDeviceProtectedPrefs(context).edit().putString("BFU_HONEYPOT_PIN", pin).apply()
-        syncHookCredentials(context)
-    }
-
-    fun getHoneypotPin(context: Context): String? {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getString("BFU_HONEYPOT_PIN", null)
-        } else {
-            getInstance(context).getString("HONEYPOT_PIN", null)
-        }
-    }
-
-    fun setDecoyUserId(context: Context, userId: Int) {
-        getInstance(context).edit().putInt("DECOY_USER_ID", userId).apply()
-        getDeviceProtectedPrefs(context).edit().putInt("BFU_DECOY_USER_ID", userId).apply()
-        syncHookCredentials(context)
-    }
-
-    fun getDecoyUserId(context: Context): Int {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getInt("BFU_DECOY_USER_ID", -1)
-        } else {
-            getInstance(context).getInt("DECOY_USER_ID", -1)
-        }
-    }
-
-    fun addHoneypotIntel(context: Context, info: String) {
-        val current = getInstance(context).getStringSet("HONEYPOT_INTEL", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
-        current.add("${System.currentTimeMillis()}: $info")
-        getInstance(context).edit().putStringSet("HONEYPOT_INTEL", current).apply()
-    }
-
-    fun getHoneypotIntel(context: Context): Set<String> =
-        getInstance(context).getStringSet("HONEYPOT_INTEL", emptySet()) ?: emptySet()
-
-    fun clearHoneypotIntel(context: Context) =
-        getInstance(context).edit().remove("HONEYPOT_INTEL").apply()
-
-    fun syncHookCredentials(context: Context) {
-        val appContext = context.applicationContext
-        val wipePin = getWipePin(appContext)
-        val duressPin = getDuressPin(appContext)
-        val honeypotPin = getHoneypotPin(appContext)
-        val decoyUserId = getDecoyUserId(appContext)
-
-        CoroutineScope(Dispatchers.IO).launch {
-            CredentialBridge.syncCredentials(appContext, wipePin, duressPin, honeypotPin, decoyUserId)
-        }
-    }
-
-    fun clearAllPins(context: Context) {
-        getInstance(context).edit()
-            .remove("NORMAL_PIN")
-            .remove("DURESS_PIN")
-            .remove("WIPE_PIN")
-            .remove("HONEYPOT_PIN")
-            .remove("DECOY_USER_ID")
-            .apply()
-
-        getDeviceProtectedPrefs(context).edit()
-            .remove("BFU_NORMAL_PIN")
-            .remove("BFU_DURESS_PIN")
-            .remove("BFU_WIPE_PIN")
-            .remove("BFU_HONEYPOT_PIN")
-            .remove("BFU_DECOY_USER_ID")
-            .apply()
-
-        CoroutineScope(Dispatchers.IO).launch {
-            CredentialBridge.clearCredentials(context.applicationContext)
-        }
-    }
-
     fun getFailedAttempts(context: Context): Int =
         getDeviceProtectedPrefs(context).getInt("FAILED_ATTEMPTS", 0)
 
@@ -1265,92 +953,6 @@ object SecurityPreferences {
             if (deTimestamp > 0L) deTimestamp else getInstance(context).getLong("TRIPWIRE_LAST_CHECKIN", 0L)
         }
     }
-
-    // =========================================================================
-    // 17. Root Exclusive Features
-    // =========================================================================
-    fun setGpsSpoofingEnabled(context: Context, isEnabled: Boolean) =
-        getInstance(context).edit().putBoolean("ROOT_GPS_SPOOFING", isEnabled).apply()
-
-    fun isGpsSpoofingEnabled(context: Context): Boolean =
-        getInstance(context).getBoolean("ROOT_GPS_SPOOFING", false)
-
-    fun setDecoyGpsLocation(context: Context, location: String) =
-        getInstance(context).edit().putString("ROOT_DECOY_GPS_LOCATION", location).apply()
-
-    fun getDecoyGpsLocation(context: Context): String? =
-        getInstance(context).getString("ROOT_DECOY_GPS_LOCATION", null)
-
-    fun setSilentInstallEnabled(context: Context, isEnabled: Boolean) =
-        getInstance(context).edit().putBoolean("ROOT_SILENT_INSTALL", isEnabled).apply()
-
-    fun isSilentInstallEnabled(context: Context): Boolean =
-        getInstance(context).getBoolean("ROOT_SILENT_INSTALL", false)
-
-    fun setRemoteApkUrl(context: Context, url: String) =
-        getInstance(context).edit().putString("ROOT_REMOTE_APK_URL", url).apply()
-
-    fun getRemoteApkUrl(context: Context): String? =
-        getInstance(context).getString("ROOT_REMOTE_APK_URL", null)
-
-    fun setFirewallTripwireEnabled(context: Context, isEnabled: Boolean) =
-        getInstance(context).edit().putBoolean("ROOT_FIREWALL_TRIPWIRE", isEnabled).apply()
-
-    fun isFirewallTripwireEnabled(context: Context): Boolean =
-        getInstance(context).getBoolean("ROOT_FIREWALL_TRIPWIRE", false)
-
-    fun setSecureWipeEnabled(context: Context, isEnabled: Boolean) =
-        getInstance(context).edit().putBoolean("ROOT_SECURE_WIPE", isEnabled).apply()
-
-    fun isSecureWipeEnabled(context: Context): Boolean =
-        getInstance(context).getBoolean("ROOT_SECURE_WIPE", false)
-
-    fun setSystemAppEnabled(context: Context, isEnabled: Boolean) =
-        getInstance(context).edit().putBoolean("ROOT_SYSTEM_APP", isEnabled).apply()
-
-    fun isSystemAppEnabled(context: Context): Boolean =
-        getInstance(context).getBoolean("ROOT_SYSTEM_APP", false)
-
-    fun setUnkillableServiceEnabled(context: Context, isEnabled: Boolean) =
-        getInstance(context).edit().putBoolean("ROOT_UNKILLABLE_SERVICE", isEnabled).apply()
-
-    fun isUnkillableServiceEnabled(context: Context): Boolean =
-        getInstance(context).getBoolean("ROOT_UNKILLABLE_SERVICE", false)
-
-    fun setProcessHiddenEnabled(context: Context, isEnabled: Boolean) =
-        getInstance(context).edit().putBoolean("ROOT_PROCESS_HIDDEN", isEnabled).apply()
-
-    fun isProcessHiddenEnabled(context: Context): Boolean =
-        getInstance(context).getBoolean("ROOT_PROCESS_HIDDEN", false)
-
-    fun setStealthScreenshotEnabled(context: Context, isEnabled: Boolean) =
-        getInstance(context).edit().putBoolean("ROOT_STEALTH_SCREENSHOT", isEnabled).apply()
-
-    fun isStealthScreenshotEnabled(context: Context): Boolean =
-        getInstance(context).getBoolean("ROOT_STEALTH_SCREENSHOT", false)
-
-    fun setKeyloggerEnabled(context: Context, isEnabled: Boolean) =
-        getInstance(context).edit().putBoolean("ROOT_KEYLOGGER", isEnabled).apply()
-
-    fun isKeyloggerEnabled(context: Context): Boolean =
-        getInstance(context).getBoolean("ROOT_KEYLOGGER", false)
-
-    fun setStealthMediaCaptureEnabled(context: Context, isEnabled: Boolean) =
-        getInstance(context).edit().putBoolean("ROOT_STEALTH_MEDIA", isEnabled).apply()
-
-    fun isStealthMediaCaptureEnabled(context: Context): Boolean =
-        getInstance(context).getBoolean("ROOT_STEALTH_MEDIA", false)
-
-    fun appendKeylogData(context: Context, data: String) {
-        val currentLogs = getKeylogData(context)
-        getInstance(context).edit().putString("KEYLOG_DATA", currentLogs + data).apply()
-    }
-
-    fun getKeylogData(context: Context): String =
-        getInstance(context).getString("KEYLOG_DATA", "") ?: ""
-
-    fun clearKeylogData(context: Context) =
-        getInstance(context).edit().remove("KEYLOG_DATA").apply()
 
     // =========================================================================
     // 18. SMTP Email Alert Configuration
