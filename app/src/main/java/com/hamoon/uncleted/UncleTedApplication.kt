@@ -30,6 +30,13 @@ class UncleTedApplication : Application() {
             Log.e(TAG, "Critical failure arming native runtime memory defenses", e)
         }
 
+        // 1a. Prune preferences for features removed from this GrapheneOS fork.
+        try {
+            SecurityPreferences.migrateObsoletePreferences(this)
+        } catch (e: Exception) {
+            Log.w(TAG, "Preference migration encountered an error: ${e.message}")
+        }
+
         // 2. Safe Direct Boot Guard: Do NOT access CE storage in BFU mode
         if (SecurityPreferences.isUserUnlocked(this)) {
             try {
@@ -57,7 +64,7 @@ class UncleTedApplication : Application() {
                         applyNightModeForActivity(themeValue)
                         if (themeValue == "amoled") {
                             when (activity) {
-                                is MainActivity, is LockScreenActivity -> {
+                                is MainActivity -> {
                                     activity.setTheme(R.style.Theme_UncleTed_Amoled)
                                 }
                                 is CameraPermissionBrokerActivity -> {

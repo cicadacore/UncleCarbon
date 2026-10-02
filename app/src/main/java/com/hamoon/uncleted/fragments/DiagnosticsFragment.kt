@@ -16,7 +16,6 @@ import androidx.lifecycle.lifecycleScope
 import com.hamoon.uncleted.R
 import com.hamoon.uncleted.databinding.FragmentDiagnosticsBinding
 import com.hamoon.uncleted.util.DiagnosticLogCollector
-import com.hamoon.uncleted.util.RootChecker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
@@ -55,24 +54,23 @@ class DiagnosticsFragment : Fragment() {
 
             binding.tvDiagDevice.text = "Device: ${env.manufacturer} ${env.model} (Android ${env.androidVersion}, API ${env.apiLevel})"
 
-            if (env.isRooted) {
-                binding.tvDiagRoot.text = "Root: ACTIVE [Provider: ${env.rootProvider}]"
+            if (env.isDeviceOwner) {
+                binding.tvDiagRoot.text = "Device Owner: PROVISIONED"
                 binding.tvDiagRoot.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_green))
             } else {
-                binding.tvDiagRoot.text = "Root: NOT DETECTED (Running in non-root mode)"
+                binding.tvDiagRoot.text = "Device Owner: NOT PROVISIONED"
                 binding.tvDiagRoot.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_yellow))
             }
 
-            if (env.isPrivAppMounted) {
-                binding.tvDiagPrivapp.text = "Priv-App: MOUNTED IN /system/priv-app"
+            if (env.isDeviceAdmin) {
+                binding.tvDiagPrivapp.text = "Device Admin: ACTIVE"
                 binding.tvDiagPrivapp.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_green))
             } else {
-                binding.tvDiagPrivapp.text = "Priv-App: FAILED TO MOUNT (User App in /data/app)"
+                binding.tvDiagPrivapp.text = "Device Admin: INACTIVE"
                 binding.tvDiagPrivapp.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_red))
             }
 
-            // Fixed ViewBinding reference to match generated camelCase name
-            binding.tvDiagSelinux.text = "SELinux: ${env.selinuxMode}"
+            binding.tvDiagSelinux.text = "Target: GrapheneOS (locked bootloader, unrooted)"
         }
     }
 
@@ -155,14 +153,7 @@ class DiagnosticsFragment : Fragment() {
 
         liveRecordingJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Fixed: Suspend function called safely within the coroutine scope
-                val isRooted = RootChecker.isDeviceRooted()
-                val cmd = if (isRooted) {
-                    arrayOf("su", "-c", "logcat -v time *:V")
-                } else {
-                    arrayOf("logcat", "-v", "time", "--pid=${Process.myPid()}", "*:V")
-                }
-
+                val cmd = arrayOf("logcat", "-v", "time", "--pid=${Process.myPid()}", "*:V")
                 liveProcess = ProcessBuilder(*cmd).start()
                 val bufferedReader = liveProcess!!.inputStream.bufferedReader()
                 val buffer = StringBuilder()

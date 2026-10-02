@@ -36,32 +36,11 @@ object LogcatManager {
                 writer.write("Android OS: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})\n")
                 writer.write("Build Fingerprint: ${Build.FINGERPRINT}\n")
 
-                val isRooted = RootChecker.isDeviceRooted()
-                val provider = if (isRooted) RootChecker.getRootProvider() else RootChecker.RootProvider.NONE
-                writer.write("Root State: ${if (isRooted) "Rooted ($provider)" else "Non-Rooted"}\n")
+                writer.write("Target Environment: GrapheneOS Device Owner (locked bootloader, unrooted)\n")
                 writer.write("Process PID: ${Process.myPid()}\n")
-
-                if (isRooted) {
-                    val selinuxResult = RootExecutor.run("getenforce", logErrors = false)
-                    writer.write("SELinux State: ${selinuxResult.output.firstOrNull() ?: "Unknown"}\n")
-
-                    val mountPrivApp = RootExecutor.run("mount | grep -i uncleted", logErrors = false)
-                    writer.write("Priv-App Mounts: ${mountPrivApp.output.joinToString(" | ")}\n")
-
-                    val pkgStatus = RootExecutor.run("dumpsys package com.hamoon.uncleted | grep -E 'userId=|pkgFlags='", logErrors = false)
-                    writer.write("Package Flags: ${pkgStatus.output.joinToString(" ; ")}\n")
-                }
-
                 writer.write("====================================================\n\n")
 
-                // Step 1: Dump Android Logcat buffer
-                val logcatCmd = if (isRooted) {
-                    // With root, fetch system_server, Zygote, SELinux denials, and UncleTed tags
-                    arrayOf("su", "-c", "logcat -d -v time *:V")
-                } else {
-                    // Unprivileged: dump logs for our PID and tags
-                    arrayOf("logcat", "-d", "-v", "time", "--pid=${Process.myPid()}", "*:V")
-                }
+                val logcatCmd = arrayOf("logcat", "-d", "-v", "time", "--pid=${Process.myPid()}", "*:V")
 
                 try {
                     val process = ProcessBuilder(*logcatCmd).start()

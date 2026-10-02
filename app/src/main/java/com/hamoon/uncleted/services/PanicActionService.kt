@@ -58,7 +58,6 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
     private var tts: TextToSpeech? = null
     private var ttsMessageQueue: String? = null
     private var isTtsInitialized = false
-    private var pendingWipeType: String? = null
 
     companion object {
         private const val TAG = "PanicActionService"
@@ -71,32 +70,21 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
         var pendingTtsMessage: String? = null
         var pendingAudioDuration: Int = 60
 
+        /**
+         * These reasons map to the single standard Device Owner factory-reset path.
+         * The GrapheneOS fork does NOT have any lethal/root destruction routes.
+         */
         fun isImmediateWipeReason(reason: String): Boolean {
             return reason == "REMOTE_WIPE" ||
-                    reason == "WIPE_PIN" ||
-                    reason == "WIPE_PIN_DETECTED" ||
                     reason == "TRIPWIRE_WIPE" ||
                     reason == "MANUAL_WIPE" ||
-                    reason == "HARDWARE_BUTTON_WIPE" ||
-                    reason == "GEOFENCE_SUICIDE_EVIN" ||
-                    reason == "USB_TRIPWIRE_FAIL" ||
-                    reason == "BATTERY_SPLICING_DC_JIG_DETECTED" ||
-                    reason == "THERMAL_ENCLOSURE_DISASSEMBLY" ||
                     reason == "SIM_REMOVED_TRIPWIRE" ||
                     reason == "SIM_CHANGED_TRIPWIRE" ||
                     reason == "FAKE_AIRPLANE_TILE_TRAP" ||
                     reason == "NOTIFICATION_OTC_WIPE" ||
                     reason == "NOTIFICATION_ED25519_WIPE" ||
                     reason == "NOTIFICATION_CLEARTEXT_WIPE" ||
-                    reason == "MAX_FAILED_PASSWORDS_EXCEEDED" ||
-                    reason == "DECOY_APP_WIPE" ||
-                    reason.startsWith("DECOY_APP_LAUNCH_")
-        }
-
-        fun isHoneypotReason(reason: String): Boolean {
-            return reason == "HONEYPOT_PIN_LOCKSCREEN" ||
-                    reason == "HONEYPOT_ACTIVATED" ||
-                    reason == "MANUAL_HONEYPOT"
+                    reason == "MAX_FAILED_PASSWORDS_EXCEEDED"
         }
 
         fun trigger(context: Context, reason: String, severity: Severity) {
@@ -112,53 +100,24 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
 
             val isImmediateWipe = isImmediateWipeReason(reason)
             val isSirenOnly = reason == "REMOTE_SIREN" || reason == "MANUAL_SIREN"
-            val isHoneypot = isHoneypotReason(reason)
 
             val requiresMedia = (severity == Severity.MEDIUM || severity == Severity.HIGH || severity == Severity.CRITICAL)
-                    && !isImmediateWipe && !isSirenOnly && !isHoneypot
+                    && !isImmediateWipe && !isSirenOnly
 
             val requestId = System.currentTimeMillis()
 
             CoroutineScope(Dispatchers.IO).launch {
-                val isRooted = RootChecker.isDeviceRooted()
+                if (isImmediateWipe) {
+                    Log.i(TAG, "Initiating standard Device Owner factory reset ($reason).")
+                    DeviceAdminHelper.wipeDeviceImmediately(context, reason)
+                    return@launch
+                }
 
-                if (isRooted) {
-                    if (isImmediateWipe) {
-                        Log.i(TAG, "ROOT: Immediate destruction sequence engaging ($reason).")
-                        val wipeLevel = when {
-                            reason == "GEOFENCE_SUICIDE_EVIN" -> RootActions.WipeLevel.NUCLEAR_WINTER
-                            SecurityPreferences.isSecureWipeEnabled(context) -> RootActions.WipeLevel.FAST_USERDATA
-                            else -> RootActions.WipeLevel.STANDARD_WIPE
-                        }
-                        RootActions.executeWipeProtocol(context, wipeLevel)
-                        return@launch
-                    }
-
-                    if (requiresMedia && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        Log.d(TAG, "ROOT: Launching CameraPermissionBrokerActivity via root shell (Request ID: $requestId).")
-                        val brokerIntent = Intent(context, CameraPermissionBrokerActivity::class.java).apply {
-                            putExtra("REASON", reason)
-                            putExtra("SEVERITY", severity.name)
-                            putExtra(CameraPermissionBrokerActivity.EXTRA_REQUEST_ID, requestId)
-                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                        }
-                        GodMode.startActivityInBackground(context, brokerIntent)
-                    } else {
-                        startServiceInternal(context, reason, severity, requestId)
-                    }
+                if (requiresMedia && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    Log.d(TAG, "Launching camera broker via full-screen intent for $reason.")
+                    launchBrokerViaFullScreenIntent(context, reason, severity, requestId)
                 } else {
-                    if (isImmediateWipe) {
-                        Log.i(TAG, "NON-ROOT: Initiating platform wipe via Device Admin / Device Owner ($reason).")
-                        DeviceAdminHelper.wipeDeviceImmediately(context, reason)
-                        return@launch
-                    }
-
-                    if (requiresMedia && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        Log.d(TAG, "NON-ROOT: Bypassing background restrictions via full-screen intent broker.")
-                        launchBrokerViaFullScreenIntent(context, reason, severity, requestId)
-                    } else {
-                        startServiceInternal(context, reason, severity, requestId)
-                    }
+                    startServiceInternal(context, reason, severity, requestId)
                 }
             }
         }
@@ -284,8 +243,6 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
         val severity = try { Severity.valueOf(severityStr) } catch (e: Exception) { Severity.MEDIUM }
         val requestId = intent?.getLongExtra(CameraPermissionBrokerActivity.EXTRA_REQUEST_ID, 0L) ?: 0L
 
-        pendingWipeType = intent?.getStringExtra("WIPE_TYPE")
-
         if (reason == "REMOTE_SPEAK") {
             val message = pendingTtsMessage ?: "System Alert"
             pendingTtsMessage = null
@@ -295,7 +252,6 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
         val isImmediateWipe = isImmediateWipeReason(reason)
         val isSirenOnly = reason == "REMOTE_SIREN" || reason == "MANUAL_SIREN"
         val isBrokered = intent?.getBooleanExtra("IS_BROKERED", false) ?: false
-        val isHoneypot = isHoneypotReason(reason)
 
         try {
             val notification = NotificationHelper.createPanicNotification(this)
@@ -304,8 +260,8 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
                 var fgsTypes = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
 
                 val needsLocation = severity != Severity.LOW
-                val needsCamera = !isImmediateWipe && !isSirenOnly && !isHoneypot && (severity != Severity.LOW)
-                val needsMic = !isImmediateWipe && !isSirenOnly && !isHoneypot && (severity == Severity.HIGH || severity == Severity.CRITICAL)
+                val needsCamera = !isImmediateWipe && !isSirenOnly && (severity != Severity.LOW)
+                val needsMic = !isImmediateWipe && !isSirenOnly && (severity == Severity.HIGH || severity == Severity.CRITICAL)
                 val needsMediaPlayback = isSirenOnly || reason == "REMOTE_SPEAK"
 
                 if (needsLocation && PermissionUtils.hasLocationPermissions(this)) {
@@ -328,7 +284,7 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
                     startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
                 }
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if (isImmediateWipe || isSirenOnly || isHoneypot) {
+                if (isImmediateWipe || isSirenOnly) {
                     startForeground(NOTIFICATION_ID, notification)
                 } else {
                     startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
@@ -350,7 +306,7 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
         }
 
         val needsMedia = (severity == Severity.MEDIUM || severity == Severity.HIGH || severity == Severity.CRITICAL)
-                && !isImmediateWipe && !isSirenOnly && !isHoneypot
+                && !isImmediateWipe && !isSirenOnly
 
         if (needsMedia && !isBrokered && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !PermissionUtils.hasCameraPermission(this)) {
             Log.w(TAG, "Service missing camera permission in background. Launching broker activity.")
@@ -363,7 +319,7 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
 
         serviceScope.launch {
             try {
-                if (!isImmediateWipe && !isSirenOnly && !isHoneypot) {
+                if (!isImmediateWipe && !isSirenOnly) {
                     withContext(Dispatchers.Main) {
                         cameraLifecycleOwner.start()
                     }
@@ -388,7 +344,7 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
                     Log.e(TAG, "Error executing panic action protocol: ${e.message}", e)
                 }
             } finally {
-                if (!isImmediateWipe && !isSirenOnly && !isHoneypot) {
+                if (!isImmediateWipe && !isSirenOnly) {
                     withContext(Dispatchers.Main) {
                         cameraLifecycleOwner.stop()
                     }
@@ -455,9 +411,6 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
         val template = when {
             reason == "INTRUDER_SELFIE" -> AdvancedEmailSender.getEmailTemplates()["INTRUDER"]!!
             reason == "SIM_CHANGED" || reason == "SIM_REMOVED" -> AdvancedEmailSender.getEmailTemplates()["SIM_CHANGE"]!!
-            reason == "MANUAL_HONEYPOT" || reason == "HONEYPOT_ACTIVATED" || reason == "HONEYPOT_PIN_LOCKSCREEN" ||
-                    reason == "DECOY_APP_DURESS" || reason.startsWith("DECOY_APP_LAUNCH_") ->
-                AdvancedEmailSender.EmailTemplate("Decoy Trap Deployed", "Decoy mode active ($reason). Surveillance attached.")
             else -> AdvancedEmailSender.getEmailTemplates()["GENERIC_MEDIUM"]!!
         }
 
@@ -499,9 +452,7 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
             return
         }
 
-        val isHoneypot = isHoneypotReason(reason)
-
-        val capture = if (!isHoneypot && PermissionUtils.hasCameraPermission(this)) {
+        val capture = if (PermissionUtils.hasCameraPermission(this)) {
             AdvancedCameraHandler.performFullCapture(this, cameraLifecycleOwner, configuredVideoDuration, requestId = requestId)
         } else null
 
@@ -509,16 +460,9 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
             AudioRecorder.recordAudio(this, configuredAudioDuration)
         } else null
 
-        if ((reason == "DURESS_PIN" || reason == "DURESS_PIN_LOCKSCREEN") && RootChecker.isDeviceRooted()) {
-            RootActions.setMockLocationConfig(this, true)
-        }
-
-        val template = when {
-            reason == "DURESS_PIN" || reason == "DURESS_PIN_LOCKSCREEN" || reason == "SHAKE_TRIGGERED" ->
-                AdvancedEmailSender.getEmailTemplates()["DURESS"]!!
-            reason == "UNINSTALL_ATTEMPT" -> AdvancedEmailSender.getEmailTemplates()["SYSTEM_BREACH"]!!
-            isHoneypot ->
-                AdvancedEmailSender.EmailTemplate("Decoy Trap Triggered", "Honeypot mode engaged ($reason). Covert surveillance attached.")
+        val template = when (reason) {
+            "SHAKE_TRIGGERED" -> AdvancedEmailSender.getEmailTemplates()["GENERIC_HIGH"]!!
+            "UNINSTALL_ATTEMPT" -> AdvancedEmailSender.getEmailTemplates()["SYSTEM_BREACH"]!!
             else -> AdvancedEmailSender.getEmailTemplates()["GENERIC_HIGH"]!!
         }
 
@@ -533,53 +477,24 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
         val isWipeRequest = isImmediateWipeReason(reason)
 
         if (isWipeRequest) {
-            Log.e(TAG, "!!! CRITICAL: IMMEDIATE WIPE REQUESTED ($reason) !!!")
+            Log.e(TAG, "!!! CRITICAL: STANDARD FACTORY RESET REQUESTED ($reason) !!!")
 
             try {
                 withTimeoutOrNull(1500) {
-                    sendAlert(AdvancedEmailSender.EmailTemplate("DEVICE WIPING NOW", "Reason: $reason. Cryptographic keys revoked.", true))
+                    sendAlert(AdvancedEmailSender.EmailTemplate("DEVICE WIPING NOW", "Reason: $reason. Standard factory reset invoked.", true))
                 }
             } catch (_: Exception) {}
 
             val isManualOverride = reason == "MANUAL_WIPE" ||
                     reason == "REMOTE_WIPE" ||
-                    reason == "HARDWARE_BUTTON_WIPE" ||
-                    reason == "GEOFENCE_SUICIDE_EVIN" ||
                     reason == "SIM_REMOVED_TRIPWIRE" ||
                     reason == "SIM_CHANGED_TRIPWIRE" ||
                     reason == "NOTIFICATION_OTC_WIPE" ||
                     reason == "NOTIFICATION_ED25519_WIPE" ||
-                    reason == "MAX_FAILED_PASSWORDS_EXCEEDED" ||
-                    reason == "DECOY_APP_WIPE" ||
-                    reason.startsWith("DECOY_APP_LAUNCH_")
+                    reason == "MAX_FAILED_PASSWORDS_EXCEEDED"
 
             if (isManualOverride || SecurityPreferences.isWipeDeviceEnabled(this)) {
-                if (pendingWipeType == "STANDARD_WIPE") {
-                    DeviceAdminHelper.wipeDeviceImmediately(this, reason)
-                    return
-                }
-
-                if (RootChecker.isDeviceRooted()) {
-                    if (pendingWipeType != null) {
-                        try {
-                            val level = RootActions.WipeLevel.valueOf(pendingWipeType!!)
-                            RootActions.executeWipeProtocol(this, level)
-                            return
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Invalid wipe level specified: $pendingWipeType", e)
-                        }
-                    }
-
-                    if (reason == "GEOFENCE_SUICIDE_EVIN") {
-                        RootActions.executeWipeProtocol(this, RootActions.WipeLevel.NUCLEAR_WINTER)
-                    } else if (SecurityPreferences.isSecureWipeEnabled(this)) {
-                        RootActions.executeWipeProtocol(this, RootActions.WipeLevel.FAST_USERDATA)
-                    } else {
-                        RootActions.executeWipeProtocol(this, RootActions.WipeLevel.STANDARD_WIPE)
-                    }
-                } else {
-                    DeviceAdminHelper.wipeDeviceImmediately(this, reason)
-                }
+                DeviceAdminHelper.wipeDeviceImmediately(this, reason)
             } else {
                 Log.w(TAG, "Wipe requested but disabled in preferences (Reason: $reason).")
             }
@@ -611,13 +526,8 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
 
         val deviceInfo = if (includeDeviceInfo) DeviceInfoCollector.collectDeviceInfo(this) else null
 
-        var sc = screenshotFile
-        if (sc == null && SecurityPreferences.isStealthScreenshotEnabled(this) && RootChecker.isDeviceRooted()) {
-            sc = RootActions.takeStealthScreenshot(this)
-        }
-
         if (contact.contains("@")) {
-            AdvancedEmailSender.sendAdvancedAlert(this, template, capture, audioFile, deviceInfo, sc)
+            AdvancedEmailSender.sendAdvancedAlert(this, template, capture, audioFile, deviceInfo, screenshotFile)
         } else {
             val loc = capture?.location ?: getCurrentLocation()
             val locStr = if (loc != null) "https://maps.google.com?q=${loc.latitude},${loc.longitude}" else "No GPS fix"

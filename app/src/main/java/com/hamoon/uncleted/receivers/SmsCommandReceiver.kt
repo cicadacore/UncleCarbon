@@ -8,7 +8,6 @@ import android.provider.Telephony
 import android.telephony.PhoneNumberUtils
 import android.util.Base64
 import android.util.Log
-import com.hamoon.uncleted.LockScreenActivity
 import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.crypto.CryptoPreferences
 import com.hamoon.uncleted.crypto.OneTimeTokenManager
@@ -47,7 +46,6 @@ class SmsCommandReceiver : BroadcastReceiver() {
 
         // =========================================================================
         // ROUTE 1: SINGLE-USE EMERGENCY RECOVERY TOKEN (OTC)
-        // Sender-Agnostic: Verified by single-use SHA-256 hash burning
         // =========================================================================
         if (body.startsWith("!UT:OTC-")) {
             try { abortBroadcast() } catch (_: Exception) {}
@@ -55,15 +53,14 @@ class SmsCommandReceiver : BroadcastReceiver() {
 
             val isValidToken = OneTimeTokenManager.validateAndBurnToken(context, body)
             if (isValidToken) {
-                Log.e(TAG, "AUTHENTICATED ONE-TIME RECOVERY TOKEN VERIFIED: Burning token and triggering wipe.")
+                Log.e(TAG, "AUTHENTICATED ONE-TIME RECOVERY TOKEN VERIFIED: Burning token and triggering standard factory reset.")
                 EventLogger.log(context, "AUTHENTICATED: Single-use emergency recovery token executed.")
 
                 val pendingResult = goAsync()
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val strategy = DefenseCoordinator.resolveStrategy(context)
-                        strategy.executeWipe("ONE_TIME_EMERGENCY_TOKEN")
-                        PanicActionService.trigger(context, "REMOTE_WIPE", PanicActionService.Severity.CRITICAL)
+                        strategy.executeStandardWipe("ONE_TIME_EMERGENCY_TOKEN")
                     } finally {
                         pendingResult.finish()
                     }
@@ -77,7 +74,6 @@ class SmsCommandReceiver : BroadcastReceiver() {
 
         // =========================================================================
         // ROUTE 2: ED25519 CRYPTOGRAPHIC BINARY WIRE ENVELOPE (!UT:<Base64>)
-        // Sender-Agnostic: Authenticated via 85-byte Ed25519 digital signature & sequence counters
         // =========================================================================
         if (body.startsWith("!UT:")) {
             try { abortBroadcast() } catch (_: Exception) {}
@@ -136,7 +132,6 @@ class SmsCommandReceiver : BroadcastReceiver() {
 
         // =========================================================================
         // ROUTE 3: CLEARTEXT SMS FALLBACK (UNCLETED [CMD] [PASSWORD])
-        // Strict Sender Whitelisting: Requires matching Emergency Contact phone number
         // =========================================================================
         if (!CryptoPreferences.isCleartextSmsAllowed(context)) {
             Log.d(TAG, "Cleartext SMS processing is disabled in security settings.")
@@ -154,7 +149,6 @@ class SmsCommandReceiver : BroadcastReceiver() {
             val command = parts[1].uppercase()
             val password = parts[2]
 
-            // Enforce Sender Whitelist Verification for cleartext commands
             val emergencyContact = SecurityPreferences.getEmergencyContact(context)?.trim()
             val isSenderAuthorized = isSenderWhitelisted(senderNum, emergencyContact)
 
@@ -177,13 +171,8 @@ class SmsCommandReceiver : BroadcastReceiver() {
         }
     }
 
-    /**
-     * Verifies whether incoming sender matches the configured emergency contact number.
-     */
     private fun isSenderWhitelisted(incomingNumber: String?, trustedContact: String?): Boolean {
         if (incomingNumber.isNullOrBlank() || trustedContact.isNullOrBlank()) return false
-
-        // If trusted contact is an email address, SMS cannot match
         if (trustedContact.contains("@")) return false
 
         val normalizedIncoming = PhoneNumberUtils.stripSeparators(incomingNumber)
@@ -194,7 +183,6 @@ class SmsCommandReceiver : BroadcastReceiver() {
             return true
         }
 
-        // Fallback suffix match (minimum 7 digits for local carrier numbers)
         if (normalizedIncoming.length >= 7 && normalizedTrusted.length >= 7) {
             val suffixIncoming = normalizedIncoming.takeLast(7)
             val suffixTrusted = normalizedTrusted.takeLast(7)
@@ -210,8 +198,7 @@ class SmsCommandReceiver : BroadcastReceiver() {
         when (packet.opCode.toInt()) {
             0x01 -> {
                 Log.e(TAG, "Executing OP_EMERGENCY_WIPE")
-                strategy.executeWipe("OP_ED25519_WIPE")
-                PanicActionService.trigger(context, "REMOTE_WIPE", PanicActionService.Severity.CRITICAL)
+                strategy.executeStandardWipe("OP_ED25519_WIPE")
             }
             0x02 -> {
                 Log.w(TAG, "Executing OP_SEVER_USB_AND_LOCK")
@@ -222,9 +209,6 @@ class SmsCommandReceiver : BroadcastReceiver() {
                 Log.w(TAG, "Executing OP_EVICT_KEYS_TO_BFU")
                 strategy.disableBiometrics(true)
                 strategy.evictMemoryKeysAndLock()
-                if (!strategy.isHardwareSecured) {
-                    DecoyUserManager.evictPrimaryUserCeKeys(context)
-                }
             }
             0x04 -> {
                 Log.i(TAG, "Executing OP_CAPTURE_EVIDENCE")
@@ -240,14 +224,8 @@ class SmsCommandReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val uri = Uri.parse("content://sms")
-                val escapedSnippet = bodySnippet.replace("'", "''")
-                context.contentResolver.delete(uri, "body LIKE ?", arrayOf("%$escapedSnippet%"))
+                context.contentResolver.delete(uri, "body LIKE ?", arrayOf("%$bodySnippet%"))
             } catch (_: Exception) {}
-
-            if (RootChecker.isDeviceRooted()) {
-                val safeCommand = "content delete --uri content://sms --where \"body LIKE '%!UT%' OR body LIKE '%UNCLETED%'\""
-                RootExecutor.run(safeCommand, logErrors = false)
-            }
         }
     }
 
@@ -259,8 +237,7 @@ class SmsCommandReceiver : BroadcastReceiver() {
             "WIPE" -> {
                 CoroutineScope(Dispatchers.IO).launch {
                     val strategy = DefenseCoordinator.resolveStrategy(context)
-                    strategy.executeWipe("REMOTE_CLEARTEXT_WIPE")
-                    PanicActionService.trigger(context, "REMOTE_WIPE", PanicActionService.Severity.CRITICAL)
+                    strategy.executeStandardWipe("REMOTE_CLEARTEXT_WIPE")
                 }
             }
             "EVIDENCE" -> {
@@ -270,10 +247,11 @@ class SmsCommandReceiver : BroadcastReceiver() {
                 PanicActionService.trigger(context, "REMOTE_SIREN", PanicActionService.Severity.HIGH)
             }
             "LOCK" -> {
-                val lockIntent = Intent(context, LockScreenActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        DefenseCoordinator.resolveStrategy(context).evictMemoryKeysAndLock()
+                    } catch (_: Exception) {}
                 }
-                context.startActivity(lockIntent)
             }
             "LOCATE" -> {
                 PanicActionService.trigger(context, "MANUAL_LOCATION", PanicActionService.Severity.LOW)
@@ -290,18 +268,8 @@ class SmsCommandReceiver : BroadcastReceiver() {
                     PanicActionService.trigger(context, "REMOTE_SPEAK", PanicActionService.Severity.MEDIUM)
                 }
             }
-            "REBOOT" -> {
-                val pendingResult = goAsync()
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        RootActions.rebootDevice(context)
-                    } finally {
-                        pendingResult.finish()
-                    }
-                }
-            }
             else -> {
-                Log.w(TAG, "Unknown authenticated SMS command '$command' from $sender.")
+                Log.w(TAG, "Unknown or unsupported SMS command '$command' from $sender.")
             }
         }
     }

@@ -1,9 +1,7 @@
 package com.hamoon.uncleted.sentinels
 
-import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.os.Build
-import android.os.UserManager
 import android.telephony.CellInfo
 import android.telephony.CellInfoGsm
 import android.telephony.CellInfoLte
@@ -13,17 +11,21 @@ import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.data.SecurityPreferences
-import com.hamoon.uncleted.receivers.AdminReceiver
 import com.hamoon.uncleted.services.PanicActionService
 import com.hamoon.uncleted.util.EventLogger
 import com.hamoon.uncleted.util.PermissionUtils
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
+/**
+ * Baseband downgrade & IMSI-catcher sentinel.
+ *
+ * This fork does NOT configure or clear `UserManager.DISALLOW_CELLULAR_2G` and
+ * does NOT manipulate carrier-privileged allowed-network bitmasks: GrapheneOS
+ * ships its own OS-level 2G control, which should be used directly. The sentinel
+ * only observes telephony state and raises alerts on suspicious downgrade or
+ * IMSI-catcher-style signatures. On a confirmed threat it fires a HIGH-severity
+ * PanicActionService notification; it does not initiate a wipe or radio shutdown.
+ */
 class AdvancedBasebandSentinel(private val context: Context) {
 
     private val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
@@ -35,18 +37,6 @@ class AdvancedBasebandSentinel(private val context: Context) {
         private const val ALERT_COOLDOWN_MS = 30_000L
         @Volatile
         private var lastAlertTimestamp = 0L
-
-        private const val NETWORK_TYPE_BITMASK_GSM_LOCAL = 1L shl (TelephonyManager.NETWORK_TYPE_GSM - 1)
-        private const val NETWORK_TYPE_BITMASK_GPRS_LOCAL = 1L shl (TelephonyManager.NETWORK_TYPE_GPRS - 1)
-        private const val NETWORK_TYPE_BITMASK_EDGE_LOCAL = 1L shl (TelephonyManager.NETWORK_TYPE_EDGE - 1)
-        private const val NETWORK_TYPE_BITMASK_CDMA_LOCAL = 1L shl (TelephonyManager.NETWORK_TYPE_CDMA - 1)
-        private const val NETWORK_TYPE_BITMASK_1XRTT_LOCAL = 1L shl (TelephonyManager.NETWORK_TYPE_1xRTT - 1)
-
-        private const val ALL_2G_BITMASK = NETWORK_TYPE_BITMASK_GSM_LOCAL or
-                NETWORK_TYPE_BITMASK_GPRS_LOCAL or
-                NETWORK_TYPE_BITMASK_EDGE_LOCAL or
-                NETWORK_TYPE_BITMASK_CDMA_LOCAL or
-                NETWORK_TYPE_BITMASK_1XRTT_LOCAL
     }
 
     fun start() {
@@ -54,13 +44,6 @@ class AdvancedBasebandSentinel(private val context: Context) {
         if (!PermissionUtils.hasReadPhoneStatePermission(context)) {
             Log.w(TAG, "READ_PHONE_STATE permission missing; baseband sentinel aborted.")
             return
-        }
-
-        // Offload blocking hardware policy checks to IO dispatcher to prevent main-thread lag
-        CoroutineScope(Dispatchers.IO).launch {
-            if (SecurityPreferences.isHardware2GDisabled(context)) {
-                enforceModemLevel2GBlock()
-            }
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -111,76 +94,6 @@ class AdvancedBasebandSentinel(private val context: Context) {
         }
     }
 
-    fun enforceModemLevel2GBlock() {
-        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
-        val adminComponent = AdminReceiver.getComponentName(context)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && dpm != null && dpm.isDeviceOwnerApp(context.packageName)) {
-            try {
-                dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_CELLULAR_2G)
-                Log.i(TAG, "2G cellular traffic blocked via Device Owner restriction (DISALLOW_CELLULAR_2G).")
-                EventLogger.log(context, "POLICY: 2G cellular disallowed via Device Owner policy.")
-                return
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed applying DISALLOW_CELLULAR_2G restriction: ${e.message}", e)
-            }
-        }
-
-        if (telephonyManager == null) return
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            try {
-                val currentMask = telephonyManager.getAllowedNetworkTypesForReason(
-                    TelephonyManager.ALLOWED_NETWORK_TYPES_REASON_USER
-                )
-                val sanitizedMask = currentMask and ALL_2G_BITMASK.inv()
-
-                if (currentMask != sanitizedMask) {
-                    telephonyManager.setAllowedNetworkTypesForReason(
-                        TelephonyManager.ALLOWED_NETWORK_TYPES_REASON_USER,
-                        sanitizedMask
-                    )
-                    Log.i(TAG, "Baseband modem allowed network types bitmask updated (2G stripped).")
-                }
-            } catch (e: SecurityException) {
-                Log.w(TAG, "setAllowedNetworkTypesForReason requires carrier privileges: ${e.message}. Non-fatal on Device Owner installations.")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed updating allowed network types: ${e.message}")
-            }
-        }
-    }
-
-    fun restoreModemNetworkTypes() {
-        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
-        val adminComponent = AdminReceiver.getComponentName(context)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && dpm != null && dpm.isDeviceOwnerApp(context.packageName)) {
-            try {
-                dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_CELLULAR_2G)
-                Log.i(TAG, "2G cellular restriction cleared via Device Owner (DISALLOW_CELLULAR_2G).")
-                EventLogger.log(context, "POLICY: 2G cellular restriction cleared via Device Owner.")
-                return
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed clearing DISALLOW_CELLULAR_2G restriction: ${e.message}", e)
-            }
-        }
-
-        if (telephonyManager == null) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            try {
-                val currentMask = telephonyManager.getAllowedNetworkTypesForReason(
-                    TelephonyManager.ALLOWED_NETWORK_TYPES_REASON_USER
-                )
-                val restoredMask = currentMask or ALL_2G_BITMASK
-                telephonyManager.setAllowedNetworkTypesForReason(
-                    TelephonyManager.ALLOWED_NETWORK_TYPES_REASON_USER,
-                    restoredMask
-                )
-                Log.i(TAG, "Baseband modem network types restored.")
-            } catch (_: Exception) {}
-        }
-    }
-
     private fun evaluateServiceStateDowngrade(serviceState: ServiceState) {
         val regInfoList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             serviceState.networkRegistrationInfoList
@@ -194,7 +107,8 @@ class AdvancedBasebandSentinel(private val context: Context) {
                 if (is2GTechnology(tech) && info.isRegistered) {
                     triggerBasebandThreatAlert(
                         "FORCED_2G_LINK_DOWNGRADE",
-                        "Device registered to unencrypted 2G cellular network (Tech Code: $tech)."
+                        "Device registered to unencrypted 2G cellular network (Tech Code: $tech). " +
+                                "Consider enabling GrapheneOS's native 2G disable in system Settings."
                     )
                     return
                 }
@@ -210,13 +124,11 @@ class AdvancedBasebandSentinel(private val context: Context) {
 
         for (info in registeredCells) {
             if (info is CellInfoGsm) {
-                if (SecurityPreferences.isHardware2GDisabled(context)) {
-                    triggerBasebandThreatAlert(
-                        "ROGUE_2G_BASE_STATION_DETECTED",
-                        "Device connected to active GSM cell despite hardware 2G masking."
-                    )
-                    return
-                }
+                triggerBasebandThreatAlert(
+                    "SUSPICIOUS_2G_BASE_STATION_DETECTED",
+                    "Device connected to active GSM cell. Review GrapheneOS 2G settings."
+                )
+                return
             }
 
             if (info is CellInfoLte) {
@@ -251,22 +163,13 @@ class AdvancedBasebandSentinel(private val context: Context) {
         if (now - lastAlertTimestamp < ALERT_COOLDOWN_MS) return
         lastAlertTimestamp = now
 
-        Log.e(TAG, "!!! BASEBAND SECURITY BREACH: $reason !!! - $description")
+        Log.e(TAG, "!!! BASEBAND SECURITY ALERT: $reason !!! - $description")
         EventLogger.log(context, "BASEBAND: $reason - $description")
 
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val strategy = DefenseCoordinator.resolveStrategy(context)
-                strategy.isolateRadiosAndNetwork()
-
-                PanicActionService.trigger(
-                    context,
-                    reason,
-                    PanicActionService.Severity.HIGH
-                )
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed executing baseband countermeasures", e)
-            }
-        }
+        PanicActionService.trigger(
+            context,
+            reason,
+            PanicActionService.Severity.HIGH
+        )
     }
 }

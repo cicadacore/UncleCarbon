@@ -38,10 +38,6 @@ object AdvancedCameraHandler {
         requestId: Long = 0L
     ): CameraCapture = withContext(Dispatchers.IO) {
 
-        if (SecurityPreferences.isStealthMediaCaptureEnabled(context)) {
-            RootActions.suppressPrivacyIndicators(true)
-        }
-
         val frontEnabled = SecurityPreferences.isFrontCameraCaptureEnabled(context)
         val backEnabled = SecurityPreferences.isBackCameraCaptureEnabled(context)
 

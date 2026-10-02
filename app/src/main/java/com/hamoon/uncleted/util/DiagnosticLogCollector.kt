@@ -1,8 +1,8 @@
 package com.hamoon.uncleted.util
 
+import android.app.admin.DevicePolicyManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.os.Process
 import android.util.Log
@@ -25,30 +25,14 @@ object DiagnosticLogCollector {
         val androidVersion: String,
         val apiLevel: Int,
         val buildFingerprint: String,
-        val isRooted: Boolean,
-        val rootProvider: String,
-        val isPrivAppMounted: Boolean,
-        val selinuxMode: String
+        val isDeviceOwner: Boolean,
+        val isDeviceAdmin: Boolean
     )
 
     suspend fun getEnvironmentDiagnostics(context: Context): DeviceEnvironment = withContext(Dispatchers.IO) {
-        val isRooted = RootChecker.isDeviceRooted()
-        val provider = if (isRooted) RootChecker.getRootProvider().name else "NONE"
-
-        var privAppMounted = false
-        var selinux = "Unknown"
-
-        if (isRooted) {
-            val directFile = RootExecutor.run("test -f /system/priv-app/UncleTed/UncleTed.apk && echo mounted", logErrors = false)
-            privAppMounted = directFile.isSuccess && directFile.output.any { it.contains("mounted") }
-
-            val seResult = RootExecutor.run("getenforce", logErrors = false)
-            if (seResult.isSuccess && seResult.output.isNotEmpty()) {
-                selinux = seResult.output.first().trim()
-            }
-        } else {
-            privAppMounted = (context.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-        }
+        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as? DevicePolicyManager
+        val isDeviceOwner = dpm?.isDeviceOwnerApp(context.packageName) == true
+        val isAdmin = PermissionUtils.isDeviceAdminActive(context)
 
         DeviceEnvironment(
             manufacturer = Build.MANUFACTURER,
@@ -56,10 +40,8 @@ object DiagnosticLogCollector {
             androidVersion = Build.VERSION.RELEASE,
             apiLevel = Build.VERSION.SDK_INT,
             buildFingerprint = Build.FINGERPRINT,
-            isRooted = isRooted,
-            rootProvider = provider,
-            isPrivAppMounted = privAppMounted,
-            selinuxMode = selinux
+            isDeviceOwner = isDeviceOwner,
+            isDeviceAdmin = isAdmin
         )
     }
 
@@ -77,7 +59,7 @@ object DiagnosticLogCollector {
 
             FileOutputStream(logFile).bufferedWriter().use { writer ->
                 writer.write("================================================================\n")
-                writer.write("UNCLE TED EXPERIMENTAL BUG DIAGNOSTIC REPORT\n")
+                writer.write("UNCLE TED (GrapheneOS Fork) DIAGNOSTIC REPORT\n")
                 writer.write("Generated: ${Date()}\n")
                 writer.write("================================================================\n\n")
 
@@ -85,29 +67,9 @@ object DiagnosticLogCollector {
                 writer.write("Brand/Model: ${env.manufacturer} ${env.model}\n")
                 writer.write("Android OS: ${env.androidVersion} (API ${env.apiLevel})\n")
                 writer.write("Build Fingerprint: ${env.buildFingerprint}\n")
-                writer.write("Root Authority: ${if (env.isRooted) "ROOTED (${env.rootProvider})" else "UNROOTED"}\n")
-                writer.write("SELinux Enforce: ${env.selinuxMode}\n")
-                writer.write("Priv-App System Mount Status: ${if (env.isPrivAppMounted) "MOUNTED (/system/priv-app)" else "FAILED (Running as /data/app user app)"}\n")
+                writer.write("Device Owner Provisioned: ${env.isDeviceOwner}\n")
+                writer.write("Device Admin Active: ${env.isDeviceAdmin}\n")
                 writer.write("Host Process PID: ${Process.myPid()}\n\n")
-
-                if (env.isRooted) {
-                    writer.write("--- MOUNT & PACKAGE ENVIRONMENT (ROOT) ---\n")
-                    val ksuCheck = RootExecutor.run("ksud -V 2>/dev/null || which ksud magisk apd", logErrors = false)
-                    writer.write("Root Daemon Version: ${ksuCheck.output.joinToString(" ")}\n")
-
-                    val mountDump = RootExecutor.run("mount | grep -E 'priv-app|overlay|uncleted'", logErrors = false)
-                    writer.write("Active System Mounts:\n${mountDump.output.joinToString("\n")}\n")
-
-                    val pkgDump = RootExecutor.run("dumpsys package ${context.packageName} | grep -E 'userId=|pkgFlags=|versionCode=|dataDir='", logErrors = false)
-                    writer.write("Package State:\n${pkgDump.output.joinToString("\n")}\n\n")
-
-                    val dmesgSnippet = RootExecutor.run("dmesg | grep -iE 'touch|sec_ts|goodix|synaptics|usb|dwc3|mte' | tail -n 80", logErrors = false)
-                    if (dmesgSnippet.isSuccess && dmesgSnippet.output.isNotEmpty()) {
-                        writer.write("--- KERNEL DRIVER RING BUFFER (DMESG TAIL) ---\n")
-                        writer.write(dmesgSnippet.output.joinToString("\n"))
-                        writer.write("\n\n")
-                    }
-                }
 
                 writer.write("--- IN-APP EVENT AUDIT LOGS ---\n")
                 val auditLogs = EventLogger.getLogs(context)
@@ -120,12 +82,8 @@ object DiagnosticLogCollector {
                 }
                 writer.write("\n")
 
-                writer.write("--- LOGCAT BUFFER DUMP (SCOPE: $logScope) ---\n")
-                val logcatCmd = when {
-                    env.isRooted && logScope == "APP_ONLY" -> arrayOf("su", "-c", "logcat -d -v time --pid=${Process.myPid()} *:V")
-                    env.isRooted -> arrayOf("su", "-c", "logcat -d -v time *:V")
-                    else -> arrayOf("logcat", "-d", "-v", "time", "--pid=${Process.myPid()}", "*:V")
-                }
+                writer.write("--- LOGCAT BUFFER DUMP (SCOPE: $logScope, UNPRIVILEGED) ---\n")
+                val logcatCmd = arrayOf("logcat", "-d", "-v", "time", "--pid=${Process.myPid()}", "*:V")
 
                 try {
                     val process = ProcessBuilder(*logcatCmd).start()
@@ -162,7 +120,7 @@ object DiagnosticLogCollector {
             type = "text/plain"
             putExtra(Intent.EXTRA_STREAM, uri)
             putExtra(Intent.EXTRA_SUBJECT, "Uncle Ted Bug Report (${Build.MODEL})")
-            putExtra(Intent.EXTRA_TEXT, "Attached is the experimental diagnostic logcat report for Uncle Ted.")
+            putExtra(Intent.EXTRA_TEXT, "Attached is the diagnostic logcat report for Uncle Ted.")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }

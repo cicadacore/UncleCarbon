@@ -19,7 +19,6 @@ import com.hamoon.uncleted.crypto.PostQuantumEngine
 import com.hamoon.uncleted.crypto.StrongBoxSecurityManager
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.databinding.FragmentCryptoEngineBinding
-import com.hamoon.uncleted.util.MemoryHardeningEngine
 import com.hamoon.uncleted.util.NativeSecurityBridge
 import com.hamoon.uncleted.vault.PlausibleDeniabilityVault
 import kotlinx.coroutines.Dispatchers
@@ -69,10 +68,6 @@ class CryptoEngineFragment : Fragment() {
         // 3. Plausible Deniability Vault Setup
         binding.etVaultCarrierName.setText(SecurityPreferences.getVaultCarrierFileName(context))
         binding.etVaultSecretLabel.setText(SecurityPreferences.getVaultSecretLabel(context))
-
-        // 4. Memory Hardening & ZRAM Setup (Matching XML camelCase ID)
-        binding.switchZramScrubbing.isChecked = SecurityPreferences.isZramScrubbingEnabled(context)
-        binding.switchZramRekeying.isChecked = SecurityPreferences.isZramReKeyingEnabled(context)
     }
 
     private fun refreshHardwareStatus() {
@@ -233,27 +228,6 @@ class CryptoEngineFragment : Fragment() {
                 .show()
         }
 
-        // Memory Hardening Switches & Manual Trigger
-        binding.switchZramScrubbing.setOnCheckedChangeListener { _, isChecked ->
-            SecurityPreferences.setZramScrubbingEnabled(context, isChecked)
-        }
-
-        binding.switchZramRekeying.setOnCheckedChangeListener { _, isChecked ->
-            SecurityPreferences.setZramReKeyingEnabled(context, isChecked)
-        }
-
-        binding.btnTriggerMemoryScrub.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                val success = MemoryHardeningEngine.executeVolatileScrub(context)
-                withContext(Dispatchers.Main) {
-                    if (success) {
-                        Toast.makeText(context, "Kernel caches dropped, memory compacted, and heap sanitized.", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "Memory scrub completed with non-fatal userspace fallback.", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
     }
 
     override fun onDestroyView() {

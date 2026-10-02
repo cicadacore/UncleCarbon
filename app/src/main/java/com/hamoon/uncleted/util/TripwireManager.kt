@@ -100,7 +100,7 @@ object TripwireManager {
             EventLogger.log(context, "CRITICAL: Dead-man tripwire expired during downtime. Initiating wipe.")
             CoroutineScope(Dispatchers.IO).launch {
                 val strategy = DefenseCoordinator.resolveStrategy(context)
-                strategy.executeWipe("BFU_TRIPWIRE_EXPIRED_DURING_DOWNTIME")
+                strategy.executeStandardWipe("BFU_TRIPWIRE_EXPIRED_DURING_DOWNTIME")
             }
             return
         }

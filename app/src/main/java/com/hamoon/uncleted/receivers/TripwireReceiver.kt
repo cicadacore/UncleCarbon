@@ -7,9 +7,7 @@ import android.os.PowerManager
 import android.util.Log
 import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.data.SecurityPreferences
-import com.hamoon.uncleted.services.PanicActionService
 import com.hamoon.uncleted.util.EventLogger
-import com.hamoon.uncleted.util.RootActions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,23 +36,10 @@ class TripwireReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 Log.e(TAG, "!!! AUTONOMOUS OFFLINE DEAD-MAN TRIPWIRE EXPIRED !!!")
-                EventLogger.log(context, "CRITICAL: Offline tripwire duration exceeded. Initiating wipe.")
+                EventLogger.log(context, "CRITICAL: Offline tripwire duration exceeded. Standard factory reset.")
 
-                // 1. If firewall tripwire is enabled under root, drop all traffic first
-                if (SecurityPreferences.isFirewallTripwireEnabled(context)) {
-                    RootActions.blockAllNetworkTraffic(context)
-                }
-
-                // 2. Dispatch emergency wipe through active DefenseStrategy (Hardware SE or Vold eviction)
                 val strategy = DefenseCoordinator.resolveStrategy(context)
-                strategy.executeWipe("AUTONOMOUS_TRIPWIRE_OFFLINE_LIMIT")
-
-                // 3. Trigger fallback panic action service
-                PanicActionService.trigger(
-                    context,
-                    "TRIPWIRE_WIPE",
-                    PanicActionService.Severity.CRITICAL
-                )
+                strategy.executeStandardWipe("AUTONOMOUS_TRIPWIRE_OFFLINE_LIMIT")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed executing tripwire expiration protocol", e)
             } finally {

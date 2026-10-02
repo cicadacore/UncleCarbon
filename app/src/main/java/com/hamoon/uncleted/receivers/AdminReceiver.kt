@@ -10,14 +10,11 @@ import android.content.Intent
 import android.os.UserHandle
 import android.os.UserManager
 import android.util.Log
-import com.hamoon.uncleted.LockScreenActivity
 import com.hamoon.uncleted.R
 import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.services.PanicActionService
 import com.hamoon.uncleted.util.EventLogger
-import com.hamoon.uncleted.util.GodMode
-import com.hamoon.uncleted.util.RootChecker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -100,12 +97,12 @@ class AdminReceiver : DeviceAdminReceiver() {
             val strategy = DefenseCoordinator.resolveStrategy(context)
             val maxAllowedBeforeWipe = SecurityPreferences.getMaxFailedAttemptsForWipe(context)
 
-            // 1. Check if user-configured brute-force wipe limit is exceeded
+            // 1. Check if user-configured brute-force wipe limit is exceeded.
+            //    Routes through the single standard Device Owner factory-reset path.
             if (maxAllowedBeforeWipe in 1..currentFailed) {
-                Log.e(TAG, "Hardware failure count ($currentFailed) reached user wipe limit ($maxAllowedBeforeWipe). Initiating wipe!")
-                EventLogger.log(context, "CRITICAL: Max failed password threshold exceeded ($currentFailed/$maxAllowedBeforeWipe). Erasing.")
-                strategy.executeWipe("MAX_FAILED_PASSWORDS_EXCEEDED")
-                PanicActionService.trigger(context, "REMOTE_WIPE", PanicActionService.Severity.CRITICAL)
+                Log.e(TAG, "Hardware failure count ($currentFailed) reached user wipe limit ($maxAllowedBeforeWipe). Initiating standard factory reset.")
+                EventLogger.log(context, "CRITICAL: Max failed password threshold exceeded ($currentFailed/$maxAllowedBeforeWipe). Standard factory reset.")
+                strategy.executeStandardWipe("MAX_FAILED_PASSWORDS_EXCEEDED")
                 return@launch
             }
 
@@ -163,23 +160,6 @@ class AdminReceiver : DeviceAdminReceiver() {
         EventLogger.log(context, "ALERT: Unauthorized Device Admin deactivation attempt.")
 
         PanicActionService.trigger(context, "UNINSTALL_ATTEMPT", PanicActionService.Severity.HIGH)
-
-        val lockIntent = Intent(context, LockScreenActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            putExtra("REASON", "UNINSTALL_ATTEMPT")
-        }
-
-        CoroutineScope(Dispatchers.IO).launch {
-            if (RootChecker.isDeviceRooted()) {
-                GodMode.startActivityInBackground(context, lockIntent)
-            } else {
-                try {
-                    context.startActivity(lockIntent)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed launching lockscreen from deactivation hook", e)
-                }
-            }
-        }
 
         return context.getString(R.string.admin_disable_warning)
     }

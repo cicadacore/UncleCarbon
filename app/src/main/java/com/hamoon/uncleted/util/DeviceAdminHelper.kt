@@ -11,22 +11,23 @@ object DeviceAdminHelper {
     private const val TAG = "DeviceAdminHelper"
 
     /**
-     * Executes the appropriate device wipe strategy through DefenseCoordinator asynchronously.
-     * Prevents ANR deadlocks by dispatching the operation off the main thread while maintaining
-     * a stable non-blocking invocation interface for legacy receivers and UI actions.
+     * Executes the standard Device Owner factory-reset path.
+     *
+     * The GrapheneOS fork never routes through the removed Level 2/3/4 lethal
+     * destruction routines or any root/kernel fallback. If Device Owner is not
+     * yet provisioned, the strategy no-ops safely and logs the skip.
      */
     fun wipeDeviceImmediately(context: Context, reason: String = "EMERGENCY_WIPE_INVOCATION") {
-        Log.w(TAG, "Invoking wipe protocol through DefenseCoordinator: reason=$reason")
+        Log.w(TAG, "Invoking standard factory reset through DefenseCoordinator: reason=$reason")
         EventLogger.log(context, "INVOCATION: wipeDeviceImmediately triggered (Reason: $reason)")
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val strategy = DefenseCoordinator.resolveStrategy(context)
-                Log.i(TAG, "Executing wipe via active strategy: ${strategy.profileName}")
-                strategy.executeWipe(reason)
+                Log.i(TAG, "Executing standard wipe via active strategy: ${strategy.profileName}")
+                strategy.executeStandardWipe(reason)
             } catch (e: Exception) {
-                Log.e(TAG, "Strategy execution failed, triggering EmergencyDestructionEngine fallback", e)
-                EmergencyDestructionEngine.executeDestructionSequence(context, reason)
+                Log.e(TAG, "Standard wipe invocation failed: ${e.message}", e)
             }
         }
     }

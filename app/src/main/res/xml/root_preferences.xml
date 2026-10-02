@@ -36,22 +36,4 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="Hardware &amp; Peripheral Calibration">
-
-        <SeekBarPreference
-            app:key="pref_usb_debounce_hits"
-            app:title="USB Transients Debounce Filter"
-            app:summary="Consecutive seconds required to verify active data extraction hardware before killswitch triggers (Filters charger voltage negotiation spikes)."
-            app:defaultValue="3"
-            android:min="1"
-            android:max="10"
-            app:showSeekBarValue="true" />
-
-        <Preference
-            app:key="pref_bootloader_avb_status"
-            app:title="Bootloader &amp; AVB Hardening Platform"
-            app:summary="Tap to inspect platform security model, Fastboot compatibility, and Knox advisory." />
-
-    </PreferenceCategory>
-
 </PreferenceScreen>
