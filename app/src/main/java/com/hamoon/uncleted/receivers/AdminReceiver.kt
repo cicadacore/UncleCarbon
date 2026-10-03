@@ -2,6 +2,7 @@
 
 package com.hamoon.uncleted.receivers
 
+import android.Manifest
 import android.app.admin.DeviceAdminReceiver
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
@@ -59,6 +60,22 @@ class AdminReceiver : DeviceAdminReceiver() {
                     } else {
                         dpm.clearUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
                         Log.i(TAG, "Device Owner baseline enforced (DISALLOW_SAFE_BOOT cleared per preference).")
+                    }
+
+                    // Self-grant READ_PHONE_STATE so the SIM state machine
+                    // works without user interaction and remains functional
+                    // in the Direct-Boot window (before first unlock) when
+                    // the user cannot answer a runtime-permission dialog.
+                    try {
+                        val granted = dpm.setPermissionGrantState(
+                            admin,
+                            context.packageName,
+                            Manifest.permission.READ_PHONE_STATE,
+                            DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED,
+                        )
+                        Log.i(TAG, "Device Owner self-grant READ_PHONE_STATE: $granted")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Device Owner self-grant of READ_PHONE_STATE failed: ${e.message}")
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed configuring initial Device Owner policies", e)

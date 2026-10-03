@@ -11,6 +11,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
 import android.os.IBinder
+import android.telephony.SubscriptionManager
 import android.util.Log
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
@@ -20,6 +21,7 @@ import com.hamoon.uncleted.proximity.BleProximitySentinel
 import com.hamoon.uncleted.receivers.ScreenStateReceiver
 import com.hamoon.uncleted.sentinels.AdvancedBasebandSentinel
 import com.hamoon.uncleted.sentinels.SpectralSentinel
+import com.hamoon.uncleted.sim.SimMonitor
 import com.hamoon.uncleted.util.MotionDetector
 import com.hamoon.uncleted.util.NotificationHelper
 import com.hamoon.uncleted.util.ShakeDetector
@@ -40,6 +42,8 @@ class MonitoringService : LifecycleService(), SensorEventListener {
     private var spectralSentinel: SpectralSentinel? = null
     private var bleProximitySentinel: BleProximitySentinel? = null
     private var screenStateReceiver: ScreenStateReceiver? = null
+    private var subscriptionManager: SubscriptionManager? = null
+    private var simSubscriptionListener: SubscriptionManager.OnSubscriptionsChangedListener? = null
 
     private var sentinelPollerJob: Job? = null
     private var activeProfileName: String = "Detecting..."
@@ -115,6 +119,8 @@ class MonitoringService : LifecycleService(), SensorEventListener {
                 }
                 screenStateReceiver = ScreenStateReceiver()
                 registerReceiver(screenStateReceiver, screenFilter)
+
+                registerSimSubscriptionListener()
 
                 refreshNotificationTelemetry()
                 startSentinelPoller()
@@ -225,6 +231,7 @@ class MonitoringService : LifecycleService(), SensorEventListener {
             } catch (_: Exception) {}
         }
         screenStateReceiver = null
+        unregisterSimSubscriptionListener()
         bleProximitySentinel?.stop()
         bleProximitySentinel = null
         MotionDetector.stop()
@@ -233,5 +240,44 @@ class MonitoringService : LifecycleService(), SensorEventListener {
         spectralSentinel = null
         Log.d(TAG, "MonitoringService stopped.")
         super.onDestroy()
+    }
+
+    private fun registerSimSubscriptionListener() {
+        if (!(SecurityPreferences.isWipeOnSimRemovalEnabled(this) ||
+                SecurityPreferences.isWipeOnSimReplacementEnabled(this) ||
+                SecurityPreferences.isSimChangeAlertEnabled(this))) {
+            return
+        }
+        // Device Owner self-grant READ_PHONE_STATE if needed so the listener
+        // callbacks can actually read activeSubscriptionInfoList.
+        SimMonitor.selfGrantReadPhoneStateIfDeviceOwner(this)
+        val manager = getSystemService(SubscriptionManager::class.java) ?: return
+        subscriptionManager = manager
+        try {
+            val listener = object : SubscriptionManager.OnSubscriptionsChangedListener() {
+                override fun onSubscriptionsChanged() {
+                    SimMonitor.onSubscriptionsChanged(applicationContext)
+                }
+            }
+            simSubscriptionListener = listener
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                manager.addOnSubscriptionsChangedListener(mainExecutor, listener)
+            } else {
+                @Suppress("DEPRECATION")
+                manager.addOnSubscriptionsChangedListener(listener)
+            }
+            Log.d(TAG, "Registered SubscriptionManager listener for SIM state machine.")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to register SubscriptionManager listener: ${e.message}")
+        }
+    }
+
+    private fun unregisterSimSubscriptionListener() {
+        val listener = simSubscriptionListener ?: return
+        try {
+            subscriptionManager?.removeOnSubscriptionsChangedListener(listener)
+        } catch (_: Exception) {}
+        simSubscriptionListener = null
+        subscriptionManager = null
     }
 }

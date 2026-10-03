@@ -156,6 +156,33 @@ object SecurityPreferences {
                 }
             }
         } catch (_: Exception) {}
+
+        // Retire the legacy SIM_SERIAL / BFU_SIM_SERIAL baseline. The old
+        // SimChangeReceiver stored whatever the carrier-only fallback happened
+        // to return (simOperator + simCountryIso) and treated that as the SIM
+        // identity. That value is not a per-SIM identifier (same carrier =>
+        // same string) and could cause destructive false positives or missed
+        // detections after upgrade. SimMonitor will recapture a fresh baseline
+        // using SubscriptionInfo + isEmbedded on the next active-subscription
+        // observation.
+        try {
+            getDeviceProtectedPrefs(context).edit()
+                .remove("BFU_SIM_SERIAL")
+                .apply()
+            if (isUserUnlocked(context)) {
+                getInstance(context).edit()
+                    .remove("SIM_SERIAL")
+                    .apply()
+            }
+        } catch (_: Exception) {}
+
+        // Clear any stale in-flight latch left over from a wipe path that was
+        // dispatched but did not complete (reboot interrupted, exception).
+        try {
+            getDeviceProtectedPrefs(context).edit()
+                .putBoolean("BFU_SIM_WIPE_IN_FLIGHT", false)
+                .apply()
+        } catch (_: Exception) {}
     }
 
     // =========================================================================
@@ -766,17 +793,61 @@ object SecurityPreferences {
     fun isSimChangeAlertEnabled(context: Context): Boolean =
         getInstance(context).getBoolean("SIM_CHANGE", false)
 
-    fun setInitialSimSerial(context: Context, serial: String?) {
-        getInstance(context).edit().putString("SIM_SERIAL", serial).apply()
-        getDeviceProtectedPrefs(context).edit().putString("BFU_SIM_SERIAL", serial).apply()
+    // -------------------------------------------------------------------------
+    // Physical-SIM presence baseline (used by SimMonitor state machine).
+    // Replaces the legacy SIM_SERIAL keys which stored unreliable carrier
+    // fingerprints and could cause destructive false positives.
+    // -------------------------------------------------------------------------
+
+    fun hadPhysicalSimBaseline(context: Context): Boolean {
+        return if (!isUserUnlocked(context)) {
+            getDeviceProtectedPrefs(context).getBoolean("BFU_SIM_HAD_PHYSICAL", false)
+        } else {
+            getInstance(context).getBoolean("SIM_HAD_PHYSICAL", false)
+        }
     }
 
-    fun getInitialSimSerial(context: Context): String? {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getString("BFU_SIM_SERIAL", null)
-        } else {
-            getInstance(context).getString("SIM_SERIAL", null)
+    fun setHadPhysicalSimBaseline(context: Context, value: Boolean) {
+        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_SIM_HAD_PHYSICAL", value).apply()
+        if (isUserUnlocked(context)) {
+            getInstance(context).edit().putBoolean("SIM_HAD_PHYSICAL", value).apply()
         }
+    }
+
+    fun getPhysicalSimFingerprint(context: Context): String? {
+        return if (!isUserUnlocked(context)) {
+            getDeviceProtectedPrefs(context).getString("BFU_SIM_PHYSICAL_FP", null)
+        } else {
+            getInstance(context).getString("SIM_PHYSICAL_FP", null)
+        }
+    }
+
+    fun setPhysicalSimFingerprint(context: Context, fp: String?) {
+        getDeviceProtectedPrefs(context).edit().putString("BFU_SIM_PHYSICAL_FP", fp).apply()
+        if (isUserUnlocked(context)) {
+            getInstance(context).edit().putString("SIM_PHYSICAL_FP", fp).apply()
+        }
+    }
+
+    fun getSimPendingAbsentHint(context: Context): Boolean =
+        getDeviceProtectedPrefs(context).getBoolean("BFU_SIM_PENDING_ABSENT_HINT", false)
+
+    fun setSimPendingAbsentHint(context: Context, value: Boolean) {
+        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_SIM_PENDING_ABSENT_HINT", value).apply()
+    }
+
+    fun getSimPendingSubscriptionChange(context: Context): Boolean =
+        getDeviceProtectedPrefs(context).getBoolean("BFU_SIM_PENDING_SUB_CHANGE", false)
+
+    fun setSimPendingSubscriptionChange(context: Context, value: Boolean) {
+        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_SIM_PENDING_SUB_CHANGE", value).apply()
+    }
+
+    fun isSimWipeInFlight(context: Context): Boolean =
+        getDeviceProtectedPrefs(context).getBoolean("BFU_SIM_WIPE_IN_FLIGHT", false)
+
+    fun setSimWipeInFlight(context: Context, value: Boolean) {
+        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_SIM_WIPE_IN_FLIGHT", value).apply()
     }
 
     fun setShakeToPanicEnabled(context: Context, isEnabled: Boolean) =

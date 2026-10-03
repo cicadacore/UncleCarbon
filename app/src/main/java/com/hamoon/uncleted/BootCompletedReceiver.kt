@@ -9,6 +9,7 @@ import androidx.core.content.ContextCompat
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.services.MonitoringService
 import com.hamoon.uncleted.services.ZoneWipeService
+import com.hamoon.uncleted.sim.SimMonitor
 import com.hamoon.uncleted.util.TripwireManager
 import com.hamoon.uncleted.util.WatchdogManager
 import java.util.concurrent.atomic.AtomicBoolean
@@ -52,6 +53,17 @@ class BootCompletedReceiver : BroadcastReceiver() {
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start ZoneWipeService on boot", e)
                 }
+            }
+
+            // Clear any stale wipe-in-flight latch (previous attempt was
+            // interrupted) and reconcile the physical-SIM baseline. The
+            // reconciler is directBootAware and schedules a verify job
+            // rather than wiping synchronously.
+            try {
+                SimMonitor.clearInFlightLatchForBoot(context)
+                SimMonitor.reconcileOnBoot(context)
+            } catch (e: Exception) {
+                Log.w(TAG, "SIM reconciliation on boot failed: ${e.message}")
             }
         }
 
