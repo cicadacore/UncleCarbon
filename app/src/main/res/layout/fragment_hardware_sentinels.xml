@@ -141,7 +141,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="For hard 2G blocking, use GrapheneOS Settings → Network &amp; Internet → SIMs → Allow 2G: Disabled"
+                    android:text="For hard 2G blocking, use GrapheneOS Settings → Security &amp; Privacy → More security &amp; privacy → Mobile network security → 2G network protection: enable"
                     android:textAppearance="?attr/textAppearanceBodySmall"
                     android:textColor="?attr/colorOnSurfaceVariant"/>
 
