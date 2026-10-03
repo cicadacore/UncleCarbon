@@ -89,6 +89,41 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- OPTIONAL eSIM / eUICC ERASURE ON WIPE -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/erase_esim_title"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"/>
+
+                <com.google.android.material.switchmaterial.SwitchMaterial
+                    android:id="@+id/switch_erase_esim_on_wipe"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/erase_esim_switch_label"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/erase_esim_summary"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- STANDARD FACTORY RESET -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

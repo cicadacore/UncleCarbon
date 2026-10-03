@@ -22,7 +22,9 @@ class SecretCodeReceiver : BroadcastReceiver() {
             val uri = intent.data
             val host = uri?.host
 
-            Log.d(TAG, "Secret code broadcast received. Host: $host")
+            // Never log the attempted (`host`) or stored (`secretCode`) dialer
+            // code; both are authentication secrets.
+            Log.d(TAG, "Secret code broadcast received.")
 
             if (!secretCode.isNullOrEmpty() && host == secretCode) {
                 Log.i(TAG, "Secret code matched! Launching MainActivity.")
@@ -31,7 +33,7 @@ class SecretCodeReceiver : BroadcastReceiver() {
                 }
                 context.startActivity(launchIntent)
             } else {
-                Log.w(TAG, "Received code '$host' does not match stored code '$secretCode'.")
+                Log.w(TAG, "Secret code mismatch")
             }
         }
     }

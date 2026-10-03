@@ -287,6 +287,41 @@ object SecurityPreferences {
     }
 
     // =========================================================================
+    // 0.1b Developer / Debugging Interception Policy (Anti-Debug)
+    //
+    // Independent of Safe Boot. Default FALSE: existing installs and fresh
+    // installs alike treat debugging interception as disabled unless the user
+    // explicitly opts in. Never silently enabled on upgrade.
+    // =========================================================================
+    fun setDeveloperFeaturesBlocked(context: Context, blocked: Boolean) {
+        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_BLOCK_DEVELOPER_FEATURES", blocked).apply()
+        if (isUserUnlocked(context)) {
+            getInstance(context).edit().putBoolean("BLOCK_DEVELOPER_FEATURES", blocked).apply()
+        }
+    }
+
+    fun isDeveloperFeaturesBlocked(context: Context): Boolean {
+        // Fail-safe OR: if either mirror records the opt-in, treat it as enabled.
+        return if (!isUserUnlocked(context)) {
+            getDeviceProtectedPrefs(context).getBoolean("BFU_BLOCK_DEVELOPER_FEATURES", false)
+        } else {
+            getDeviceProtectedPrefs(context).getBoolean("BFU_BLOCK_DEVELOPER_FEATURES", false) ||
+                    getInstance(context).getBoolean("BLOCK_DEVELOPER_FEATURES", false)
+        }
+    }
+
+    // Runtime USB data-port posture (not a user setting). Persisted in DE storage
+    // so the centralized DISALLOW_DEBUGGING_FEATURES reconciliation knows whether
+    // an active USB lockdown still requires debugging to stay blocked, even across
+    // process restarts and before credential unlock. Default FALSE.
+    fun setUsbDataPortDisabled(context: Context, disabled: Boolean) {
+        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_USB_DATA_PORT_DISABLED", disabled).apply()
+    }
+
+    fun isUsbDataPortDisabled(context: Context): Boolean =
+        getDeviceProtectedPrefs(context).getBoolean("BFU_USB_DATA_PORT_DISABLED", false)
+
+    // =========================================================================
     // 0.2 Max Failed Passwords Threshold for Wipe
     // =========================================================================
     fun getMaxFailedAttemptsForWipe(context: Context): Int {
@@ -813,6 +848,33 @@ object SecurityPreferences {
 
     fun isHardwareWipeEnabled(context: Context): Boolean =
         getInstance(context).getBoolean("HARDWARE_WIPE_ENABLED", false)
+
+    // =========================================================================
+    // 13.1 Destruction Protocols: optional eSIM/eUICC erasure on WIPE
+    //
+    // Default FALSE and opt-in only. Mirrored into DE/BFU storage so a wipe
+    // triggered while the device is in Direct Boot / BFU state (before credential
+    // unlock) can still read the user's choice. Applies ONLY to actual
+    // factory-reset WIPE operations, never to Lock/BFU/reboot actions.
+    // =========================================================================
+    fun setEraseEsimOnWipeEnabled(context: Context, isEnabled: Boolean) {
+        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_ERASE_ESIM_ON_WIPE", isEnabled).apply()
+        if (isUserUnlocked(context)) {
+            getInstance(context).edit().putBoolean("ERASE_ESIM_ON_WIPE", isEnabled).apply()
+        }
+    }
+
+    fun isEraseEsimOnWipeEnabled(context: Context): Boolean {
+        // The DE/BFU mirror is authoritative for the centralized wipe path, which
+        // may run before unlock. Fail-safe OR keeps the opt-in visible whichever
+        // store the caller can currently read.
+        return if (!isUserUnlocked(context)) {
+            getDeviceProtectedPrefs(context).getBoolean("BFU_ERASE_ESIM_ON_WIPE", false)
+        } else {
+            getDeviceProtectedPrefs(context).getBoolean("BFU_ERASE_ESIM_ON_WIPE", false) ||
+                    getInstance(context).getBoolean("ERASE_ESIM_ON_WIPE", false)
+        }
+    }
 
     // =========================================================================
     // 14. Geographic Suicide, Geofencing & Custom Wipe Zones

@@ -44,19 +44,18 @@ android {
 
     signingConfigs {
         create("release") {
-            // Release Keystore configuration (falls back to debug if release keystore is absent)
+            // Release keystore configuration. When the dedicated release
+            // keystore is absent we deliberately leave this config
+            // unconfigured rather than falling back to the shared Android
+            // debug key: a release artifact must never be signed with the
+            // debug key. The task-graph assertion below fails any release
+            // signing/packaging task instead of allowing a silent fallback.
             val releaseKeystore = file("${rootProject.projectDir}/release.keystore")
             if (releaseKeystore.exists()) {
                 storeFile = releaseKeystore
                 storePassword = System.getenv("UNCLETED_KEYSTORE_PASSWORD") ?: "uncleted_release"
                 keyAlias = System.getenv("UNCLETED_KEY_ALIAS") ?: "uncleted"
                 keyPassword = System.getenv("UNCLETED_KEY_PASSWORD") ?: "uncleted_release"
-            } else {
-                val debugKeystore = file("${System.getProperty("user.home")}/.android/debug.keystore")
-                storeFile = if (debugKeystore.exists()) debugKeystore else file("${rootProject.projectDir}/debug.keystore")
-                storePassword = "android"
-                keyAlias = "androiddebugkey"
-                keyPassword = "android"
             }
         }
         getByName("debug") {
@@ -112,6 +111,34 @@ android {
         }
         jniLibs {
             useLegacyPackaging = false
+        }
+    }
+}
+
+// Security guard: a release build must never silently fall back to the shared
+// Android debug keystore. Fail fast if a release signing/packaging task is on
+// the graph while the dedicated release keystore is missing. Debug builds are
+// unaffected: only tasks that produce or sign a release artifact are checked.
+gradle.taskGraph.whenReady {
+    val releaseSigningRequested = allTasks.any { task ->
+        task.project == project && (
+            task.name.startsWith("assembleRelease") ||
+            task.name.startsWith("bundleRelease") ||
+            task.name.startsWith("packageRelease") ||
+            task.name.startsWith("validateSigningRelease")
+        )
+    }
+    if (releaseSigningRequested) {
+        val releaseKeystore = file("${rootProject.projectDir}/release.keystore")
+        if (!releaseKeystore.exists()) {
+            throw GradleException(
+                "Release signing aborted: release.keystore not found at " +
+                    "${rootProject.projectDir}. Release artifacts must be signed with a " +
+                    "dedicated release key and must not fall back to the Android debug key. " +
+                    "Provide release.keystore (and the UNCLETED_KEYSTORE_PASSWORD / " +
+                    "UNCLETED_KEY_ALIAS / UNCLETED_KEY_PASSWORD environment variables) before " +
+                    "building a release."
+            )
         }
     }
 }

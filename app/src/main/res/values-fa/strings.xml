@@ -103,6 +103,25 @@
     <string name="safe_boot_allow_button">مجاز کردن Safe Mode</string>
     <string name="safe_boot_keep_blocked_button">مسدود نگه دار</string>
 
+    <!-- Developer / Debugging Interception Strings -->
+    <string name="dev_interception_title">مسدودسازی حالت توسعه‌دهنده (ضد اشکال‌زدایی)</string>
+    <string name="dev_interception_switch_label">مسدودسازی قابلیت‌های توسعه‌دهنده / اشکال‌زدایی (مدیر دستگاه)</string>
+    <string name="dev_interception_summary">در صورت فعال بودن، مدیر دستگاه قابلیت‌های اشکال‌زدایی اندروید را مسدود می‌کند تا از فعال‌سازی اشکال‌زدایی USB/ADB جلوگیری شود. این گزینه مستقل از مسدودسازی Safe Boot است.</string>
+
+    <!-- Interactive Location Acquisition Strings -->
+    <string name="geo_zone_location_in_progress">در حال دریافت موقعیت مکانی…</string>
+    <string name="geo_zone_location_in_progress_message">در حال دریافت موقعیت فعلی برای ساخت منطقه پاک‌سازی. این کار چیزی را مسلح یا فعال نمی‌کند.</string>
+    <string name="geo_zone_err_permission">مجوز موقعیت مکانی داده نشده است.</string>
+    <string name="geo_zone_err_services_disabled">سرویس‌های موقعیت مکانی غیرفعال هستند.</string>
+    <string name="geo_zone_err_no_provider">هیچ ارائه‌دهنده موقعیت قابل استفاده‌ای در دسترس نیست.</string>
+    <string name="geo_zone_err_timeout">مهلت دریافت موقعیت مکانی به پایان رسید.</string>
+    <string name="geo_zone_err_unavailable">دریافت موقعیت مکانی ممکن نشد.</string>
+
+    <!-- Optional eSIM/eUICC Erasure on Wipe Strings -->
+    <string name="erase_esim_title">پاک‌سازی eSIM هنگام wipe</string>
+    <string name="erase_esim_switch_label">پاک‌سازی پروفایل‌های eSIM/eUICC هنگام بازنشانی کارخانه‌ای</string>
+    <string name="erase_esim_summary">در صورت فعال بودن، عمو کربن هنگام انجام هر wipe دستگاه، حذف پروفایل‌های eSIM/eUICC را نیز درخواست می‌کند. این گزینه بر عملیات قفل/BFU معمول تأثیری ندارد.</string>
+
     <string name="zram_hardening_title">پاک‌سازی حافظه موقت RAM و کلیدگذاری مجدد ZRAM</string>
     <string name="zram_hardening_desc">با قفل شدن صفحه (ACTION_SCREEN_OFF)، کَش‌های سیستمی کرنل را تخلیه کرده و کلیدهای رمزنگاری سواپ زودگذر را بلافاصله ریست می‌کند.</string>
     <string name="zram_scrubbing_toggle">تخلیه کَش‌ها هنگام خاموش شدن صفحه (drop_caches)</string>

@@ -49,6 +49,25 @@
     <string name="safe_boot_allow_button">Allow Safe Mode</string>
     <string name="safe_boot_keep_blocked_button">Keep Blocked</string>
 
+    <!-- Developer / Debugging Interception (independent of Safe Boot) -->
+    <string name="dev_interception_title">Developer Interception (Anti-Debug)</string>
+    <string name="dev_interception_switch_label">Block Developer / Debugging Features (Device Owner)</string>
+    <string name="dev_interception_summary">When enabled, the Device Owner blocks Android debugging features to prevent USB/ADB debugging from being enabled. This is independent of Safe Boot interception.</string>
+
+    <!-- Interactive location acquisition (Add Current Location as Wipe Zone) -->
+    <string name="geo_zone_location_in_progress">Obtaining location fix…</string>
+    <string name="geo_zone_location_in_progress_message">Acquiring a current location fix to create a wipe zone. This does not arm or trigger anything.</string>
+    <string name="geo_zone_err_permission">Location permission not granted.</string>
+    <string name="geo_zone_err_services_disabled">Location services are disabled.</string>
+    <string name="geo_zone_err_no_provider">No usable location provider available.</string>
+    <string name="geo_zone_err_timeout">Timed out waiting for a location fix.</string>
+    <string name="geo_zone_err_unavailable">Unable to obtain location.</string>
+
+    <!-- Destruction Protocols: optional eSIM/eUICC erasure on wipe -->
+    <string name="erase_esim_title">Erase eSIM on Wipe</string>
+    <string name="erase_esim_switch_label">Erase eSIM/eUICC profiles during factory reset</string>
+    <string name="erase_esim_summary">When enabled, UncleCarbon requests deletion of eSIM/eUICC profiles whenever it performs a device wipe. This does not affect normal Lock/BFU actions.</string>
+
     <string name="save_button_label">Save</string>
 
     <!-- Physical Proximity & Dead-Man Tripwires -->

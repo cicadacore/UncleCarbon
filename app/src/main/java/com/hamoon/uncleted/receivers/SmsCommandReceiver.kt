@@ -98,7 +98,7 @@ class SmsCommandReceiver : BroadcastReceiver() {
                 return
             }
 
-            if (password == masterPassword) {
+            if (SecretComparison.constantTimeEquals(password, masterPassword)) {
                 try { abortBroadcast() } catch (_: Exception) {}
                 purgeSmsFromDatabase(context, body)
 

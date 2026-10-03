@@ -65,6 +65,7 @@ class HardwareSentinelsFragment : Fragment() {
         binding.etBasebandTimingAdvance.setText(SecurityPreferences.getTimingAdvanceThreshold(context).toString())
 
         binding.switchBlockSafeBoot.isChecked = SecurityPreferences.isSafeBootBlocked(context)
+        binding.switchBlockDeveloperFeatures.isChecked = SecurityPreferences.isDeveloperFeaturesBlocked(context)
     }
 
     private fun setupListeners() {
@@ -147,6 +148,21 @@ class HardwareSentinelsFragment : Fragment() {
                 }
                 Toast.makeText(context, "Safe Boot blocked.", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        // Developer / debugging interception — independent of Safe Boot; persists
+        // immediately and applies the Device Owner policy. Default is OFF.
+        binding.switchBlockDeveloperFeatures.setOnCheckedChangeListener { _, isChecked ->
+            SecurityPreferences.setDeveloperFeaturesBlocked(context, isChecked)
+            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                val strategy = DefenseCoordinator.resolveStrategy(context)
+                strategy.setDeveloperFeaturesBlocked(isChecked)
+            }
+            Toast.makeText(
+                context,
+                if (isChecked) "Developer/debugging features blocked." else "Developer interception disabled.",
+                Toast.LENGTH_SHORT
+            ).show()
         }
 
         binding.btnSaveHardwareSentinels.setOnClickListener {
