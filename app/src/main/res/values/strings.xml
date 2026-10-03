@@ -10,7 +10,6 @@
     <!-- Domain-Driven Navigation Menus -->
     <string name="menu_dashboard">Dashboard &amp; Telemetry</string>
     <string name="menu_hardware_sentinels">Silicon &amp; Hardware Defense</string>
-    <string name="menu_crypto_engine">Cryptography &amp; Deniability</string>
     <string name="menu_authentication">Authentication</string>
     <string name="menu_proximity_tripwire">Proximity &amp; Dead-Man</string>
     <string name="menu_remote_signaling">Covert Signaling &amp; C2</string>
@@ -52,36 +51,17 @@
 
     <string name="save_button_label">Save</string>
 
-    <!-- Cryptographic Engine & Deniability Vault -->
-    <string name="crypto_engine_title">Cryptography &amp; Vaults</string>
-    <string name="pqc_title">NIST FIPS 203 Post-Quantum Hybrid Engine</string>
-    <string name="pqc_desc">Integrates finalized lattice standard ML-KEM-768 with classical Curve25519 (X25519) combined via HKDF-SHA512 to prevent Harvest Now, Decrypt Later (HNDL) attacks.</string>
-    <string name="pqc_toggle_label">Enforce Hybrid Post-Quantum KEM Envelopes</string>
-    <string name="pqc_local_pubkey_hint">Local Device Hybrid Public Key (Base64)</string>
-    <string name="pqc_remote_pubkey_hint">Trusted Remote Operator Hybrid Public Key (Base64)</string>
-    <string name="pqc_generate_keypair_button">Generate New ML-KEM Keypair</string>
-    <string name="pqc_copy_pubkey_button">Copy Local Public Key</string>
-    <string name="pqc_save_remote_button">Save Trusted Peer Public Key</string>
-    <string name="deniability_vault_title">Plausible Deniability Vault (DNG Polyglot)</string>
-    <string name="deniability_vault_desc">Compresses sensitive data with Deflate, encrypts via ChaCha20-Poly1305, and shapes entropy (H ~ 7.3) into a structurally valid Adobe DNG RAW camera container.</string>
-    <string name="vault_carrier_name_hint">Carrier DNG Image Filename</string>
-    <string name="vault_secret_label_hint">Vault Record Label (Anchor Identifier)</string>
-    <string name="vault_secret_content_hint">Secret Text Data / Seed to Conceal</string>
-    <string name="vault_store_button">Conceal in DNG Container</string>
-    <string name="vault_extract_button">Extract &amp; Decrypt Secret</string>
-    <string name="vault_purge_button">Permanently Overwrite &amp; Purge Carrier</string>
-
     <!-- Physical Proximity & Dead-Man Tripwires -->
     <string name="proximity_tripwire_title">Proximity &amp; Dead-Man Tripwires</string>
-    <string name="ble_proximity_title">BLE/UWB Proximity Key Sharding Engine</string>
-    <string name="ble_proximity_desc">Master secrets split into two Shamir 2-of-2 additive shares. Shard A resides in Titan M2; Shard B resides in volatile RAM and evaporates if paired wearable moves &gt; 2m away.</string>
-    <string name="ble_proximity_toggle">Enable Shamir 2-of-2 Hardware Separation</string>
-    <string name="ble_target_mac_hint">Paired Peripheral BLE MAC Address</string>
-    <string name="ble_rssi_threshold_hint">Separation Cutoff RSSI (dBm, Default: -85)</string>
-    <string name="ble_breach_limit_hint">Consecutive Heartbeat Breaches (Default: 3)</string>
-    <string name="deadman_tripwire_title">Autonomous BFU Dead-Man Sentinel</string>
-    <string name="deadman_tripwire_desc">Direct Boot hardware RTC sentinel. Automatically executes cryptographic wipe if the device is isolated, offline, or powered down past the deadline.</string>
-    <string name="deadman_toggle_label">Enable Dead-Man Data Destruction Sentinel</string>
+    <string name="ble_proximity_title">BLE Proximity Sentinel</string>
+    <string name="ble_proximity_desc">Monitors a configured Bluetooth device. If the Bluetooth device is no longer detected nearby for the configured period, UncleCarbon will reboot the phone into BFU using Device Owner controls.</string>
+    <string name="ble_proximity_toggle">Enable BLE Proximity Sentinel</string>
+    <string name="ble_target_mac_hint">Trusted BLE Device MAC Address</string>
+    <string name="ble_rssi_threshold_hint">Signal Cutoff RSSI (dBm, Default: -85)</string>
+    <string name="ble_breach_limit_hint">Consecutive Missed Heartbeats (Default: 3)</string>
+    <string name="deadman_tripwire_title">Dead-Man Wipe Sentinel</string>
+    <string name="deadman_tripwire_desc">Automatically requests a Device Owner factory reset if you do not check in before the selected deadline. Each manual check-in resets the countdown. If the deadline expires, UncleCarbon will request a standard Device Owner factory reset.</string>
+    <string name="deadman_toggle_label">Enable Dead-Man Wipe Sentinel</string>
     <string name="deadman_duration_hint">Offline Duration to Trigger Wipe</string>
     <string name="btn_custom_tripwire_duration">Set Custom Offline Duration (Days)</string>
     <string name="tripwire_custom_dialog_title">Custom Dead-Man Duration</string>
@@ -94,18 +74,9 @@
     <!-- Covert Signaling & Remote C2 -->
     <string name="remote_signaling_title">Covert Signaling &amp; Remote C2</string>
     <string name="remote_category_title">Remote Signaling Controls</string>
-    <string name="ohttp_canary_title">Zero-Knowledge Canary via Oblivious HTTP (RFC 9458)</string>
-    <string name="ohttp_canary_desc">Encapsulates duress blobs via HPKE and routes through oblivious CDN relays (Cloudflare/Fastly), masquerading as standard Google analytics telemetry.</string>
-    <string name="ohttp_toggle_label">Enable RFC 9458 Covert OHTTP Canary</string>
-    <string name="ohttp_relay_url_hint">Oblivious CDN Relay URL</string>
-    <string name="ohttp_gateway_pubkey_hint">Gateway HPKE Public Key (Base64)</string>
-    <string name="ohttp_masquerade_profile_hint">Telemetry Traffic Profile</string>
-    <string name="ed25519_signaling_title">Asymmetric Cryptographic Envelope (Ed25519)</string>
-    <string name="ed25519_signaling_desc">85-byte compact binary signed envelope (!UT:&lt;Base64&gt;) with anti-replay monotonic sequence validation and 120-second timestamp drift rejection.</string>
-    <string name="ed25519_pubkey_hint">Trusted Operator Ed25519 Public Key (Base64)</string>
-    <string name="otc_tokens_title">Single-Use Emergency Recovery Tokens (OTC)</string>
-    <string name="otc_tokens_desc">Generates a batch of 5 high-entropy emergency recovery tokens stored in Device-Protected storage. Texting a token immediately destroys all keys.</string>
-    <string name="otc_generate_button">Generate Emergency Wallet Sheet (5 OTC)</string>
+    <string name="otc_tokens_title">Single-Use Emergency Wipe Tokens</string>
+    <string name="otc_tokens_desc">Generates one-time emergency wipe tokens. When a valid unused token is received, UncleCarbon will consume the token and request a standard Device Owner factory reset.</string>
+    <string name="otc_generate_button">Generate Emergency Wipe Tokens</string>
     <string name="sms_fallback_title">Permissive Burner Fallback (UNCLETED [CMD] [PWD])</string>
     <string name="sms_fallback_desc">Legacy command syntax for basic analog phones. Guarded by a dedicated authorization toggle.</string>
     <string name="sms_cleartext_toggle">Permit Cleartext SMS Fallback</string>
@@ -294,13 +265,13 @@
     <string name="level_1_title">Posture: Degraded</string>
     <string name="level_1_desc">Basic setup incomplete. Device is vulnerable to extraction.</string>
     <string name="level_2_title">Posture: Monitored</string>
-    <string name="level_2_desc">Core sentinels active. Enable PQC and hardware tripwires.</string>
+    <string name="level_2_desc">Core sentinels active. Enable additional hardware tripwires.</string>
     <string name="level_3_title">Posture: Hardened</string>
-    <string name="level_3_desc">Discrete HSM and anti-coercion layers armed.</string>
+    <string name="level_3_desc">Hardware defenses and anti-coercion layers armed.</string>
     <string name="level_4_title">Posture: Enterprise Defense</string>
-    <string name="level_4_desc">Device Owner, PQC hybrid, and spectral traps fully operational.</string>
+    <string name="level_4_desc">Device Owner and hardware sentinels fully operational.</string>
     <string name="level_5_title">Posture: Maximum Zero-Trust</string>
-    <string name="level_5_desc">All silicon, PQC, OHTTP, and BLE sharding sentinels active.</string>
+    <string name="level_5_desc">All sentinels and defenses fully active.</string>
     <!-- Checklist Items -->
     <string name="check_device_owner_title">Device Owner Provisioned</string>
     <string name="check_device_owner_desc">UncleTed is provisioned as the GrapheneOS Device Owner (dpm.isDeviceOwnerApp).</string>

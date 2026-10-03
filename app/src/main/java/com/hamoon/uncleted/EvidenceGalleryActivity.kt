@@ -26,8 +26,6 @@ import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.databinding.ActivityEvidenceGalleryBinding
 import com.hamoon.uncleted.databinding.DialogMediaViewerBinding
 import com.hamoon.uncleted.databinding.ItemEvidenceMediaBinding
-import com.hamoon.uncleted.util.NativeSecurityBridge
-import com.hamoon.uncleted.vault.PlausibleDeniabilityVault
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -44,7 +42,7 @@ class EvidenceGalleryActivity : AppCompatActivity() {
     private lateinit var adapter: EvidenceMediaAdapter
 
     enum class EvidenceType {
-        PHOTO, VIDEO, AUDIO, SCREENSHOT, VAULT_DNG, UNKNOWN
+        PHOTO, VIDEO, AUDIO, SCREENSHOT, UNKNOWN
     }
 
     data class EvidenceFileItem(
@@ -98,7 +96,6 @@ class EvidenceGalleryActivity : AppCompatActivity() {
             R.id.chip_filter_videos -> displayedItems.addAll(allEvidenceItems.filter { it.type == EvidenceType.VIDEO })
             R.id.chip_filter_audio -> displayedItems.addAll(allEvidenceItems.filter { it.type == EvidenceType.AUDIO })
             R.id.chip_filter_screenshots -> displayedItems.addAll(allEvidenceItems.filter { it.type == EvidenceType.SCREENSHOT })
-            R.id.chip_filter_vault -> displayedItems.addAll(allEvidenceItems.filter { it.type == EvidenceType.VAULT_DNG })
             else -> displayedItems.addAll(allEvidenceItems)
         }
         adapter.notifyDataSetChanged()
@@ -146,8 +143,7 @@ class EvidenceGalleryActivity : AppCompatActivity() {
         return files.filter { file ->
             val name = file.name
             name.startsWith("IMG_") || name.startsWith("VID_") ||
-                    name.startsWith("AUD_") || name.startsWith("sc_") ||
-                    name.endsWith(".dng", ignoreCase = true)
+                    name.startsWith("AUD_") || name.startsWith("sc_")
         }.sortedByDescending { it.lastModified() }
             .map { file ->
                 val name = file.name
@@ -156,7 +152,6 @@ class EvidenceGalleryActivity : AppCompatActivity() {
                     name.startsWith("VID_") && name.endsWith(".mp4") -> EvidenceType.VIDEO
                     name.startsWith("AUD_") -> EvidenceType.AUDIO
                     name.startsWith("sc_") && name.endsWith(".png") -> EvidenceType.SCREENSHOT
-                    name.endsWith(".dng", ignoreCase = true) -> EvidenceType.VAULT_DNG
                     else -> EvidenceType.UNKNOWN
                 }
 
@@ -166,7 +161,7 @@ class EvidenceGalleryActivity : AppCompatActivity() {
                     sizeFormatted = formatFileSize(file.length()),
                     dateFormatted = dateFormat.format(Date(file.lastModified())),
                     type = type,
-                    isEncrypted = type == EvidenceType.VAULT_DNG
+                    isEncrypted = false
                 )
             }
     }
@@ -269,26 +264,6 @@ class EvidenceGalleryActivity : AppCompatActivity() {
                     override fun onStartTrackingTouch(seekBar: SeekBar?) {}
                     override fun onStopTrackingTouch(seekBar: SeekBar?) {}
                 })
-            }
-
-            EvidenceType.VAULT_DNG -> {
-                dialogBinding.scrollVaultText.visibility = View.VISIBLE
-                dialogBinding.tvDecodedVaultContent.text = "Vault container encoded as DNG RAW photo.\nInitiating hardware cryptographic decoding step..."
-
-                lifecycleScope.launch {
-                    val label = SecurityPreferences.getVaultSecretLabel(this@EvidenceGalleryActivity)
-                    val decrypted = withContext(Dispatchers.IO) {
-                        PlausibleDeniabilityVault.extractSecretBlob(this@EvidenceGalleryActivity, label)
-                    }
-
-                    if (decrypted != null) {
-                        val textContent = String(decrypted, Charsets.UTF_8)
-                        NativeSecurityBridge.zeroByteArray(decrypted)
-                        dialogBinding.tvDecodedVaultContent.text = "--- DECRYPTED VAULT PAYLOAD (Anchor: $label) ---\n\n$textContent"
-                    } else {
-                        dialogBinding.tvDecodedVaultContent.text = "Decryption failed: Carrier DNG file missing or StrongBox KeyMint master suicide key revoked."
-                    }
-                }
             }
 
             else -> {
@@ -446,17 +421,11 @@ class EvidenceGalleryActivity : AppCompatActivity() {
                 EvidenceType.VIDEO -> holder.binding.ivMediaTypeIcon.setImageResource(R.drawable.ic_video_24)
                 EvidenceType.AUDIO -> holder.binding.ivMediaTypeIcon.setImageResource(R.drawable.ic_hp_mic)
                 EvidenceType.SCREENSHOT -> holder.binding.ivMediaTypeIcon.setImageResource(R.drawable.ic_touch_app_24)
-                EvidenceType.VAULT_DNG -> holder.binding.ivMediaTypeIcon.setImageResource(R.drawable.ic_lock_24)
                 else -> holder.binding.ivMediaTypeIcon.setImageResource(R.drawable.ic_info_24)
             }
 
-            if (item.isEncrypted) {
-                holder.binding.chipEncryptionStatus.visibility = View.VISIBLE
-                holder.binding.btnOpenMedia.text = "Decode Vault"
-            } else {
-                holder.binding.chipEncryptionStatus.visibility = View.GONE
-                holder.binding.btnOpenMedia.text = if (item.type == EvidenceType.AUDIO || item.type == EvidenceType.VIDEO) "Play" else "View"
-            }
+            holder.binding.chipEncryptionStatus.visibility = View.GONE
+            holder.binding.btnOpenMedia.text = if (item.type == EvidenceType.AUDIO || item.type == EvidenceType.VIDEO) "Play" else "View"
 
             holder.binding.btnOpenMedia.setOnClickListener { onOpen(item) }
             holder.binding.btnShareMedia.setOnClickListener { onShare(item) }

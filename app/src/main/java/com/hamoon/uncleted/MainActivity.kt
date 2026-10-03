@@ -31,9 +31,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var toggle: ActionBarDrawerToggle
 
     private val dashboardFragment by lazy { DashboardFragment() }
-    private val antiForensicsFragment by lazy { AntiForensicsFragment() }
     private val hardwareSentinelsFragment by lazy { HardwareSentinelsFragment() }
-    private val cryptoEngineFragment by lazy { CryptoEngineFragment() }
     private val authenticationFragment by lazy { AuthenticationFragment() }
     private val proximityTripwireFragment by lazy { ProximityTripwireFragment() }
     private val remoteSignalingFragment by lazy { RemoteSignalingFragment() }
@@ -163,9 +161,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         val (fragment, title) = when (item.itemId) {
             R.id.nav_dashboard -> dashboardFragment to getString(R.string.menu_dashboard)
-            R.id.nav_anti_forensics -> antiForensicsFragment to "Anti-Forensics & Pre-OS"
             R.id.nav_hardware_sentinels -> hardwareSentinelsFragment to getString(R.string.menu_hardware_sentinels)
-            R.id.nav_crypto_engine -> cryptoEngineFragment to getString(R.string.menu_crypto_engine)
             R.id.nav_authentication -> authenticationFragment to getString(R.string.menu_authentication)
             R.id.nav_proximity_tripwire -> proximityTripwireFragment to getString(R.string.menu_proximity_tripwire)
             R.id.nav_remote_signaling -> remoteSignalingFragment to getString(R.string.menu_remote_signaling)

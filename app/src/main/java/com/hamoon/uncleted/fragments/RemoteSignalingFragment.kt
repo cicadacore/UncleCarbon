@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -16,10 +15,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textfield.TextInputEditText
 import com.hamoon.uncleted.R
-import com.hamoon.uncleted.canary.CovertCanarySender
 import com.hamoon.uncleted.crypto.CryptoPreferences
 import com.hamoon.uncleted.crypto.OneTimeTokenManager
-import com.hamoon.uncleted.crypto.PostQuantumEngine
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.databinding.FragmentRemoteSignalingBinding
 import com.hamoon.uncleted.util.EmailSender
@@ -49,35 +46,13 @@ class RemoteSignalingFragment : Fragment() {
     private fun loadSettings() {
         val context = requireContext()
 
-        // 1. OHTTP Canary Settings
-        binding.switchOhttpCanary.isChecked = SecurityPreferences.isOhttpCanaryEnabled(context)
-        binding.etOhttpRelayUrl.setText(SecurityPreferences.getOhttpRelayUrl(context))
-        binding.etOhttpGatewayPubkey.setText(SecurityPreferences.getOhttpGatewayPublicKey(context) ?: "")
-        setupMasqueradeDropdown(SecurityPreferences.getOhttpMasqueradeProfile(context))
-
-        // 2. Ed25519 Cryptographic Wire Settings
-        binding.etTrustedEd25519Pubkey.setText(CryptoPreferences.getTrustedPublicKey(context) ?: "")
-        binding.etWireDriftWindowMs.setText(CryptoPreferences.getWireDriftWindowMs(context).toString())
-        binding.tvLastWireSequence.text = "Highest Verified Sequence: ${CryptoPreferences.getLastRecordedSequence(context)}"
-
-        // 3. OTC Tokens Status
         updateTokenCountDisplay()
 
-        // 4. Permissive SMS & SMTP Settings
         val cleartextAllowed = CryptoPreferences.isCleartextSmsAllowed(context)
         binding.switchAllowCleartextSms.isChecked = cleartextAllowed
         binding.layoutSmsMasterPassword.isEnabled = cleartextAllowed
         binding.etEmergencyContact.setText(SecurityPreferences.getEmergencyContact(context) ?: "")
         binding.etSmsMasterPassword.setText(SecurityPreferences.getSmsMasterPassword(context) ?: "")
-    }
-
-    private fun setupMasqueradeDropdown(currentProfile: String) {
-        val profiles = listOf("google_play_telemetry", "firebase_analytics")
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, profiles)
-        binding.autoOhttpMasqueradeProfile.setAdapter(adapter)
-
-        val idx = profiles.indexOf(currentProfile).takeIf { it != -1 } ?: 0
-        binding.autoOhttpMasqueradeProfile.setText(profiles[idx], false)
     }
 
     private fun updateTokenCountDisplay() {
@@ -88,39 +63,16 @@ class RemoteSignalingFragment : Fragment() {
     private fun setupListeners() {
         val context = requireContext()
 
-        // OHTTP Canary Toggle
-        binding.switchOhttpCanary.setOnCheckedChangeListener { _, isChecked ->
-            SecurityPreferences.setOhttpCanaryEnabled(context, isChecked)
-        }
-
-        // OHTTP Test Probe
-        binding.btnOhttpTestProbe.setOnClickListener {
-            saveSettings()
-            Toast.makeText(context, "Dispatching test OHTTP canary probe...", Toast.LENGTH_SHORT).show()
-            viewLifecycleOwner.lifecycleScope.launch {
-                val (success, message) = CovertCanarySender.dispatchTestProbe(context)
-                withContext(Dispatchers.Main) {
-                    MaterialAlertDialogBuilder(context)
-                        .setTitle(if (success) "Probe Successful" else "Probe Failed")
-                        .setMessage(message)
-                        .setPositiveButton("OK", null)
-                        .show()
-                }
-            }
-        }
-
-        // Generate OTC Tokens
         binding.btnGenerateOtcTokens.setOnClickListener {
             val tokens = OneTimeTokenManager.generateNewTokenBatch(context)
             updateTokenCountDisplay()
             showTokenWalletSheetDialog(tokens)
         }
 
-        // Burn All OTC Tokens
         binding.btnBurnAllTokens.setOnClickListener {
             MaterialAlertDialogBuilder(context)
                 .setTitle("Burn All Emergency Tokens?")
-                .setMessage("All active single-use emergency recovery slips will be wiped from Device-Protected storage.")
+                .setMessage("All active single-use emergency wipe tokens will be removed from Device-Protected storage.")
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Burn All") { _, _ ->
                     OneTimeTokenManager.clearAllTokens(context)
@@ -130,23 +82,19 @@ class RemoteSignalingFragment : Fragment() {
                 .show()
         }
 
-        // Cleartext SMS Toggle
         binding.switchAllowCleartextSms.setOnCheckedChangeListener { _, isChecked ->
             CryptoPreferences.setCleartextSmsAllowed(context, isChecked)
             binding.layoutSmsMasterPassword.isEnabled = isChecked
         }
 
-        // SMTP Credentials
         binding.btnSetEmailCredentials.setOnClickListener {
             showEmailCredentialsDialog()
         }
 
-        // Test Email
         binding.btnSendTestEmail.setOnClickListener {
             sendTestEmail()
         }
 
-        // Save All Settings
         binding.btnSaveRemoteSignaling.setOnClickListener {
             saveSettings()
             Toast.makeText(context, "Remote signaling parameters saved & armed.", Toast.LENGTH_SHORT).show()
@@ -156,22 +104,6 @@ class RemoteSignalingFragment : Fragment() {
     private fun saveSettings() {
         val context = requireContext()
 
-        // OHTTP
-        val relayUrl = binding.etOhttpRelayUrl.text?.toString()?.trim().orEmpty()
-        val gatewayKey = binding.etOhttpGatewayPubkey.text?.toString()?.trim()
-        val profile = binding.autoOhttpMasqueradeProfile.text?.toString()?.trim().orEmpty()
-
-        if (relayUrl.isNotEmpty()) SecurityPreferences.setOhttpRelayUrl(context, relayUrl)
-        SecurityPreferences.setOhttpGatewayPublicKey(context, if (gatewayKey.isNullOrEmpty()) null else gatewayKey)
-        if (profile.isNotEmpty()) SecurityPreferences.setOhttpMasqueradeProfile(context, profile)
-
-        // Ed25519
-        val ed25519Key = binding.etTrustedEd25519Pubkey.text?.toString()?.trim()
-        val driftMs = binding.etWireDriftWindowMs.text?.toString()?.toLongOrNull() ?: 120000L
-        CryptoPreferences.setTrustedPublicKey(context, if (ed25519Key.isNullOrEmpty()) null else ed25519Key)
-        CryptoPreferences.setWireDriftWindowMs(context, driftMs)
-
-        // SMS Fallback
         val contact = binding.etEmergencyContact.text?.toString()?.trim().orEmpty()
         val masterPassword = binding.etSmsMasterPassword.text?.toString()?.trim().orEmpty()
         SecurityPreferences.setEmergencyContact(context, contact)
@@ -181,9 +113,9 @@ class RemoteSignalingFragment : Fragment() {
     private fun showTokenWalletSheetDialog(tokens: List<String>) {
         val context = requireContext()
         val sheetContent = StringBuilder()
-            .append("UNCLE TED EMERGENCY WALLET SHEET\n")
+            .append("UNCLE CARBON EMERGENCY WALLET SHEET\n")
             .append("Keep these single-use wipe tokens in your wallet/passport.\n")
-            .append("Texting any of these lines to this phone will destroy all keys instantly:\n\n")
+            .append("Texting any of these lines to this phone will request a Device Owner factory reset:\n\n")
 
         tokens.forEach { token ->
             sheetContent.append("• ").append(token).append("\n")
@@ -202,7 +134,7 @@ class RemoteSignalingFragment : Fragment() {
             .setView(textView)
             .setPositiveButton("Copy All") { _, _ ->
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("UncleTed_OTC_Sheet", sheetContent.toString()))
+                clipboard.setPrimaryClip(ClipData.newPlainText("UncleCarbon_OTC_Sheet", sheetContent.toString()))
                 Toast.makeText(context, "Wallet sheet copied to clipboard.", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Close", null)
@@ -259,8 +191,8 @@ class RemoteSignalingFragment : Fragment() {
             val success = EmailSender.sendEmail(
                 requireContext(),
                 recipient,
-                "Uncle Ted Test Email",
-                "This is an authenticated test email from your Uncle Ted defense suite."
+                "Uncle Carbon Test Email",
+                "This is an authenticated test email from your Uncle Carbon defense suite."
             )
             withContext(Dispatchers.Main) {
                 if (success) {
