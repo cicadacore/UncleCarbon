@@ -38,7 +38,7 @@ class SpectralSentinel(private val context: Context) {
         private const val RSRP_DEAD_ZONE_THRESHOLD = -135 // dBm
     }
 
-    fun evaluateSpectralCollapse() {
+    fun evaluateRfLoss() {
         if (!SecurityPreferences.isSpectralSentinelEnabled(context)) {
             zeroSignalStartEpoch = 0L
             return
@@ -70,7 +70,7 @@ class SpectralSentinel(private val context: Context) {
             return
         }
 
-        // Rule 3: If device has an active Wi-Fi or cellular IP connection, it is NOT in a Faraday bag
+        // Rule 3: If device has an active Wi-Fi or cellular IP connection, RF is not lost
         if (hasActiveInternetConnection()) {
             zeroSignalStartEpoch = 0L
             return
@@ -86,12 +86,13 @@ class SpectralSentinel(private val context: Context) {
 
             if (zeroSignalStartEpoch == 0L) {
                 zeroSignalStartEpoch = now
-                Log.w(TAG, "Spectral anomaly: Total RF link loss detected. Quarantine timer started (${quarantineWindowMs}ms)...")
+                Log.w(TAG, "RF loss detected while locked. Timer started (${quarantineWindowMs}ms).")
             } else if (now - zeroSignalStartEpoch >= quarantineWindowMs) {
                 zeroSignalStartEpoch = 0L
-                Log.e(TAG, "!!! CONFIRMED FARADAY BAG ISOLATION SEIZURE DETECTED (SUSTAINED ${quarantineWindowMs}ms) !!!")
-                EventLogger.log(context, "CRITICAL: Faraday bag seizure confirmed. Executing AFU -> BFU key eviction.")
-                executeInstantBfuEviction()
+                val action = SecurityPreferences.getSpectralAction(context)
+                Log.e(TAG, "Sustained RF loss confirmed (${quarantineWindowMs}ms). Executing action: $action")
+                EventLogger.log(context, "RF/Network-loss Sentinel triggered (${quarantineWindowMs}ms). Action: $action")
+                executeSpectralAction(action)
             }
         } else {
             zeroSignalStartEpoch = 0L
@@ -138,18 +139,22 @@ class SpectralSentinel(private val context: Context) {
         }
     }
 
-    private fun executeInstantBfuEviction() {
+    private fun executeSpectralAction(action: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val strategy = DefenseCoordinator.resolveStrategy(context)
-                strategy.evictMemoryKeysAndLock()
+                if (action == "WIPE") {
+                    strategy.executeStandardWipe("RF_LOSS_SENTINEL_WIPE")
+                } else {
+                    strategy.evictMemoryKeysAndLock()
+                }
                 PanicActionService.trigger(
                     context,
-                    "FARADAY_BAG_SEIZURE_TRIGGERED",
+                    "RF_LOSS_SENTINEL_TRIGGERED",
                     PanicActionService.Severity.CRITICAL
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "Error during Faraday BFU eviction", e)
+                Log.e(TAG, "Error during RF loss sentinel action", e)
             }
         }
     }

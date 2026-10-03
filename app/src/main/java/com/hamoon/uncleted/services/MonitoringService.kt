@@ -139,7 +139,7 @@ class MonitoringService : LifecycleService(), SensorEventListener {
 
             while (isActive) {
                 try {
-                    spectralSentinel?.evaluateSpectralCollapse()
+                    spectralSentinel?.evaluateRfLoss()
 
                     val now = System.currentTimeMillis()
                     if (now - lastNotificationUpdate >= NOTIFICATION_UPDATE_INTERVAL_MS) {

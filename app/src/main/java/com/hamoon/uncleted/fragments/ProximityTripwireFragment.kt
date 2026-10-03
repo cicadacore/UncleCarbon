@@ -1,8 +1,6 @@
 package com.hamoon.uncleted.fragments
 
 import android.Manifest
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -24,7 +22,6 @@ import com.hamoon.uncleted.R
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.databinding.FragmentProximityTripwireBinding
 import com.hamoon.uncleted.proximity.BleProximitySentinel
-import com.hamoon.uncleted.proximity.ProximityShardingEngine
 import com.hamoon.uncleted.services.ZoneWipeService
 import com.hamoon.uncleted.util.PermissionUtils
 import com.hamoon.uncleted.util.PolygonUtils
@@ -98,15 +95,6 @@ class ProximityTripwireFragment : Fragment() {
 
         binding.switchProximitySharding.setOnCheckedChangeListener { _, isChecked ->
             SecurityPreferences.setProximityShardingEnabled(context, isChecked)
-        }
-
-        binding.btnProvisionShards.setOnClickListener {
-            val shardBBase64 = ProximityShardingEngine.provisionFreshMasterShards(context)
-            if (shardBBase64 != null) {
-                showShardBExportDialog(shardBBase64)
-            } else {
-                Toast.makeText(context, "Failed to seal Shard A into discrete StrongBox HSM.", Toast.LENGTH_SHORT).show()
-            }
         }
 
         binding.switchDeadmanTripwire.setOnCheckedChangeListener { _, isChecked ->
@@ -224,38 +212,15 @@ class ProximityTripwireFragment : Fragment() {
                     binding.tvProximityLiveRssi.text = "Token RSSI: ${status.lastRssi} dBm (Breaches: ${status.consecutiveBreaches})"
 
                     if (status.isShardBLoaded) {
-                        binding.tvProximityShardStatus.text = "RAM Shard B: Armed & Pinned in LPDDR5"
+                        binding.tvProximityShardStatus.text = "BLE Key Status: Active"
                         binding.tvProximityShardStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_green))
                     } else {
-                        binding.tvProximityShardStatus.text = "RAM Shard B: Evaporated (BFU State)"
+                        binding.tvProximityShardStatus.text = "BLE Key Status: Idle"
                         binding.tvProximityShardStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.status_yellow))
                     }
                 }
             }
         }
-    }
-
-    private fun showShardBExportDialog(shardBBase64: String) {
-        val context = requireContext()
-        val textView = TextView(context).apply {
-            text = shardBBase64
-            setPadding(48, 24, 48, 24)
-            setTextIsSelectable(true)
-            typeface = android.graphics.Typeface.MONOSPACE
-            textSize = 12f
-        }
-
-        MaterialAlertDialogBuilder(context)
-            .setTitle("Shard B Provisioned (Wearable Share)")
-            .setMessage("Transmit this 256-bit information-theoretic share to your paired hardware token. The phone retains only Shard A in discrete StrongBox HSM.")
-            .setView(textView)
-            .setPositiveButton("Copy Shard B") { _, _ ->
-                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("UncleTed_Shard_B", shardBBase64))
-                Toast.makeText(context, "Shard B copied to clipboard.", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("Close", null)
-            .show()
     }
 
     private fun showManageWipeZonesDialog() {

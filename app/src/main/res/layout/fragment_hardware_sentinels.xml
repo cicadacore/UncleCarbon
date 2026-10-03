@@ -11,7 +11,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- SPECTRAL COLLAPSE SENTINEL -->
+        <!-- RF/NETWORK-LOSS SENTINEL -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -23,18 +23,35 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Spectral Collapse Sentinel"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"/>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="RF/Network-loss Sentinel"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"/>
+
+                    <ImageButton
+                        android:id="@+id/btn_spectral_info"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Information"
+                        android:src="@drawable/ic_info_24"
+                        app:tint="?attr/colorOnSurfaceVariant"/>
+                </LinearLayout>
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/switch_spectral_sentinel"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Enable Spectral Sentinel"/>
+                    android:text="Enable RF/Network-loss Sentinel"/>
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
                     android:id="@+id/switch_spectral_motion_required"
@@ -43,17 +60,53 @@
                     android:layout_marginTop="4dp"
                     android:text="Require Motion Context"/>
 
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="Action on Timer Expiry"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"/>
+
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/toggle_spectral_action"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    app:singleSelection="true"
+                    app:selectionRequired="true">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_action_bfu"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="BFU"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_action_wipe"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="WIPE"/>
+
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/menu_spectral_timer_layout"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:hint="Quarantine Window (ms)">
+                    android:hint="Timer Window">
 
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/et_spectral_quarantine_ms"
+                    <AutoCompleteTextView
+                        android:id="@+id/auto_spectral_timer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:inputType="number"/>
+                        android:inputType="none"/>
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

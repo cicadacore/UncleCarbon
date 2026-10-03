@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -15,24 +16,13 @@ import com.hamoon.uncleted.databinding.FragmentHardwareSentinelsBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-/**
- * GrapheneOS-compatible hardware sentinel configuration.
- *
- * Removed features (not available on GrapheneOS, locked bootloader, unrooted):
- *   - PMIC Battery Micro-Telemetry (SELinux blocks SysFS probing)
- *   - UncleTed 2G user restriction (GrapheneOS has native OS-level 2G control)
- *   - Faraday blackout receiver (relied on radio isolation we no longer perform)
- *   - Raw USB Gadget / UDC Tripwire (requires /sys/class/udc kernel access)
- *
- * Preserved features:
- *   - Baseband IMSI-catcher / downgrade sentinel (telephony callback observation)
- *   - Spectral collapse sentinel (ambient RF sensors)
- *   - Device Owner Safe Boot restriction (DISALLOW_SAFE_BOOT)
- */
 class HardwareSentinelsFragment : Fragment() {
 
     private var _binding: FragmentHardwareSentinelsBinding? = null
     private val binding get() = _binding!!
+
+    private lateinit var timerEntries: Array<String>
+    private lateinit var timerValuesMs: Array<String>
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,6 +34,10 @@ class HardwareSentinelsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        timerEntries = resources.getStringArray(R.array.spectral_timer_entries)
+        timerValuesMs = resources.getStringArray(R.array.spectral_timer_values_ms)
+
         loadSettings()
         setupListeners()
     }
@@ -53,7 +47,19 @@ class HardwareSentinelsFragment : Fragment() {
 
         binding.switchSpectralSentinel.isChecked = SecurityPreferences.isSpectralSentinelEnabled(context)
         binding.switchSpectralMotionRequired.isChecked = SecurityPreferences.isSpectralMotionRequired(context)
-        binding.etSpectralQuarantineMs.setText(SecurityPreferences.getSpectralQuarantineMs(context).toString())
+
+        // Timer window dropdown
+        val adapter = ArrayAdapter(context, android.R.layout.simple_dropdown_item_1line, timerEntries)
+        binding.autoSpectralTimer.setAdapter(adapter)
+        val currentMs = SecurityPreferences.getSpectralQuarantineMs(context).toString()
+        val timerIndex = timerValuesMs.indexOf(currentMs).takeIf { it >= 0 } ?: 0
+        binding.autoSpectralTimer.setText(timerEntries[timerIndex], false)
+
+        // BFU/WIPE action toggle
+        val action = SecurityPreferences.getSpectralAction(context)
+        binding.toggleSpectralAction.check(
+            if (action == "WIPE") R.id.btn_action_wipe else R.id.btn_action_bfu
+        )
 
         binding.switchBasebandSentinel.isChecked = SecurityPreferences.isBasebandSentinelEnabled(context)
         binding.etBasebandTimingAdvance.setText(SecurityPreferences.getTimingAdvanceThreshold(context).toString())
@@ -63,6 +69,24 @@ class HardwareSentinelsFragment : Fragment() {
 
     private fun setupListeners() {
         val context = requireContext()
+
+        binding.btnSpectralInfo.setOnClickListener {
+            MaterialAlertDialogBuilder(context)
+                .setTitle("RF/Network-loss Sentinel")
+                .setMessage(
+                    "When the device is locked, this sentinel monitors cellular and network " +
+                    "connectivity. If all RF signals are lost for longer than the configured " +
+                    "timer window (and the device is not in Airplane Mode), the selected action " +
+                    "is taken.\n\n" +
+                    "BFU: Reboots the device into Before First Unlock state, evicting decryption " +
+                    "keys from memory.\n\n" +
+                    "WIPE: Performs a Device Owner factory reset, erasing all user data.\n\n" +
+                    "\"Require Motion Context\" adds a check that the device has experienced " +
+                    "physical movement, reducing false positives from poor coverage areas."
+                )
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+        }
 
         binding.switchSpectralSentinel.setOnCheckedChangeListener { _, isChecked ->
             SecurityPreferences.setSpectralSentinelEnabled(context, isChecked)
@@ -116,8 +140,18 @@ class HardwareSentinelsFragment : Fragment() {
     private fun saveConfiguredParameters() {
         val context = requireContext()
 
-        val spectralMs = binding.etSpectralQuarantineMs.text?.toString()?.toLongOrNull() ?: 15000L
+        // Timer window from dropdown
+        val selectedLabel = binding.autoSpectralTimer.text.toString()
+        val timerIndex = timerEntries.indexOf(selectedLabel).takeIf { it >= 0 } ?: 0
+        val spectralMs = timerValuesMs[timerIndex].toLongOrNull() ?: 1800000L
         SecurityPreferences.setSpectralQuarantineMs(context, spectralMs)
+
+        // BFU/WIPE action
+        val action = when (binding.toggleSpectralAction.checkedButtonId) {
+            R.id.btn_action_wipe -> "WIPE"
+            else -> "BFU"
+        }
+        SecurityPreferences.setSpectralAction(context, action)
 
         val maxTA = binding.etBasebandTimingAdvance.text?.toString()?.toIntOrNull() ?: 30
         SecurityPreferences.setTimingAdvanceThreshold(context, maxTA)

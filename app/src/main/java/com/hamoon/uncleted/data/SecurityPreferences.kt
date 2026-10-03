@@ -120,7 +120,22 @@ object SecurityPreferences {
             "HARDWARE_2G_DISABLED", "BFU_HARDWARE_2G_DISABLED",
             // Faraday blackout receiver removed
             "FARADAY_BLACKOUT_ENABLED", "BFU_FARADAY_BLACKOUT_ENABLED",
-            "FARADAY_DURATION_HOURS", "BFU_FARADAY_DURATION_HOURS"
+            "FARADAY_DURATION_HOURS", "BFU_FARADAY_DURATION_HOURS",
+            // OHTTP canary removed
+            "OHTTP_CANARY_ENABLED", "BFU_OHTTP_CANARY_ENABLED",
+            "OHTTP_RELAY_URL", "BFU_OHTTP_RELAY_URL",
+            "OHTTP_GATEWAY_PUBKEY", "BFU_OHTTP_GATEWAY_PUBKEY",
+            "OHTTP_MASQUERADE_PROFILE", "BFU_OHTTP_MASQUERADE_PROFILE",
+            // Ed25519 remote command removed
+            "ED25519_COMMAND_ENABLED", "BFU_ED25519_COMMAND_ENABLED",
+            "ED25519_PUBKEY", "BFU_ED25519_PUBKEY",
+            // Plausible Deniability Vault removed
+            "VAULT_CARRIER_FILENAME", "BFU_VAULT_CARRIER_FILENAME",
+            "VAULT_SECRET_LABEL",
+            // Crypto engine / PQC / Anti-Rollback removed
+            "PQC_ENABLED", "BFU_PQC_ENABLED",
+            "ANTI_ROLLBACK_ENABLED", "BFU_ANTI_ROLLBACK_ENABLED",
+            "HSM_STATUS_MONITORING", "BFU_HSM_STATUS_MONITORING"
         )
 
         try {
@@ -229,9 +244,9 @@ object SecurityPreferences {
 
     fun isFrontCameraCaptureEnabled(context: Context): Boolean {
         return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_ENABLE_FRONT_CAM", true)
+            getDeviceProtectedPrefs(context).getBoolean("BFU_ENABLE_FRONT_CAM", false)
         } else {
-            getInstance(context).getBoolean("ENABLE_FRONT_CAM", true)
+            getInstance(context).getBoolean("ENABLE_FRONT_CAM", false)
         }
     }
 
@@ -244,9 +259,9 @@ object SecurityPreferences {
 
     fun isBackCameraCaptureEnabled(context: Context): Boolean {
         return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_ENABLE_BACK_CAM", true)
+            getDeviceProtectedPrefs(context).getBoolean("BFU_ENABLE_BACK_CAM", false)
         } else {
-            getInstance(context).getBoolean("ENABLE_BACK_CAM", true)
+            getInstance(context).getBoolean("ENABLE_BACK_CAM", false)
         }
     }
 
@@ -339,82 +354,7 @@ object SecurityPreferences {
     }
 
     // =========================================================================
-    // 1. Covert Canary Signaling via Oblivious HTTP (RFC 9458 / RFC 9180)
-    // =========================================================================
-    fun setOhttpCanaryEnabled(context: Context, isEnabled: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_OHTTP_CANARY_ENABLED", isEnabled).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("OHTTP_CANARY_ENABLED", isEnabled).apply()
-        }
-    }
-
-    fun isOhttpCanaryEnabled(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_OHTTP_CANARY_ENABLED", true)
-        } else {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_OHTTP_CANARY_ENABLED", true) &&
-                    getInstance(context).getBoolean("OHTTP_CANARY_ENABLED", true)
-        }
-    }
-
-    fun setOhttpRelayUrl(context: Context, url: String) {
-        getDeviceProtectedPrefs(context).edit().putString("BFU_OHTTP_RELAY_URL", url.trim()).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putString("OHTTP_RELAY_URL", url.trim()).apply()
-        }
-    }
-
-    fun getOhttpRelayUrl(context: Context): String {
-        val defaultRelay = "https://cloudflare-dns.com/dns-query"
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getString("BFU_OHTTP_RELAY_URL", defaultRelay) ?: defaultRelay
-        } else {
-            getDeviceProtectedPrefs(context).getString(
-                "BFU_OHTTP_RELAY_URL",
-                getInstance(context).getString("OHTTP_RELAY_URL", defaultRelay)
-            ) ?: defaultRelay
-        }
-    }
-
-    fun setOhttpGatewayPublicKey(context: Context, keyBase64: String?) {
-        getDeviceProtectedPrefs(context).edit().putString("BFU_OHTTP_GATEWAY_PUBKEY", keyBase64?.trim()).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putString("OHTTP_GATEWAY_PUBKEY", keyBase64?.trim()).apply()
-        }
-    }
-
-    fun getOhttpGatewayPublicKey(context: Context): String? {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getString("BFU_OHTTP_GATEWAY_PUBKEY", null)
-        } else {
-            getDeviceProtectedPrefs(context).getString(
-                "BFU_OHTTP_GATEWAY_PUBKEY",
-                getInstance(context).getString("OHTTP_GATEWAY_PUBKEY", null)
-            )
-        }
-    }
-
-    fun setOhttpMasqueradeProfile(context: Context, profile: String) {
-        getDeviceProtectedPrefs(context).edit().putString("BFU_OHTTP_MASQUERADE_PROFILE", profile).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putString("OHTTP_MASQUERADE_PROFILE", profile).apply()
-        }
-    }
-
-    fun getOhttpMasqueradeProfile(context: Context): String {
-        val defaultProfile = "google_play_telemetry"
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getString("BFU_OHTTP_MASQUERADE_PROFILE", defaultProfile) ?: defaultProfile
-        } else {
-            getDeviceProtectedPrefs(context).getString(
-                "BFU_OHTTP_MASQUERADE_PROFILE",
-                getInstance(context).getString("OHTTP_MASQUERADE_PROFILE", defaultProfile)
-            ) ?: defaultProfile
-        }
-    }
-
-    // =========================================================================
-    // 2. BLE/UWB Proximity Key Sharding Engine
+    // 2. BLE Proximity Sentinel
     // =========================================================================
     fun setProximityShardingEnabled(context: Context, isEnabled: Boolean) {
         getDeviceProtectedPrefs(context).edit().putBoolean("BFU_PROXIMITY_SHARDING_ENABLED", isEnabled).apply()
@@ -505,39 +445,6 @@ object SecurityPreferences {
     }
 
     // =========================================================================
-    // 4. Plausible Deniability Vault (DNG Container)
-    // =========================================================================
-    fun setVaultCarrierFileName(context: Context, fileName: String) {
-        getDeviceProtectedPrefs(context).edit().putString("BFU_VAULT_CARRIER_FILENAME", fileName.trim()).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putString("VAULT_CARRIER_FILENAME", fileName.trim()).apply()
-        }
-    }
-
-    fun getVaultCarrierFileName(context: Context): String {
-        val defaultName = "RAW_20240812_0042.dng"
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getString("BFU_VAULT_CARRIER_FILENAME", defaultName) ?: defaultName
-        } else {
-            getInstance(context).getString("VAULT_CARRIER_FILENAME", defaultName) ?: defaultName
-        }
-    }
-
-    fun setVaultSecretLabel(context: Context, label: String) {
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putString("VAULT_SECRET_LABEL", label.trim()).apply()
-        }
-    }
-
-    fun getVaultSecretLabel(context: Context): String {
-        return if (isUserUnlocked(context)) {
-            getInstance(context).getString("VAULT_SECRET_LABEL", "PRIMARY_SECURE_PAYLOAD") ?: "PRIMARY_SECURE_PAYLOAD"
-        } else {
-            "PRIMARY_SECURE_PAYLOAD"
-        }
-    }
-
-    // =========================================================================
     // 5. Baseband IMSI-Catcher Sentinel (Advanced only, no 2G user restriction)
     // =========================================================================
     fun setBasebandSentinelEnabled(context: Context, isEnabled: Boolean) {
@@ -575,7 +482,7 @@ object SecurityPreferences {
     }
 
     // =========================================================================
-    // 6. Spectral Collapse Sentinel
+    // 6. RF/Network-loss Sentinel
     // =========================================================================
     fun setSpectralSentinelEnabled(context: Context, isEnabled: Boolean) {
         getDeviceProtectedPrefs(context).edit().putBoolean("BFU_SPECTRAL_SENTINEL_ENABLED", isEnabled).apply()
@@ -586,10 +493,10 @@ object SecurityPreferences {
 
     fun isSpectralSentinelEnabled(context: Context): Boolean {
         return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_SPECTRAL_SENTINEL_ENABLED", true)
+            getDeviceProtectedPrefs(context).getBoolean("BFU_SPECTRAL_SENTINEL_ENABLED", false)
         } else {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_SPECTRAL_SENTINEL_ENABLED", true) &&
-                    getInstance(context).getBoolean("SPECTRAL_SENTINEL_ENABLED", true)
+            getDeviceProtectedPrefs(context).getBoolean("BFU_SPECTRAL_SENTINEL_ENABLED", false) &&
+                    getInstance(context).getBoolean("SPECTRAL_SENTINEL_ENABLED", false)
         }
     }
 
@@ -602,12 +509,30 @@ object SecurityPreferences {
 
     fun getSpectralQuarantineMs(context: Context): Long {
         return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getLong("BFU_SPECTRAL_QUARANTINE_MS", 15000L)
+            getDeviceProtectedPrefs(context).getLong("BFU_SPECTRAL_QUARANTINE_MS", 1800000L)
         } else {
             getDeviceProtectedPrefs(context).getLong(
                 "BFU_SPECTRAL_QUARANTINE_MS",
-                getInstance(context).getLong("SPECTRAL_QUARANTINE_MS", 15000L)
+                getInstance(context).getLong("SPECTRAL_QUARANTINE_MS", 1800000L)
             )
+        }
+    }
+
+    fun setSpectralAction(context: Context, action: String) {
+        getDeviceProtectedPrefs(context).edit().putString("BFU_SPECTRAL_ACTION", action).apply()
+        if (isUserUnlocked(context)) {
+            getInstance(context).edit().putString("SPECTRAL_ACTION", action).apply()
+        }
+    }
+
+    fun getSpectralAction(context: Context): String {
+        return if (!isUserUnlocked(context)) {
+            getDeviceProtectedPrefs(context).getString("BFU_SPECTRAL_ACTION", "BFU") ?: "BFU"
+        } else {
+            getDeviceProtectedPrefs(context).getString(
+                "BFU_SPECTRAL_ACTION",
+                getInstance(context).getString("SPECTRAL_ACTION", "BFU")
+            ) ?: "BFU"
         }
     }
 

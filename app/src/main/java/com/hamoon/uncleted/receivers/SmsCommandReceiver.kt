@@ -6,12 +6,10 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Telephony
 import android.telephony.PhoneNumberUtils
-import android.util.Base64
 import android.util.Log
 import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.crypto.CryptoPreferences
 import com.hamoon.uncleted.crypto.OneTimeTokenManager
-import com.hamoon.uncleted.crypto.SecureWireValidator
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.services.PanicActionService
 import com.hamoon.uncleted.util.*
@@ -73,65 +71,7 @@ class SmsCommandReceiver : BroadcastReceiver() {
         }
 
         // =========================================================================
-        // ROUTE 2: ED25519 CRYPTOGRAPHIC BINARY WIRE ENVELOPE (!UT:<Base64>)
-        // =========================================================================
-        if (body.startsWith("!UT:")) {
-            try { abortBroadcast() } catch (_: Exception) {}
-            purgeSmsFromDatabase(context, body)
-
-            val base64Payload = body.removePrefix("!UT:")
-            val rawBytes = try {
-                Base64.decode(base64Payload, Base64.NO_WRAP)
-            } catch (e: Exception) {
-                Log.e(TAG, "Malformed Base64 payload in !UT envelope", e)
-                return
-            }
-
-            if (rawBytes.size != SecureWireValidator.WIRE_PACKET_SIZE) {
-                Log.w(TAG, "Rejected payload: Invalid wire packet size (${rawBytes.size} bytes).")
-                return
-            }
-
-            val trustedPubKeyBase64 = CryptoPreferences.getTrustedPublicKey(context)
-            if (trustedPubKeyBase64.isNullOrEmpty()) {
-                Log.e(TAG, "Cryptographic command rejected: No trusted Ed25519 public key configured on device.")
-                return
-            }
-
-            val trustedPubKeyBytes = try {
-                Base64.decode(trustedPubKeyBase64, Base64.NO_WRAP)
-            } catch (e: Exception) {
-                Log.e(TAG, "Corrupted local Ed25519 public key in storage", e)
-                return
-            }
-
-            val lastSeq = CryptoPreferences.getLastRecordedSequence(context)
-            val validator = SecureWireValidator(trustedPubKeyBytes)
-            val verifiedPacket = validator.verifyAndParse(rawBytes, lastSeq)
-
-            if (verifiedPacket != null) {
-                Log.i(TAG, "ED25519 SIGNATURE VERIFIED: OpCode=${verifiedPacket.opCode}, Seq=${verifiedPacket.sequence}")
-                EventLogger.log(context, "AUTHENTICATED: Ed25519 packet verified (OpCode: ${verifiedPacket.opCode}, Seq: ${verifiedPacket.sequence})")
-
-                CryptoPreferences.setLastRecordedSequence(context, verifiedPacket.sequence)
-
-                val pendingResult = goAsync()
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        dispatchCryptographicOpCode(context, verifiedPacket)
-                    } finally {
-                        pendingResult.finish()
-                    }
-                }
-            } else {
-                Log.w(TAG, "Cryptographic validation failed: Signature rejected, replay detected, or timestamp expired.")
-                EventLogger.log(context, "SECURITY: Dropped unauthorized or replayed Ed25519 packet.")
-            }
-            return
-        }
-
-        // =========================================================================
-        // ROUTE 3: CLEARTEXT SMS FALLBACK (UNCLETED [CMD] [PASSWORD])
+        // ROUTE 2: CLEARTEXT SMS FALLBACK (UNCLETED [CMD] [PASSWORD])
         // =========================================================================
         if (!CryptoPreferences.isCleartextSmsAllowed(context)) {
             Log.d(TAG, "Cleartext SMS processing is disabled in security settings.")
@@ -190,34 +130,6 @@ class SmsCommandReceiver : BroadcastReceiver() {
         }
 
         return false
-    }
-
-    private suspend fun dispatchCryptographicOpCode(context: Context, packet: SecureWireValidator.CommandPacket) {
-        val strategy = DefenseCoordinator.resolveStrategy(context)
-
-        when (packet.opCode.toInt()) {
-            0x01 -> {
-                Log.e(TAG, "Executing OP_EMERGENCY_WIPE")
-                strategy.executeStandardWipe("OP_ED25519_WIPE")
-            }
-            0x02 -> {
-                Log.w(TAG, "Executing OP_SEVER_USB_AND_LOCK")
-                strategy.setUsbDataPortEnabled(false)
-                strategy.evictMemoryKeysAndLock()
-            }
-            0x03 -> {
-                Log.w(TAG, "Executing OP_EVICT_KEYS_TO_BFU")
-                strategy.disableBiometrics(true)
-                strategy.evictMemoryKeysAndLock()
-            }
-            0x04 -> {
-                Log.i(TAG, "Executing OP_CAPTURE_EVIDENCE")
-                PanicActionService.trigger(context, "REMOTE_EVIDENCE", PanicActionService.Severity.HIGH)
-            }
-            else -> {
-                Log.w(TAG, "Unknown Ed25519 OpCode: ${packet.opCode}")
-            }
-        }
     }
 
     private fun purgeSmsFromDatabase(context: Context, bodySnippet: String) {

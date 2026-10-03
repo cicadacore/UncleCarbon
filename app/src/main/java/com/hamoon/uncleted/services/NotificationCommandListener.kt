@@ -4,12 +4,10 @@ import android.app.Notification
 import android.content.Context
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
-import android.util.Base64
 import android.util.Log
 import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.crypto.CryptoPreferences
 import com.hamoon.uncleted.crypto.OneTimeTokenManager
-import com.hamoon.uncleted.crypto.SecureWireValidator
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.util.EventLogger
 import kotlinx.coroutines.CoroutineScope
@@ -56,47 +54,7 @@ class NotificationCommandListener : NotificationListenerService() {
             }
         }
 
-        // 2. Ed25519 Cryptographic Binary Envelope
-        if (combinedMessage.contains("!UT:")) {
-            val base64Payload = extractEd25519Payload(combinedMessage)
-            if (base64Payload.isNotEmpty()) {
-                cancelNotification(sbn.key)
-
-                val rawBytes = try {
-                    Base64.decode(base64Payload, Base64.NO_WRAP)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Malformed Base64 payload in notification", e)
-                    return
-                }
-
-                if (rawBytes.size != SecureWireValidator.WIRE_PACKET_SIZE) return
-
-                val trustedPubKeyBase64 = CryptoPreferences.getTrustedPublicKey(applicationContext) ?: return
-                val trustedPubKeyBytes = try {
-                    Base64.decode(trustedPubKeyBase64, Base64.NO_WRAP)
-                } catch (e: Exception) {
-                    return
-                }
-
-                val lastSeq = CryptoPreferences.getLastRecordedSequence(applicationContext)
-                val validator = SecureWireValidator(trustedPubKeyBytes)
-                val verifiedPacket = validator.verifyAndParse(rawBytes, lastSeq)
-
-                if (verifiedPacket != null) {
-                    Log.i(TAG, "ED25519 SIGNATURE VERIFIED VIA NOTIFICATION: OpCode=${verifiedPacket.opCode}")
-                    EventLogger.log(applicationContext, "NOTIFICATION DISPATCH: Ed25519 packet verified (OpCode: ${verifiedPacket.opCode})")
-
-                    CryptoPreferences.setLastRecordedSequence(applicationContext, verifiedPacket.sequence)
-
-                    CoroutineScope(Dispatchers.IO).launch {
-                        dispatchCryptographicOpCode(applicationContext, verifiedPacket)
-                    }
-                }
-                return
-            }
-        }
-
-        // 3. Permissive Cleartext Fallback (eSIM Data-Only Burner Fallback)
+        // 2. Permissive Cleartext Fallback (eSIM Data-Only Burner Fallback)
         if (CryptoPreferences.isCleartextSmsAllowed(applicationContext) && combinedMessage.contains("UNCLETED", ignoreCase = true)) {
             val masterPassword = SecurityPreferences.getSmsMasterPassword(applicationContext)
             if (!masterPassword.isNullOrEmpty()) {
@@ -121,32 +79,6 @@ class NotificationCommandListener : NotificationListenerService() {
         return regex.find(text)?.value ?: ""
     }
 
-    private fun extractEd25519Payload(text: String): String {
-        val start = text.indexOf("!UT:")
-        if (start == -1) return ""
-        val sub = text.substring(start + 4)
-        return sub.split("\\s+".toRegex())[0]
-    }
-
-    private suspend fun dispatchCryptographicOpCode(context: Context, packet: SecureWireValidator.CommandPacket) {
-        val strategy = DefenseCoordinator.resolveStrategy(context)
-        when (packet.opCode.toInt()) {
-            0x01 -> {
-                strategy.executeStandardWipe("NOTIFICATION_ED25519_WIPE")
-            }
-            0x02 -> {
-                strategy.setUsbDataPortEnabled(false)
-                strategy.evictMemoryKeysAndLock()
-            }
-            0x03 -> {
-                strategy.disableBiometrics(true)
-                strategy.evictMemoryKeysAndLock()
-            }
-            0x04 -> {
-                PanicActionService.trigger(context, "REMOTE_EVIDENCE", PanicActionService.Severity.HIGH)
-            }
-        }
-    }
 
     private fun handleAuthenticatedNotificationCommand(context: Context, command: String, args: List<String>) {
         EventLogger.log(context, "NOTIFICATION DISPATCH: Cleartext command '$command' verified.")

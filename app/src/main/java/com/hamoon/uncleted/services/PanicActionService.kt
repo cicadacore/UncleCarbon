@@ -30,7 +30,6 @@ import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.hamoon.uncleted.CameraPermissionBrokerActivity
 import com.hamoon.uncleted.R
-import com.hamoon.uncleted.canary.CovertCanarySender
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.util.*
 import kotlinx.coroutines.*
@@ -326,13 +325,6 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
                 }
 
                 val currentLoc = getCurrentLocation()
-                if (SecurityPreferences.isOhttpCanaryEnabled(this@PanicActionService)) {
-                    val gatewayKey = SecurityPreferences.getOhttpGatewayPublicKey(this@PanicActionService)
-                    if (!gatewayKey.isNullOrBlank()) {
-                        CovertCanarySender.dispatchCovertDuress(this@PanicActionService, reason, currentLoc)
-                    }
-                }
-
                 when (severity) {
                     Severity.LOW -> handleLowSeverityIncident(reason)
                     Severity.MEDIUM -> handleMediumSeverityIncident(reason, requestId)

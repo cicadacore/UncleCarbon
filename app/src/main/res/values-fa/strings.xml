@@ -10,7 +10,6 @@
     <!-- Domain-Driven Navigation Menus -->
     <string name="menu_dashboard">داشبورد و تله‌متری</string>
     <string name="menu_hardware_sentinels">دفاع سیلیکونی و سخت‌افزاری</string>
-    <string name="menu_crypto_engine">رمزنگاری و انکارپذیری</string>
     <string name="menu_authentication">احراز هویت و طعمه‌ها</string>
     <string name="menu_proximity_tripwire">مجاورت و تله خودکار</string>
     <string name="menu_remote_signaling">سیگنال‌دهی مخفی و فرماندهی</string>
@@ -104,24 +103,6 @@
     <string name="safe_boot_allow_button">مجاز کردن Safe Mode</string>
     <string name="safe_boot_keep_blocked_button">مسدود نگه دار</string>
 
-    <!-- Cryptographic Engine & Deniability Vault -->
-    <string name="crypto_engine_title">رمزنگاری و گاوصندوق‌های امن</string>
-    <string name="pqc_title">موتور ترکیبی پسا-کوانتومی NIST FIPS 203</string>
-    <string name="pqc_desc">استاندارد نهایی کریستال‌های شبکه ML-KEM-768 را با منحنی سنتی Curve25519 (X25519) از طریق HKDF-SHA512 ترکیب می‌کند تا از حملات «اکنون ذخیره کن، بعداً رمزگشایی کن» جلوگیری شود.</string>
-    <string name="pqc_toggle_label">اجبار به استفاده از بسته‌های ترکیبی پسا-کوانتومی KEM</string>
-    <string name="pqc_local_pubkey_hint">کلید عمومی ترکیبی محلی دستگاه (Base64)</string>
-    <string name="pqc_remote_pubkey_hint">کلید عمومی ترکیبی اپراتور مورد اعتماد (Base64)</string>
-    <string name="pqc_generate_keypair_button">تولید جفت‌کلید جدید ML-KEM</string>
-    <string name="pqc_copy_pubkey_button">کپی کلید عمومی دستگاه</string>
-    <string name="pqc_save_remote_button">ذخیره کلید عمومی اپراتور همتا</string>
-    <string name="deniability_vault_title">گاوصندوق انکارپذیر (تصویر چندگانه DNG)</string>
-    <string name="deniability_vault_desc">داده‌ها را با الگوریتم Deflate فشرده ساخته، با ChaCha20-Poly1305 رمزگذاری کرده و آنتروپی آن را درون ساختار یک عکس خام واقعی Adobe DNG دوربین ذخیره می‌کند.</string>
-    <string name="vault_carrier_name_hint">نام فایل حامل عکس DNG</string>
-    <string name="vault_secret_label_hint">برچسب رکورد گاوصندوق (شناسه یکتا)</string>
-    <string name="vault_secret_content_hint">متن محرمانه یا عبارت بازیابی برای مخفی‌سازی</string>
-    <string name="vault_store_button">پنهان‌سازی درون تصویر DNG</string>
-    <string name="vault_extract_button">استخراج و رمزگشایی داده محرمانه</string>
-    <string name="vault_purge_button">بازنویسی تصادفی و حذف دائمی فایل حامل</string>
     <string name="zram_hardening_title">پاک‌سازی حافظه موقت RAM و کلیدگذاری مجدد ZRAM</string>
     <string name="zram_hardening_desc">با قفل شدن صفحه (ACTION_SCREEN_OFF)، کَش‌های سیستمی کرنل را تخلیه کرده و کلیدهای رمزنگاری سواپ زودگذر را بلافاصله ریست می‌کند.</string>
     <string name="zram_scrubbing_toggle">تخلیه کَش‌ها هنگام خاموش شدن صفحه (drop_caches)</string>
@@ -151,15 +132,6 @@
     <!-- Covert Signaling & Remote C2 -->
     <string name="remote_signaling_title">سیگنال‌دهی مخفی و کنترل از راه دور</string>
     <string name="remote_category_title">کنترل‌های سیگنال‌دهی از راه دور</string>
-    <string name="ohttp_canary_title">سیگنال‌دهی صفر-دانش با پروتکل OHTTP (RFC 9458)</string>
-    <string name="ohttp_canary_desc">پیام‌های اضطراری را با رمزگذاری HPKE کپسوله‌سازی کرده و از طریق رله‌های CDN بازپخش می‌کند تا همانند ترافیک تحلیلی گوگل به نظر برسد.</string>
-    <string name="ohttp_toggle_label">فعال‌سازی کاناری مخفی OHTTP (RFC 9458)</string>
-    <string name="ohttp_relay_url_hint">آدرس رله ناشناس CDN</string>
-    <string name="ohttp_gateway_pubkey_hint">کلید عمومی گیت‌وی HPKE (Base64)</string>
-    <string name="ohttp_masquerade_profile_hint">پروفایل استتار ترافیک داده</string>
-    <string name="ed25519_signaling_title">بسته رمزنگاری‌شده نامتقارن (Ed25519)</string>
-    <string name="ed25519_signaling_desc">بسته فشرده ۸۵ بایتی امضاشده با رد درخواست‌های تکراری، اعتبارسنجی توالی شمارنده و رد انحراف زمانی بیش از ۱۲۰ ثانیه.</string>
-    <string name="ed25519_pubkey_hint">کلید عمومی اپراتور مجاز Ed25519 (Base64)</string>
     <string name="otc_tokens_title">توکن‌های بازیابی اضطراری یک‌بار مصرف (OTC)</string>
     <string name="otc_tokens_desc">تولید مجموعه‌ای از ۵ توکن بازیابی اضطراری با آنتروپی بالا در حافظه محافظت‌شده. ارسال هر توکن بلافاصله دستگاه را پاک می‌کند.</string>
     <string name="otc_generate_button">تولید برگه کیف پول اضطراری (۵ توکن)</string>
@@ -420,13 +392,13 @@
     <string name="level_1_title">سطح وضعیت: ضعیف</string>
     <string name="level_1_desc">راه‌اندازی اولیه ناقص است. دستگاه در برابر استخراج فیزیکی آسیب‌پذیر است.</string>
     <string name="level_2_title">سطح وضعیت: تحت نظارت</string>
-    <string name="level_2_desc">دیده‌بان‌های اصلی فعال هستند. موتور پسا-کوانتوم و تله‌ها را مسلح کنید.</string>
+    <string name="level_2_desc">دیده‌بان‌های اصلی فعال هستند. تله‌های سخت‌افزاری بیشتر را فعال کنید.</string>
     <string name="level_3_title">سطح وضعیت: مستحکم</string>
     <string name="level_3_desc">تراشه مجزای HSM و لایه‌های ضد اجبار فعال شده‌اند.</string>
     <string name="level_4_title">سطح وضعیت: دفاع سازمانی</string>
-    <string name="level_4_desc">مالک دستگاه، رمزنگاری ترکیبی پسا-کوانتوم و تله‌های طیفی کاملاً فعال هستند.</string>
+    <string name="level_4_desc">مالک دستگاه و دیده‌بان‌های سخت‌افزاری کاملاً فعال هستند.</string>
     <string name="level_5_title">سطح وضعیت: حداکثر اعتماد-صفر</string>
-    <string name="level_5_desc">تمام لایه‌های سیلیکونی، رمزنگاری PQC، کاناری OHTTP و تفکیک کلید BLE فعال هستند.</string>
+    <string name="level_5_desc">تمام دیده‌بان‌ها و لایه‌های دفاعی کاملاً فعال هستند.</string>
     <string name="level_root_title">سطح وضعیت: حالت خدا (Root / LSPosed)</string>
     <string name="level_root_desc">کنترل در سطح هسته لینوکس، تخلیه حافظه کلیدهای Vold و هوک‌های سیستم سرور فعال هستند.</string>
 

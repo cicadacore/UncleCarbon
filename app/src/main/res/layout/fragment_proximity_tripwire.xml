@@ -12,7 +12,7 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- 1. BLE/UWB PROXIMITY KEY SHARDING ENGINE -->
+        <!-- 1. BLE PROXIMITY SENTINEL -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -79,7 +79,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="2dp"
                             android:fontFamily="monospace"
-                            android:text="RAM Shard B: Not Loaded"
+                            android:text="BLE Key Status: Idle"
                             android:textAppearance="?attr/textAppearanceBodyMedium"
                             android:textColor="@color/status_yellow"/>
                     </LinearLayout>
@@ -135,18 +135,10 @@
                         android:text="3"/>
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <Button
-                    android:id="@+id/btn_provision_shards"
-                    style="@style/Widget.Material3.Button.TonalButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="Provision Master Shards (Shamir 2-of-2)"/>
-
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 2. AUTONOMOUS DEAD-MAN TRIPWIRE -->
+        <!-- 2. DEAD-MAN WIPE SENTINEL -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
