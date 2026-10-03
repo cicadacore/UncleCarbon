@@ -16,7 +16,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.google.android.gms.location.LocationServices
+import android.location.Location
+import android.location.LocationManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hamoon.uncleted.R
 import com.hamoon.uncleted.data.SecurityPreferences
@@ -252,14 +253,30 @@ class ProximityTripwireFragment : Fragment() {
             return
         }
 
-        val client = LocationServices.getFusedLocationProviderClient(requireActivity())
+        val lm = requireContext().getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        if (lm == null) {
+            Toast.makeText(requireContext(), "Location service unavailable.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         try {
-            client.lastLocation.addOnSuccessListener { loc ->
-                if (loc != null) {
-                    promptZoneRadiusAndName(loc.latitude, loc.longitude)
-                } else {
-                    Toast.makeText(requireContext(), "Could not retrieve GPS fix. Try again outdoors.", Toast.LENGTH_SHORT).show()
+            // Pick the best last-known fix from the available framework providers
+            // (most accurate first). No Google Play Services required.
+            var best: Location? = null
+            for (provider in listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)) {
+                if (!lm.allProviders.contains(provider)) continue
+                val loc = lm.getLastKnownLocation(provider) ?: continue
+                if (best == null ||
+                    (loc.hasAccuracy() && (!best!!.hasAccuracy() || loc.accuracy < best!!.accuracy))
+                ) {
+                    best = loc
                 }
+            }
+
+            if (best != null) {
+                promptZoneRadiusAndName(best.latitude, best.longitude)
+            } else {
+                Toast.makeText(requireContext(), "Could not retrieve GPS fix. Try again outdoors.", Toast.LENGTH_SHORT).show()
             }
         } catch (_: SecurityException) {}
     }

@@ -148,8 +148,8 @@ dependencies {
     // --- COROUTINES ---
     implementation(libs.kotlinx.coroutines.android)
 
-    // --- LOCATION SERVICES ---
-    implementation(libs.google.play.services.location)
+    // --- LOCATION ---
+    // Framework-only (android.location.*); no Google Play Services location dependency.
 
     // --- CAMERAX ENGINE ---
     implementation(libs.androidx.camera.core)

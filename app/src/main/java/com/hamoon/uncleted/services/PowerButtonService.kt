@@ -47,7 +47,11 @@ class PowerButtonService : AccessibilityService() {
     )
     private var sequenceIndex = 0
     private var lastPressTime = 0L
-    private val sequenceTimeoutMs = 2000L
+    // Maximum time allowed between consecutive required presses. Widened from
+    // 2s to 3s so the sequence can be completed deliberately under stress
+    // without needing extremely fast presses, while still staying tight enough
+    // that accidental activation remains unlikely.
+    private val sequenceTimeoutMs = 3000L
 
     // Guards against duplicate wipe calls from repeated key events during the
     // tiny window between sequence detection and the Device Owner wipe actually

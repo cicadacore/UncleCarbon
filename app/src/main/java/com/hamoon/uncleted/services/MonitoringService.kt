@@ -22,8 +22,8 @@ import com.hamoon.uncleted.receivers.ScreenStateReceiver
 import com.hamoon.uncleted.sentinels.AdvancedBasebandSentinel
 import com.hamoon.uncleted.sentinels.SpectralSentinel
 import com.hamoon.uncleted.sim.SimMonitor
-import com.hamoon.uncleted.util.MotionDetector
 import com.hamoon.uncleted.util.NotificationHelper
+import com.hamoon.uncleted.util.PermissionUtils
 import com.hamoon.uncleted.util.ShakeDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -100,8 +100,6 @@ class MonitoringService : LifecycleService(), SensorEventListener {
                         SensorManager.SENSOR_DELAY_UI
                     )
                 }
-
-                MotionDetector.initialize(applicationContext)
 
                 advancedBasebandSentinel = AdvancedBasebandSentinel(applicationContext).apply {
                     start()
@@ -190,15 +188,26 @@ class MonitoringService : LifecycleService(), SensorEventListener {
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // The RF-loss sentinel reads location-derived telemetry (cell info, Wi-Fi
+            // scans) from this background service, which on API 34+ requires the
+            // "location" FGS type. Only include it when location permission is actually
+            // granted, otherwise startForeground throws for a type without its precondition.
+            var types = ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC or
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            if (PermissionUtils.hasLocationPermissions(this)) {
+                types = types or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+            }
             try {
-                startForeground(
-                    NotificationHelper.NOTIFICATION_ID_MONITORING,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC or ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-                )
+                startForeground(NotificationHelper.NOTIFICATION_ID_MONITORING, notification, types)
             } catch (e: Exception) {
-                Log.w(TAG, "Failed starting foreground with dual types. Falling back: ${e.message}")
-                startForeground(NotificationHelper.NOTIFICATION_ID_MONITORING, notification)
+                Log.w(TAG, "Failed starting foreground with typed FGS. Falling back: ${e.message}")
+                try {
+                    startForeground(NotificationHelper.NOTIFICATION_ID_MONITORING, notification)
+                } catch (e2: Exception) {
+                    Log.e(TAG, "Foreground service start failed: ${e2.message}", e2)
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
             }
         } else {
             startForeground(NotificationHelper.NOTIFICATION_ID_MONITORING, notification)
@@ -234,7 +243,6 @@ class MonitoringService : LifecycleService(), SensorEventListener {
         unregisterSimSubscriptionListener()
         bleProximitySentinel?.stop()
         bleProximitySentinel = null
-        MotionDetector.stop()
         advancedBasebandSentinel?.stop()
         advancedBasebandSentinel = null
         spectralSentinel = null

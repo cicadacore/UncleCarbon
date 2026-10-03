@@ -25,9 +25,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
 import com.hamoon.uncleted.CameraPermissionBrokerActivity
 import com.hamoon.uncleted.R
 import com.hamoon.uncleted.data.SecurityPreferences
@@ -37,7 +34,6 @@ import java.io.File
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.coroutines.resume
 
 class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
 
@@ -527,25 +523,19 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
         }
     }
 
-    private suspend fun getCurrentLocation(): Location? = withTimeoutOrNull(10000L) {
-        suspendCancellableCoroutine { cont ->
-            if (!PermissionUtils.hasLocationPermissions(this@PanicActionService)) {
-                if (cont.isActive) cont.resume(null)
-                return@suspendCancellableCoroutine
-            }
-            try {
-                val client = LocationServices.getFusedLocationProviderClient(this@PanicActionService)
-                val source = CancellationTokenSource()
-                cont.invokeOnCancellation { source.cancel() }
-
-                client.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, source.token)
-                    .addOnSuccessListener { if (cont.isActive) cont.resume(it) }
-                    .addOnFailureListener { if (cont.isActive) cont.resume(null) }
-            } catch (e: Exception) {
-                if (cont.isActive) cont.resume(null)
-            }
-        }
-    }
+    /**
+     * One-shot panic-trigger location via framework providers only (no GMS).
+     * Prefers a fresh GPS/network fix; a cached fix is used only as a recent,
+     * validated fallback. Returns null (location unavailable) rather than blocking
+     * the panic workflow indefinitely — the 10s bound preserves the previous behaviour.
+     */
+    private suspend fun getCurrentLocation(): Location? =
+        FrameworkLocationProvider.getCurrentLocation(
+            context = this,
+            timeoutMs = 10_000L,
+            allowCachedFallback = true,
+            maxCacheAgeMs = 2 * 60_000L
+        )
 
     private fun sendSms(phoneNumber: String, message: String) {
         if (!PermissionUtils.hasSmsPermissions(this)) return

@@ -54,11 +54,19 @@
                     android:text="Enable RF/Network-loss Sentinel"/>
 
                 <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switch_spectral_motion_required"
+                    android:id="@+id/switch_spectral_wifi_confirmation"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Require Motion Context"/>
+                    android:text="Wi-Fi RF Confirmation"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Checks for nearby Wi-Fi radio activity when cellular/network RF is lost. Visible Wi-Fi access points indicate that the device is probably not RF-isolated."
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant"/>
 
                 <TextView
                     android:layout_width="wrap_content"

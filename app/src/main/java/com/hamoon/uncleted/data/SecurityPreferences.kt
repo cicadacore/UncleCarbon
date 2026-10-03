@@ -135,7 +135,9 @@ object SecurityPreferences {
             // Crypto engine / PQC / Anti-Rollback removed
             "PQC_ENABLED", "BFU_PQC_ENABLED",
             "ANTI_ROLLBACK_ENABLED", "BFU_ANTI_ROLLBACK_ENABLED",
-            "HSM_STATUS_MONITORING", "BFU_HSM_STATUS_MONITORING"
+            "HSM_STATUS_MONITORING", "BFU_HSM_STATUS_MONITORING",
+            // RF/network-loss sentinel: motion confirmation replaced by Wi-Fi RF confirmation
+            "SPECTRAL_MOTION_REQUIRED", "BFU_SPECTRAL_MOTION_REQUIRED"
         )
 
         try {
@@ -536,21 +538,40 @@ object SecurityPreferences {
         }
     }
 
-    fun setSpectralMotionRequired(context: Context, required: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_SPECTRAL_MOTION_REQUIRED", required).apply()
+    // Wi-Fi RF Confirmation: distinguishes an ordinary network outage from possible
+    // RF isolation by checking for nearby Wi-Fi radio activity. Defaults to ENABLED.
+    // A dedicated key — the removed motion preference is never reused.
+    fun setWifiRfConfirmationEnabled(context: Context, enabled: Boolean) {
+        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_SPECTRAL_WIFI_RF_CONFIRMATION", enabled).apply()
         if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("SPECTRAL_MOTION_REQUIRED", required).apply()
+            getInstance(context).edit().putBoolean("SPECTRAL_WIFI_RF_CONFIRMATION", enabled).apply()
         }
     }
 
-    fun isSpectralMotionRequired(context: Context): Boolean {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_SPECTRAL_MOTION_REQUIRED", true)
-        } else {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_SPECTRAL_MOTION_REQUIRED", true) &&
-                    getInstance(context).getBoolean("SPECTRAL_MOTION_REQUIRED", true)
-        }
+    fun isWifiRfConfirmationEnabled(context: Context): Boolean {
+        return getDeviceProtectedPrefs(context).getBoolean("BFU_SPECTRAL_WIFI_RF_CONFIRMATION", true)
     }
+
+    // Quarantine recovery metadata. Device-protected only: it must survive process
+    // death and be readable before first unlock. bootRef (= wallClock - elapsedRealtime)
+    // lets the sentinel detect a reboot and refuse to trust a stale elapsedRealtime
+    // baseline across boots.
+    fun setSpectralQuarantine(context: Context, active: Boolean, startElapsedMs: Long, bootRef: Long) {
+        getDeviceProtectedPrefs(context).edit()
+            .putBoolean("BFU_SPECTRAL_Q_ACTIVE", active)
+            .putLong("BFU_SPECTRAL_Q_START_ELAPSED", startElapsedMs)
+            .putLong("BFU_SPECTRAL_Q_BOOT_REF", bootRef)
+            .apply()
+    }
+
+    fun isSpectralQuarantineActive(context: Context): Boolean =
+        getDeviceProtectedPrefs(context).getBoolean("BFU_SPECTRAL_Q_ACTIVE", false)
+
+    fun getSpectralQuarantineStartElapsed(context: Context): Long =
+        getDeviceProtectedPrefs(context).getLong("BFU_SPECTRAL_Q_START_ELAPSED", 0L)
+
+    fun getSpectralQuarantineBootRef(context: Context): Long =
+        getDeviceProtectedPrefs(context).getLong("BFU_SPECTRAL_Q_BOOT_REF", 0L)
 
     // =========================================================================
     // 9. Event Logging

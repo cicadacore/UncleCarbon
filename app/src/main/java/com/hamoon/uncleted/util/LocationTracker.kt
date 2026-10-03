@@ -2,16 +2,14 @@ package com.hamoon.uncleted.util
 
 import android.content.Context
 import android.location.Location
-import android.os.Looper
 import android.util.Log
-import com.google.android.gms.location.*
-import com.google.android.gms.tasks.CancellationTokenSource
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
 
 object LocationTracker {
 
     private const val TAG = "LocationTracker"
+
+    // Preserve the previous "recent" window for an acceptable cached fix.
+    private const val MAX_CACHE_AGE_MS = 5 * 60 * 1000L // 5 minutes
 
     data class LocationInfo(
         val location: Location,
@@ -20,89 +18,29 @@ object LocationTracker {
         val timestamp: Long
     )
 
+    /**
+     * Obtains the current location for SMS / emergency location reporting using
+     * framework providers only (no Google Play Services). Tries a fresh GPS/network
+     * fix and falls back to a recent cached fix (≤ 5 min), matching the previous
+     * behaviour and 15s overall bound. All listeners are owned and released by
+     * [FrameworkLocationProvider]; nothing is leaked here.
+     */
     suspend fun getCurrentLocationDetailed(context: Context): LocationInfo? {
-        if (!PermissionUtils.hasLocationPermissions(context)) {
-            Log.e(TAG, "Location permissions not granted")
+        val location = FrameworkLocationProvider.getCurrentLocation(
+            context = context,
+            timeoutMs = 15_000L,
+            allowCachedFallback = true,
+            maxCacheAgeMs = MAX_CACHE_AGE_MS
+        )
+        if (location == null) {
+            Log.e(TAG, "Could not obtain a location fix.")
             return null
         }
-
-        return suspendCancellableCoroutine { continuation ->
-            val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-            val cancellationTokenSource = CancellationTokenSource()
-
-            continuation.invokeOnCancellation {
-                cancellationTokenSource.cancel()
-            }
-
-            try {
-                // Try to get last known location first
-                fusedLocationClient.lastLocation.addOnSuccessListener { lastLocation ->
-                    if (lastLocation != null && isLocationRecent(lastLocation)) {
-                        val locationInfo = LocationInfo(
-                            location = lastLocation,
-                            accuracy = lastLocation.accuracy,
-                            timestamp = lastLocation.time
-                        )
-                        if (continuation.isActive) {
-                            continuation.resume(locationInfo)
-                            return@addOnSuccessListener
-                        }
-                    }
-
-                    // If no recent location, request fresh one
-                    val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
-                        .setWaitForAccurateLocation(false)
-                        .setMaxUpdateDelayMillis(10000)
-                        .setMaxUpdates(1)
-                        .build()
-
-                    val locationCallback = object : LocationCallback() {
-                        override fun onLocationResult(locationResult: LocationResult) {
-                            val location = locationResult.lastLocation
-                            if (location != null && continuation.isActive) {
-                                val locationInfo = LocationInfo(
-                                    location = location,
-                                    accuracy = location.accuracy,
-                                    timestamp = location.time
-                                )
-                                continuation.resume(locationInfo)
-                            }
-                        }
-                    }
-
-                    fusedLocationClient.requestLocationUpdates(
-                        locationRequest,
-                        locationCallback,
-                        Looper.getMainLooper()
-                    )
-
-                    // Set timeout
-                    android.os.Handler(Looper.getMainLooper()).postDelayed({
-                        fusedLocationClient.removeLocationUpdates(locationCallback)
-                        if (continuation.isActive) {
-                            continuation.resume(null)
-                        }
-                    }, 15000) // 15 second timeout
-
-                }.addOnFailureListener { e ->
-                    Log.e(TAG, "Failed to get location", e)
-                    if (continuation.isActive) {
-                        continuation.resume(null)
-                    }
-                }
-
-            } catch (e: SecurityException) {
-                Log.e(TAG, "Location permission denied", e)
-                if (continuation.isActive) {
-                    continuation.resume(null)
-                }
-            }
-        }
-    }
-
-    private fun isLocationRecent(location: Location): Boolean {
-        val fiveMinutesAgo = System.currentTimeMillis() - (5 * 60 * 1000)
-        return location.time > fiveMinutesAgo
+        return LocationInfo(
+            location = location,
+            accuracy = location.accuracy,
+            timestamp = location.time
+        )
     }
 
     fun formatLocationForSms(locationInfo: LocationInfo): String {

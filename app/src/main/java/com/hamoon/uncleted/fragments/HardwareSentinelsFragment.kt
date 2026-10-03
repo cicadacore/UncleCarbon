@@ -46,7 +46,7 @@ class HardwareSentinelsFragment : Fragment() {
         val context = requireContext()
 
         binding.switchSpectralSentinel.isChecked = SecurityPreferences.isSpectralSentinelEnabled(context)
-        binding.switchSpectralMotionRequired.isChecked = SecurityPreferences.isSpectralMotionRequired(context)
+        binding.switchSpectralWifiConfirmation.isChecked = SecurityPreferences.isWifiRfConfirmationEnabled(context)
 
         // Timer window dropdown
         val adapter = ArrayAdapter(context, android.R.layout.simple_dropdown_item_1line, timerEntries)
@@ -81,19 +81,37 @@ class HardwareSentinelsFragment : Fragment() {
                     "BFU: Reboots the device into Before First Unlock state, evicting decryption " +
                     "keys from memory.\n\n" +
                     "WIPE: Performs a Device Owner factory reset, erasing all user data.\n\n" +
-                    "\"Require Motion Context\" adds a check that the device has experienced " +
-                    "physical movement, reducing false positives from poor coverage areas."
+                    "\"Wi-Fi RF Confirmation\" uses nearby Wi-Fi radio activity to distinguish a " +
+                    "network outage from possible RF isolation. When cellular/network RF disappears, " +
+                    "UncleCarbon can temporarily enable Wi-Fi and check whether nearby access points " +
+                    "are still visible. Visible access points mean the device is probably not RF-isolated. " +
+                    "This is a confirmation heuristic, not proof of a Faraday enclosure."
                 )
                 .setPositiveButton(android.R.string.ok, null)
                 .show()
         }
 
+        // All four RF-loss settings persist IMMEDIATELY (no Save button needed).
+
         binding.switchSpectralSentinel.setOnCheckedChangeListener { _, isChecked ->
             SecurityPreferences.setSpectralSentinelEnabled(context, isChecked)
         }
 
-        binding.switchSpectralMotionRequired.setOnCheckedChangeListener { _, isChecked ->
-            SecurityPreferences.setSpectralMotionRequired(context, isChecked)
+        binding.switchSpectralWifiConfirmation.setOnCheckedChangeListener { _, isChecked ->
+            SecurityPreferences.setWifiRfConfirmationEnabled(context, isChecked)
+        }
+
+        // BFU/WIPE action — persist the moment the selection changes.
+        binding.toggleSpectralAction.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val action = if (checkedId == R.id.btn_action_wipe) "WIPE" else "BFU"
+            SecurityPreferences.setSpectralAction(context, action)
+        }
+
+        // Quarantine duration — persist the moment a timer window is chosen.
+        binding.autoSpectralTimer.setOnItemClickListener { _, _, position, _ ->
+            val ms = timerValuesMs.getOrNull(position)?.toLongOrNull() ?: 1800000L
+            SecurityPreferences.setSpectralQuarantineMs(context, ms)
         }
 
         binding.switchBasebandSentinel.setOnCheckedChangeListener { _, isChecked ->
@@ -140,19 +158,10 @@ class HardwareSentinelsFragment : Fragment() {
     private fun saveConfiguredParameters() {
         val context = requireContext()
 
-        // Timer window from dropdown
-        val selectedLabel = binding.autoSpectralTimer.text.toString()
-        val timerIndex = timerEntries.indexOf(selectedLabel).takeIf { it >= 0 } ?: 0
-        val spectralMs = timerValuesMs[timerIndex].toLongOrNull() ?: 1800000L
-        SecurityPreferences.setSpectralQuarantineMs(context, spectralMs)
-
-        // BFU/WIPE action
-        val action = when (binding.toggleSpectralAction.checkedButtonId) {
-            R.id.btn_action_wipe -> "WIPE"
-            else -> "BFU"
-        }
-        SecurityPreferences.setSpectralAction(context, action)
-
+        // NOTE: the four RF/network-loss settings (sentinel enabled, Wi-Fi RF
+        // confirmation, BFU/WIPE action and quarantine duration) persist immediately
+        // via their own listeners and are intentionally not handled here. This Save
+        // button only covers the unrelated baseband / safe-boot options.
         val maxTA = binding.etBasebandTimingAdvance.text?.toString()?.toIntOrNull() ?: 30
         SecurityPreferences.setTimingAdvanceThreshold(context, maxTA)
 

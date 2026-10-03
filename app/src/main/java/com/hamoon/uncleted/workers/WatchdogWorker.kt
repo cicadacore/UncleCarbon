@@ -12,15 +12,10 @@ import android.telephony.SmsManager
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
 import com.hamoon.uncleted.R
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.util.EmailSender
-import com.hamoon.uncleted.util.PermissionUtils
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlin.coroutines.resume
+import com.hamoon.uncleted.util.FrameworkLocationProvider
 
 class WatchdogWorker(appContext: Context, workerParams: WorkerParameters) :
     CoroutineWorker(appContext, workerParams) {
@@ -67,27 +62,20 @@ class WatchdogWorker(appContext: Context, workerParams: WorkerParameters) :
         }
     }
 
-    private suspend fun getCurrentLocation(context: Context): Location? = suspendCancellableCoroutine { continuation ->
-        if (!PermissionUtils.hasLocationPermissions(context)) {
-            Log.e(TAG, "Location permissions not granted.")
-            if (continuation.isActive) continuation.resume(null)
-            return@suspendCancellableCoroutine
-        }
-        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-        val cancellationTokenSource = CancellationTokenSource()
-
-        continuation.invokeOnCancellation { cancellationTokenSource.cancel() }
-
-        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cancellationTokenSource.token)
-            .addOnSuccessListener { location ->
-                Log.d(TAG, "Location retrieved: ${location?.latitude}, ${location?.longitude}")
-                if (continuation.isActive) continuation.resume(location)
-            }
-            .addOnFailureListener { e ->
-                Log.e(TAG, "Failed to get location", e)
-                if (continuation.isActive) continuation.resume(null)
-            }
-    }
+    /**
+     * One-shot location sample for the periodic watchdog report, via framework
+     * providers only (no GMS). This Worker is occasional, so it requests a single
+     * fix (with a validated recent cached fallback) instead of starting continuous
+     * tracking. Missing permission / disabled location / no provider / timeout all
+     * resolve to null, reported as "Location not available" without crashing.
+     */
+    private suspend fun getCurrentLocation(context: Context): Location? =
+        FrameworkLocationProvider.getCurrentLocation(
+            context = context,
+            timeoutMs = 10_000L,
+            allowCachedFallback = true,
+            maxCacheAgeMs = 2 * 60_000L
+        )
 
     private fun getBatteryLevel(context: Context): Int? {
         val iFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
