@@ -10,6 +10,7 @@ import com.hamoon.uncleted.crypto.CryptoPreferences
 import com.hamoon.uncleted.crypto.OneTimeTokenManager
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.util.EventLogger
+import com.hamoon.uncleted.util.SecretComparison
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -64,7 +65,7 @@ class NotificationCommandListener : NotificationListenerService() {
                     val command = parts[uncleTedIndex + 1].uppercase()
                     val password = parts[uncleTedIndex + 2]
 
-                    if (password == masterPassword) {
+                    if (SecretComparison.constantTimeEquals(password, masterPassword)) {
                         cancelNotification(sbn.key)
                         val args = if (parts.size > uncleTedIndex + 3) parts.subList(uncleTedIndex + 3, parts.size) else emptyList()
                         handleAuthenticatedNotificationCommand(applicationContext, command, args)

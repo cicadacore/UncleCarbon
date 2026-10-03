@@ -28,6 +28,20 @@ object PermissionUtils {
         return fineLocation && coarseLocation && backgroundLocation
     }
 
+    /**
+     * Permission check for an INTERACTIVE, foreground location fix (e.g. the user
+     * pressing "Add Current Location" while the app is visible). Only fine OR
+     * coarse location is required; background-location is intentionally NOT
+     * required here. Background location remains mandatory for the armed
+     * continuous monitor ([hasLocationPermissions] / ZoneWipeService) and is
+     * unchanged.
+     */
+    fun hasForegroundLocationPermission(context: Context): Boolean {
+        val fineLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val coarseLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        return fineLocation || coarseLocation
+    }
+
     fun hasSmsPermissions(context: Context): Boolean {
         val sendSms = ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
         val receiveSms = ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED

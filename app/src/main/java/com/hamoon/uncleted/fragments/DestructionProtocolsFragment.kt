@@ -45,6 +45,7 @@ class DestructionProtocolsFragment : Fragment() {
         val context = requireContext()
         binding.switchHardwareWipe.isChecked = SecurityPreferences.isHardwareWipeEnabled(context)
         binding.switchWipeDeviceOnCritical.isChecked = SecurityPreferences.isWipeDeviceEnabled(context)
+        binding.switchEraseEsimOnWipe.isChecked = SecurityPreferences.isEraseEsimOnWipeEnabled(context)
     }
 
     private fun setupListeners() {
@@ -63,6 +64,20 @@ class DestructionProtocolsFragment : Fragment() {
 
         binding.switchWipeDeviceOnCritical.setOnCheckedChangeListener { _, isChecked ->
             SecurityPreferences.setWipeDeviceEnabled(context, isChecked)
+        }
+
+        // Erase eSIM on wipe: toggling this only changes the flags used IF a
+        // future factory-reset wipe occurs. It never deletes an eSIM now, and
+        // never affects Lock/BFU actions. Default is OFF.
+        binding.switchEraseEsimOnWipe.setOnCheckedChangeListener { _, isChecked ->
+            SecurityPreferences.setEraseEsimOnWipeEnabled(context, isChecked)
+            if (isChecked) {
+                Toast.makeText(
+                    context,
+                    "eSIM/eUICC profiles will be erased during a factory-reset wipe. No eSIM is deleted now.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
 
         binding.btnExecLevel1.setOnClickListener {

@@ -11,4 +11,5 @@ interface DefenseStrategy {
     suspend fun evictMemoryKeysAndLock()
     suspend fun disableBiometrics(disable: Boolean)
     suspend fun setSafeBootBlocked(blocked: Boolean)
+    suspend fun setDeveloperFeaturesBlocked(blocked: Boolean)
 }

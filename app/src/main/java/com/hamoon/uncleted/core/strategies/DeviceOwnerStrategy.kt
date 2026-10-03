@@ -6,7 +6,9 @@ import android.content.Context
 import android.os.Build
 import android.os.UserManager
 import android.util.Log
+import com.hamoon.uncleted.core.DebuggingPolicyLogic
 import com.hamoon.uncleted.core.DefenseStrategy
+import com.hamoon.uncleted.core.WipeFlagBuilder
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.util.EventLogger
 
@@ -42,6 +44,7 @@ class DeviceOwnerStrategy(
         if (!isDeviceOwnerProvisioned) return
         try {
             applySafeBootPolicy(SecurityPreferences.isSafeBootBlocked(context))
+            reconcileDebuggingFeaturesRestriction()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to apply baseline restrictions", e)
         }
@@ -68,6 +71,37 @@ class DeviceOwnerStrategy(
         applySafeBootPolicy(blocked)
     }
 
+    override suspend fun setDeveloperFeaturesBlocked(blocked: Boolean) {
+        // The user's choice is persisted by the caller (SecurityPreferences)
+        // before this runs. Reconciliation reads the effective state so Developer
+        // Interception and the USB lockdown can never clear each other's policy.
+        reconcileDebuggingFeaturesRestriction()
+    }
+
+    /**
+     * Single source of truth for the DISALLOW_DEBUGGING_FEATURES restriction.
+     * The restriction stays set while EITHER the user's Developer Interception
+     * policy is enabled OR an active USB data-port lockdown requires it.
+     */
+    private fun reconcileDebuggingFeaturesRestriction() {
+        if (!isDeviceOwnerProvisioned) return
+        val mustBlock = DebuggingPolicyLogic.shouldBlockDebugging(
+            developerFeaturesBlocked = SecurityPreferences.isDeveloperFeaturesBlocked(context),
+            usbDataPortDisabled = SecurityPreferences.isUsbDataPortDisabled(context)
+        )
+        try {
+            if (mustBlock) {
+                dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)
+                Log.i(TAG, "Device Owner enforcing DISALLOW_DEBUGGING_FEATURES (developer interception and/or USB lockdown active).")
+            } else {
+                dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)
+                Log.i(TAG, "Device Owner cleared DISALLOW_DEBUGGING_FEATURES (no active policy requires it).")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed reconciling DISALLOW_DEBUGGING_FEATURES policy: ${e.message}", e)
+        }
+    }
+
     /**
      * Unified whole-device factory reset routine for Device Owner installations.
      * Uses dpm.wipeDevice() on Android 14+ (API 34+) to avoid IllegalStateException
@@ -80,7 +114,16 @@ class DeviceOwnerStrategy(
             return
         }
 
-        val flags = DevicePolicyManager.WIPE_EXTERNAL_STORAGE or DevicePolicyManager.WIPE_SILENTLY
+        // Mandatory flags are always applied. WIPE_EUICC is added ONLY when the
+        // user has opted into eSIM erasure on wipe; the flag composition is the
+        // single central place this choice takes effect for every wipe caller.
+        val eraseEsim = SecurityPreferences.isEraseEsimOnWipeEnabled(context)
+        val flags = WipeFlagBuilder.build(
+            baseFlags = DevicePolicyManager.WIPE_EXTERNAL_STORAGE or DevicePolicyManager.WIPE_SILENTLY,
+            euiccFlag = DevicePolicyManager.WIPE_EUICC,
+            eraseEsim = eraseEsim
+        )
+        Log.i(TAG, "Composed wipe flags (eraseEsim=$eraseEsim).")
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 Log.i(TAG, "Executing dpm.wipeDevice() on API 34+ (Reason: $reason)")
@@ -127,21 +170,28 @@ class DeviceOwnerStrategy(
             Log.w(TAG, "Physical USB HAL disconnect requires Android 12+ (API 31+). Applying user restrictions fallback.")
         }
 
-        // Method 2: Android Enterprise User Restrictions fallback and defense-in-depth
+        // Method 2: Android Enterprise User Restrictions fallback and defense-in-depth.
+        //
+        // DISALLOW_DEBUGGING_FEATURES is intentionally NOT toggled directly here.
+        // It is a shared restriction also owned by the Developer Interception
+        // policy, so we only record the USB posture and let the centralized
+        // reconciliation decide the effective state. This guarantees that
+        // re-enabling USB never clears debugging while Developer Interception is
+        // on, and disabling USB keeps debugging blocked while the lockdown holds.
         try {
             if (!enabled) {
                 dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_USB_FILE_TRANSFER)
-                dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA)
                 }
             } else {
                 dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_USB_FILE_TRANSFER)
-                dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA)
                 }
             }
+            SecurityPreferences.setUsbDataPortDisabled(context, !enabled)
+            reconcileDebuggingFeaturesRestriction()
         } catch (e: Exception) {
             Log.e(TAG, "Failed modifying USB policy restrictions", e)
         }
