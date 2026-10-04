@@ -17,6 +17,7 @@ import com.hamoon.uncleted.core.LockdownManager
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.services.PanicActionService
 import com.hamoon.uncleted.util.EventLogger
+import com.hamoon.uncleted.util.SecurityMonitoring
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -25,11 +26,6 @@ class AdminReceiver : DeviceAdminReceiver() {
 
     companion object {
         private const val TAG = "AdminReceiver"
-        private const val ATTEMPT_DEDUPLICATION_WINDOW_MS = 1500L
-
-        @Volatile
-        private var lastHandledAttemptTime = 0L
-
         fun getComponentName(context: Context): ComponentName {
             return ComponentName(context, AdminReceiver::class.java)
         }
@@ -50,7 +46,7 @@ class AdminReceiver : DeviceAdminReceiver() {
 
                     val maxFailedWipe = SecurityPreferences.getMaxFailedAttemptsForWipe(context)
                     dpm.setMaximumFailedPasswordsForWipe(admin, maxFailedWipe)
-                    Log.i(TAG, "Device Owner Gatekeeper wipe limit configured: $maxFailedWipe")
+                    Log.i(TAG, "Device Owner Gatekeeper wipe limit configured: $maxFailedWipe (0 disables automatic wipe)")
 
                     dpm.setPasswordQuality(admin, DevicePolicyManager.PASSWORD_QUALITY_NUMERIC_COMPLEX)
                     dpm.setPasswordMinimumLength(admin, 6)
@@ -92,19 +88,11 @@ class AdminReceiver : DeviceAdminReceiver() {
     }
 
     private fun handlePasswordFailure(context: Context) {
-        val now = System.currentTimeMillis()
-        synchronized(AdminReceiver::class.java) {
-            if (now - lastHandledAttemptTime < ATTEMPT_DEDUPLICATION_WINDOW_MS) {
-                return
-            }
-            lastHandledAttemptTime = now
-        }
-
         val dpm = getManager(context)
-        val currentFailed = dpm.getCurrentFailedPasswordAttempts()
+        val currentFailed = runCatching { dpm.getCurrentFailedPasswordAttempts() }.getOrNull()
+        if (!SecurityMonitoring.failedAuthentication(context, currentFailed)) return
+        val currentFailedCount = currentFailed?.takeIf { it > 0 } ?: (SecurityPreferences.getFailedAttempts(context) + 1)
         Log.w(TAG, "Authentication failure detected. Hardware count: $currentFailed")
-        EventLogger.log(context, SecurityEvent.KEYGUARD_FAILED)
-
         SecurityPreferences.incrementFailedAttempts(context)
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -113,7 +101,7 @@ class AdminReceiver : DeviceAdminReceiver() {
 
             // 1. Check if user-configured brute-force wipe limit is exceeded.
             //    Routes through the single standard Device Owner factory-reset path.
-            if (maxAllowedBeforeWipe in 1..currentFailed) {
+            if (currentFailed != null && maxAllowedBeforeWipe in 1..currentFailed) {
                 Log.e(TAG, "Hardware failure count ($currentFailed) reached user wipe limit ($maxAllowedBeforeWipe). Initiating standard factory reset.")
                 EventLogger.log(context, SecurityEvent.KEYGUARD_WIPE)
                 strategy.executeStandardWipe("MAX_FAILED_PASSWORDS_EXCEEDED")
@@ -121,7 +109,7 @@ class AdminReceiver : DeviceAdminReceiver() {
             }
 
             // 2. Proactive defense on 3 consecutive failures: sever USB port & lock biometrics
-            if (currentFailed >= 3) {
+            if (currentFailedCount >= 3) {
                 Log.e(TAG, "Threshold >= 3 reached. Physically disabling USB port and locking biometrics.")
                 strategy.setUsbDataPortEnabled(false)
                 strategy.disableBiometrics(true)
@@ -149,7 +137,7 @@ class AdminReceiver : DeviceAdminReceiver() {
 
     private fun handlePasswordSuccess(context: Context) {
         Log.d(TAG, "Lockscreen authentication succeeded. Resetting state.")
-        SecurityPreferences.resetFailedAttempts(context)
+        SecurityMonitoring.successfulAuthentication(context)
 
         val deContext = context.createDeviceProtectedStorageContext()
         deContext.getSharedPreferences("deadman_state", Context.MODE_PRIVATE)

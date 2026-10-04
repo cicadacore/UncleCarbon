@@ -16,6 +16,8 @@ import com.hamoon.uncleted.R
 import com.hamoon.uncleted.databinding.FragmentDashboardBinding
 import com.hamoon.uncleted.databinding.ItemChecklistBinding
 import com.hamoon.uncleted.services.PanicActionService
+import com.hamoon.uncleted.data.SecurityMonitoringSettings
+import com.hamoon.uncleted.util.SecurityMonitoring
 import com.hamoon.uncleted.util.SecurityScoreCalculator
 import com.hamoon.uncleted.util.ThreatDetectionEngine
 import kotlinx.coroutines.Dispatchers
@@ -76,6 +78,12 @@ class DashboardFragment : Fragment() {
             }
             updateSecurityChecklist(context, checklistItems)
             updateThreatAssessmentCard(context, threatAssessment)
+            val recent = (SecurityMonitoring.store(context).events() +
+                com.hamoon.uncleted.data.SecurityMonitoringStore(com.hamoon.uncleted.data.SecurityPreferences.getDeviceProtectedPrefs(context)).events())
+                .maxByOrNull { it.timestamp }
+            binding.tvSecurityMonitoringSummary.text = if (SecurityMonitoringSettings.enabled(context)) {
+                "Application monitoring: active\n${recent?.let { "Latest event: ${it.title} · ${it.severity}" } ?: "No package changes recorded."}\nPassword failure alerts: ${SecurityMonitoringSettings.failureThreshold(context)} attempts (Device Admin required)"
+            } else "Application monitoring: off\nEnable it in Settings to establish an installed application baseline.\nPassword failure alerts require active Device Admin."
         }
     }
 

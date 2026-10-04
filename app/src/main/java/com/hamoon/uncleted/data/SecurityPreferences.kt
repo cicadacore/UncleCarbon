@@ -349,6 +349,16 @@ object SecurityPreferences {
         }
     }
 
+    /** Strict credential-protected access for sensitive package inventory; never falls back to DE storage. */
+    internal fun getCredentialProtectedPrefs(context: Context): SharedPreferences {
+        check(isUserUnlocked(context)) { "Credential storage unavailable" }
+        return encryptedInstance ?: synchronized(LOCK) {
+            encryptedInstance ?: createEncryptedPrefs(requireCredentialStorageContext(context)).also {
+                encryptedInstance = it
+            }
+        }
+    }
+
     // Runtime USB data-port posture (not a user setting). Persisted in DE storage
     // so the centralized DISALLOW_DEBUGGING_FEATURES reconciliation knows whether
     // an active USB lockdown still requires debugging to stay blocked, even across
@@ -365,18 +375,23 @@ object SecurityPreferences {
     // =========================================================================
     fun getMaxFailedAttemptsForWipe(context: Context): Int {
         return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getInt("BFU_MAX_FAILED_ATTEMPTS_WIPE", 5)
+            getDeviceProtectedPrefs(context).getInt("BFU_MAX_FAILED_ATTEMPTS_WIPE", 0)
         } else {
-            getInstance(context).getInt("MAX_FAILED_ATTEMPTS_WIPE", 5)
+            getInstance(context).getInt("MAX_FAILED_ATTEMPTS_WIPE", 0)
         }
     }
 
     fun setMaxFailedAttemptsForWipe(context: Context, count: Int) {
+        require(count in setOf(0, 3, 5, 10))
         getDeviceProtectedPrefs(context).edit().putInt("BFU_MAX_FAILED_ATTEMPTS_WIPE", count).apply()
         if (isUserUnlocked(context)) {
             getInstance(context).edit().putInt("MAX_FAILED_ATTEMPTS_WIPE", count).apply()
         }
     }
+
+    fun hasExplicitMaxFailedAttemptsForWipe(context: Context): Boolean =
+        getDeviceProtectedPrefs(context).contains("BFU_MAX_FAILED_ATTEMPTS_WIPE") ||
+            (isUserUnlocked(context) && runCatching { getInstance(context).contains("MAX_FAILED_ATTEMPTS_WIPE") }.getOrDefault(false))
 
     // =========================================================================
     // 0.3 SIM Removal / SIM Replacement Standard Factory Reset

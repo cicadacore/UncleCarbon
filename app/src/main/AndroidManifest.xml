@@ -277,6 +277,20 @@
             </intent-filter>
         </receiver>
 
+        <!-- System package lifecycle broadcasts used for package-change monitoring. -->
+        <receiver
+            android:name=".receivers.PackageSecurityReceiver"
+            android:exported="true"
+            android:directBootAware="false">
+            <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_ADDED" />
+                <action android:name="android.intent.action.PACKAGE_REMOVED" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.PACKAGE_CHANGED" />
+                <data android:scheme="package" />
+            </intent-filter>
+        </receiver>
+
         <receiver
             android:name=".receivers.TripwireReceiver"
             android:exported="false"

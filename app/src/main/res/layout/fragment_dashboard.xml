@@ -135,6 +135,20 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:cardElevation="2dp">
+                <TextView
+                    android:id="@+id/tvSecurityMonitoringSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="16dp"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    tools:text="Security monitoring status" />
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Container for Threat Assessment -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_threat_assessment"

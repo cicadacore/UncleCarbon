@@ -84,7 +84,7 @@
     <string-array name="failed_wipe_attempts_entries">
         <item>Disabled (No Wipe on Limit)</item>
         <item>3 Consecutive Failures</item>
-        <item>5 Consecutive Failures (Default)</item>
+        <item>5 Consecutive Failures (Requires opt-in)</item>
         <item>10 Consecutive Failures</item>
     </string-array>
     <string-array name="failed_wipe_attempts_values">
@@ -93,6 +93,13 @@
         <item>5</item>
         <item>10</item>
     </string-array>
+
+    <string-array name="monitor_failure_threshold_entries"><item>1 failure</item><item>3 failures</item><item>5 failures</item><item>10 failures</item></string-array>
+    <string-array name="monitor_failure_threshold_values"><item>1</item><item>3</item><item>5</item><item>10</item></string-array>
+    <string-array name="monitor_notification_severity_entries"><item>Low and above</item><item>Medium and above</item><item>High and above</item><item>Critical only</item></string-array>
+    <string-array name="monitor_notification_severity_values"><item>LOW</item><item>MEDIUM</item><item>HIGH</item><item>CRITICAL</item></string-array>
+    <string-array name="monitor_failure_response_entries"><item>Record only</item><item>Notify with security alert</item><item>Activate existing lockdown and alert</item></string-array>
+    <string-array name="monitor_failure_response_values"><item>NOTIFY</item><item>ALERT</item><item>LOCKDOWN</item></string-array>
 
     <!-- Values for Video Recording Duration -->
     <string-array name="video_duration_entries">

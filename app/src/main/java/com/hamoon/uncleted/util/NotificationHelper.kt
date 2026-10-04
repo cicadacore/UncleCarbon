@@ -86,6 +86,16 @@ object NotificationHelper {
             manager.createNotificationChannel(panicChannel)
             manager.createNotificationChannel(brokerChannel)
             manager.createNotificationChannel(selfieChannel)
+
+            val securityAlerts = NotificationChannel(
+                "security_monitor_alerts",
+                "Security Monitoring Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Alerts for configured failed authentication thresholds and application security changes."
+                setShowBadge(true)
+            }
+            manager.createNotificationChannel(securityAlerts)
         }
     }
 

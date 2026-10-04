@@ -2,6 +2,8 @@ package com.hamoon.uncleted
 
 import android.app.Activity
 import android.app.Application
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
@@ -22,6 +24,16 @@ class UncleTedApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Retire the historical implicit five-attempt wipe default on existing installs.
+        // Wiping remains available only when an explicit user setting is persisted.
+        if (!SecurityPreferences.hasExplicitMaxFailedAttemptsForWipe(this)) {
+            runCatching {
+                val dpm = getSystemService(DevicePolicyManager::class.java)
+                val admin = ComponentName(this, com.hamoon.uncleted.receivers.AdminReceiver::class.java)
+                if (dpm?.isAdminActive(admin) == true) dpm.setMaximumFailedPasswordsForWipe(admin, 0)
+            }.onFailure { Log.w(TAG, "Unable to clear legacy implicit password-wipe policy") }
+        }
 
         LockdownManager.enforceIfEnabled(this)
 

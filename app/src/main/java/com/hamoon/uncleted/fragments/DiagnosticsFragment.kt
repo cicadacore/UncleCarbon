@@ -18,6 +18,7 @@ import com.hamoon.uncleted.util.EventLogger
 import com.hamoon.uncleted.data.SecurityPreferences
 import kotlinx.coroutines.delay
 import com.hamoon.uncleted.util.DiagnosticLogCollector
+import com.hamoon.uncleted.util.SecurityMonitoring
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
@@ -72,6 +73,7 @@ class DiagnosticsFragment : Fragment() {
             }
 
             binding.tvDiagSelinux.text = "Target: GrapheneOS (locked bootloader, unrooted)"
+            binding.tvSecurityMonitoringDiagnostics.text = "Security monitoring\n${SecurityMonitoring.capabilitySummary(requireContext())}"
         }
     }
 

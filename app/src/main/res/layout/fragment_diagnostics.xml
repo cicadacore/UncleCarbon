@@ -13,6 +13,16 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <TextView
+            android:id="@+id/tvSecurityMonitoringDiagnostics"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="?attr/colorSurface"
+            android:padding="16dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            tools:text="Security monitoring capabilities" />
+
         <!-- 1. LIVE ENVIRONMENT STATUS BANNER -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

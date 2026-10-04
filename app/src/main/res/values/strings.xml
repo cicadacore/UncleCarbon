@@ -333,6 +333,26 @@
     <string name="about_website">Official Website</string>
     <string name="about_quotes_title">Ted Kaczynski</string>
 
+    <string name="category_security_monitoring">Security Monitoring</string>
+    <string name="security_monitoring_enabled_title">Monitor installed applications</string>
+    <string name="security_monitoring_enabled_summary">Establishes a package metadata baseline and listens for Android package change broadcasts.</string>
+    <string name="monitor_failure_threshold_title">Failed authentication alert threshold</string>
+    <string name="monitor_failure_alerts_title">Notify on failed authentication threshold</string>
+    <string name="monitor_failure_response_title">Failed authentication response</string>
+    <string name="monitor_new_apps_title">Alert on new applications</string>
+    <string name="monitor_app_updates_title">Monitor application updates and state changes</string>
+    <string name="monitor_internet_title">Monitor new Internet permission declarations</string>
+    <string name="monitor_internet_summary">Detects a manifest change to android.permission.INTERNET; this is a normal permission, not a runtime grant.</string>
+    <string name="monitor_signing_title">Monitor signing identity changes</string>
+    <string name="monitor_signing_summary">Alerts when the old signer is absent from the installed APK signing lineage. Rotation may be legitimate.</string>
+    <string name="monitor_trusted_title">Trusted package exclusions</string>
+    <string name="monitor_trusted_summary">Comma-separated package identifiers, up to 100.</string>
+    <string name="monitor_notification_severity_title">Minimum notification severity</string>
+    <string name="monitor_status_title">Monitoring capabilities</string>
+    <string name="monitor_status_summary">Open to review current platform and notification status.</string>
+    <string name="monitor_event_history_title">Recent security monitoring events</string>
+    <string name="monitor_event_history_summary">Open the local event history.</string>
+
     <!-- Services & Notifications -->
     <string name="accessibility_service_label">Uncle Ted Input Filter Sentinel</string>
     <string name="accessibility_service_description">Monitors hardware volume button wipe sequences and physical security events.</string>
