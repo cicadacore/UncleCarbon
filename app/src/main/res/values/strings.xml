@@ -293,6 +293,7 @@
     <string name="dashboard_threat_recommendations_title">\nRecommendations:\n</string>
     <string name="dashboard_no_threats_title">Zero Threats Detected</string>
     <string name="dashboard_no_threats_desc">All hardware sentinels operational. Baseline integrity verified.</string>
+    <string name="dashboard_application_monitoring_title">Application Monitoring</string>
 
     <!-- Security Levels -->
     <string name="level_0_title">Posture: Defenseless</string>
@@ -333,7 +334,9 @@
     <string name="about_website">Official Website</string>
     <string name="about_quotes_title">Ted Kaczynski</string>
 
-    <string name="category_security_monitoring">Security Monitoring</string>
+    <string name="category_failed_authentication">Failed Authentication</string>
+    <string name="category_application_monitoring">Application Monitoring</string>
+    <string name="category_monitoring_alerts">Monitoring Notifications &amp; History</string>
     <string name="security_monitoring_enabled_title">Monitor installed applications</string>
     <string name="security_monitoring_enabled_summary">Establishes a package metadata baseline and listens for Android package change broadcasts.</string>
     <string name="monitor_failure_threshold_title">Failed authentication alert threshold</string>

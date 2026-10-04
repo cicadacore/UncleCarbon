@@ -135,20 +135,6 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                app:cardElevation="2dp">
-                <TextView
-                    android:id="@+id/tvSecurityMonitoringSummary"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="16dp"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    tools:text="Security monitoring status" />
-            </com.google.android.material.card.MaterialCardView>
-
             <!-- Container for Threat Assessment -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_threat_assessment"
@@ -159,23 +145,50 @@
                 tools:visibility="visible"
                 app:cardElevation="2dp">
 
-                <FrameLayout
-                    android:id="@+id/threat_assessment_content_container"
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-                    <ViewStub
-                        android:id="@+id/stub_threats_found"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout="@layout/include_threat_assessment" />
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                    <ViewStub
-                        android:id="@+id/stub_no_threats"
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/dashboard_application_monitoring_title"
+                            android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                        <TextView
+                            android:id="@+id/tvSecurityMonitoringSummary"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textAppearance="?attr/textAppearanceBodyMedium"
+                            tools:text="Application monitoring status" />
+                    </LinearLayout>
+
+                    <FrameLayout
+                        android:id="@+id/threat_assessment_content_container"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout="@layout/include_no_threats" />
-                </FrameLayout>
+                        android:layout_height="wrap_content">
+
+                        <ViewStub
+                            android:id="@+id/stub_threats_found"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout="@layout/include_threat_assessment" />
+
+                        <ViewStub
+                            android:id="@+id/stub_no_threats"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout="@layout/include_no_threats" />
+                    </FrameLayout>
+                </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
 

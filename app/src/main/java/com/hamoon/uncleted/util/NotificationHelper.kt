@@ -209,32 +209,12 @@ object NotificationHelper {
     }
 
     /**
-     * Fallback notification for secondary background services (ZoneWipeService).
+     * Uses the standard System Defense notification for secondary foreground
+     * work so it does not present a separate, misleading Hardware Sentinel
+     * status message.
      */
     fun createBasicNotification(context: Context): Notification {
-        createNotificationChannels(context)
-
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        return NotificationCompat.Builder(context, CHANNEL_MONITORING)
-            .setContentTitle("Uncle Ted Hardware Sentinel")
-            .setContentText("Monitoring bus telemetry and hardware interfaces...")
-            .setSmallIcon(R.drawable.ic_shield_check_24)
-            .setColor(ContextCompat.getColor(context, R.color.md_theme_dark_primary))
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setCategory(NotificationCompat.CATEGORY_SERVICE)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .setSilent(true)
-            .build()
+        return createMonitoringNotification(context)
     }
 
     /**

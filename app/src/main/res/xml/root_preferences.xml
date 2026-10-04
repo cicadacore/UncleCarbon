@@ -36,16 +36,22 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="@string/category_security_monitoring">
-        <SwitchPreferenceCompat app:key="security_monitoring_enabled" app:title="@string/security_monitoring_enabled_title" app:summary="@string/security_monitoring_enabled_summary" app:defaultValue="false" />
+    <PreferenceCategory app:title="@string/category_failed_authentication">
         <ListPreference app:key="monitor_failure_threshold" app:title="@string/monitor_failure_threshold_title" app:entries="@array/monitor_failure_threshold_entries" app:entryValues="@array/monitor_failure_threshold_values" app:defaultValue="3" app:useSimpleSummaryProvider="true" />
         <SwitchPreferenceCompat app:key="monitor_failure_alerts" app:title="@string/monitor_failure_alerts_title" app:defaultValue="true" />
         <ListPreference app:key="monitor_failure_response" app:title="@string/monitor_failure_response_title" app:entries="@array/monitor_failure_response_entries" app:entryValues="@array/monitor_failure_response_values" app:defaultValue="ALERT" app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/category_application_monitoring">
+        <SwitchPreferenceCompat app:key="security_monitoring_enabled" app:title="@string/security_monitoring_enabled_title" app:summary="@string/security_monitoring_enabled_summary" app:defaultValue="false" />
         <SwitchPreferenceCompat app:key="monitor_new_apps" app:title="@string/monitor_new_apps_title" app:defaultValue="true" />
         <SwitchPreferenceCompat app:key="monitor_app_updates" app:title="@string/monitor_app_updates_title" app:defaultValue="true" />
         <SwitchPreferenceCompat app:key="monitor_internet_escalation" app:title="@string/monitor_internet_title" app:summary="@string/monitor_internet_summary" app:defaultValue="true" />
         <SwitchPreferenceCompat app:key="monitor_signing_changes" app:title="@string/monitor_signing_title" app:summary="@string/monitor_signing_summary" app:defaultValue="true" />
         <EditTextPreference app:key="monitor_trusted_packages" app:title="@string/monitor_trusted_title" app:summary="@string/monitor_trusted_summary" app:useSimpleSummaryProvider="false" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/category_monitoring_alerts">
         <ListPreference app:key="monitor_notification_severity" app:title="@string/monitor_notification_severity_title" app:entries="@array/monitor_notification_severity_entries" app:entryValues="@array/monitor_notification_severity_values" app:defaultValue="LOW" app:useSimpleSummaryProvider="true" />
         <Preference app:key="monitor_status" app:title="@string/monitor_status_title" app:summary="@string/monitor_status_summary" />
         <Preference app:key="monitor_event_history" app:title="@string/monitor_event_history_title" app:summary="@string/monitor_event_history_summary" />

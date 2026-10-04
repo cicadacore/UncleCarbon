@@ -404,6 +404,7 @@
     <string name="dashboard_threat_recommendations_title">\nتوصیه‌ها:\n</string>
     <string name="dashboard_no_threats_title">هیچ تهدیدی شناسایی نشد</string>
     <string name="dashboard_no_threats_desc">تمامی دیده‌بان‌های سخت‌افزاری فعال هستند. صحت عملکرد سیستم تأیید شد.</string>
+    <string name="dashboard_application_monitoring_title">پایش برنامه‌ها</string>
 
     <!-- Security Levels -->
     <string name="level_0_title">سطح وضعیت: بدون دفاع</string>
