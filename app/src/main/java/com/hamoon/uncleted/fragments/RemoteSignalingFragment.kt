@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.hamoon.uncleted.util.showProtected
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textfield.TextInputEditText
 import com.hamoon.uncleted.R
@@ -79,7 +80,7 @@ class RemoteSignalingFragment : Fragment() {
                     updateTokenCountDisplay()
                     Toast.makeText(context, "All emergency tokens burned.", Toast.LENGTH_SHORT).show()
                 }
-                .show()
+                .showProtected(requireActivity())
         }
 
         binding.switchAllowCleartextSms.setOnCheckedChangeListener { _, isChecked ->
@@ -138,7 +139,7 @@ class RemoteSignalingFragment : Fragment() {
                 Toast.makeText(context, "Wallet sheet copied to clipboard.", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Close", null)
-            .show()
+            .showProtected(requireActivity())
     }
 
     private fun showEmailCredentialsDialog() {
@@ -176,7 +177,7 @@ class RemoteSignalingFragment : Fragment() {
                 dialog.dismiss()
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .showProtected(requireActivity())
     }
 
     private fun sendTestEmail() {

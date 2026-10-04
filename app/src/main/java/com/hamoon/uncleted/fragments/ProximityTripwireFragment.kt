@@ -26,6 +26,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.hamoon.uncleted.util.showProtected
 import com.hamoon.uncleted.R
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.databinding.FragmentProximityTripwireBinding
@@ -159,7 +160,7 @@ class ProximityTripwireFragment : Fragment() {
                         SecurityPreferences.setGeofenceSuicideEnabled(context, false)
                     }
                     .setCancelable(false)
-                    .show()
+                    .showProtected(requireActivity())
             } else {
                 SecurityPreferences.setGeofenceSuicideEnabled(context, false)
                 context.stopService(Intent(context, ZoneWipeService::class.java))
@@ -214,7 +215,7 @@ class ProximityTripwireFragment : Fragment() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .showProtected(requireActivity())
     }
 
     private fun saveProximityParameters() {
@@ -267,7 +268,7 @@ class ProximityTripwireFragment : Fragment() {
                 }
             }
             .setNegativeButton("Close", null)
-            .show()
+            .showProtected(requireActivity())
     }
 
     /**
@@ -487,7 +488,7 @@ class ProximityTripwireFragment : Fragment() {
             .setMessage(R.string.geo_zone_location_in_progress_message)
             .setCancelable(true)
             .setOnCancelListener { finishLocationAcquisition() }
-            .show()
+            .showProtected(requireActivity())
     }
 
     private fun showLocationError(error: GeoZoneLocationLogic.LocationAcquisitionError) {
@@ -541,7 +542,7 @@ class ProximityTripwireFragment : Fragment() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .showProtected(requireActivity())
     }
 
     private fun promptZoneRadiusAndName(lat: Double, lon: Double) {
@@ -574,7 +575,7 @@ class ProximityTripwireFragment : Fragment() {
                 Toast.makeText(requireContext(), "Destruction Zone '$name' armed ($radius m).", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .showProtected(requireActivity())
     }
 
     private fun promptZoneActions(zone: PolygonUtils.WipeZone) {
@@ -586,7 +587,7 @@ class ProximityTripwireFragment : Fragment() {
                 Toast.makeText(requireContext(), "Zone '${zone.name}' deleted.", Toast.LENGTH_SHORT).show()
             }
             .setPositiveButton("Close", null)
-            .show()
+            .showProtected(requireActivity())
     }
 
     override fun onDestroyView() {

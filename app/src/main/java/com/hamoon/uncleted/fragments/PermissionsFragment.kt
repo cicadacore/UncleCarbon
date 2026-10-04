@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.hamoon.uncleted.util.showProtected
 import com.hamoon.uncleted.R
 import com.hamoon.uncleted.databinding.FragmentPermissionsBinding
 import com.hamoon.uncleted.receivers.AdminReceiver
@@ -264,7 +265,7 @@ class PermissionsFragment : Fragment() {
                         requestMultiplePermissionsLauncher.launch(permissionsNotGranted.toTypedArray())
                     }
                     .setNegativeButton("Cancel", null)
-                    .show()
+                    .showProtected(requireActivity())
             } else {
                 requestMultiplePermissionsLauncher.launch(permissionsNotGranted.toTypedArray())
             }
@@ -301,7 +302,7 @@ class PermissionsFragment : Fragment() {
                     requestAccessibilitySettingsLauncher.launch(intent)
                 }
                 .setNegativeButton("Cancel", null)
-                .show()
+                .showProtected(requireActivity())
         } else {
             Toast.makeText(requireContext(), "Accessibility Service is already active.", Toast.LENGTH_SHORT).show()
         }
@@ -318,7 +319,7 @@ class PermissionsFragment : Fragment() {
                     requestOverlayPermissionLauncher.launch(intent)
                 }
                 .setNegativeButton("Cancel", null)
-                .show()
+                .showProtected(requireActivity())
         } else {
             Toast.makeText(requireContext(), "Overlay permission already granted.", Toast.LENGTH_SHORT).show()
         }
@@ -336,7 +337,7 @@ class PermissionsFragment : Fragment() {
                 .setNegativeButton("Skip") { _, _ ->
                     Toast.makeText(requireContext(), "Usage access permission skipped.", Toast.LENGTH_SHORT).show()
                 }
-                .show()
+                .showProtected(requireActivity())
         } else {
             Toast.makeText(requireContext(), "Usage Access already granted.", Toast.LENGTH_SHORT).show()
         }
@@ -352,7 +353,7 @@ class PermissionsFragment : Fragment() {
                     requestNotificationListenerLauncher.launch(intent)
                 }
                 .setNegativeButton("Cancel", null)
-                .show()
+                .showProtected(requireActivity())
         } else {
             Toast.makeText(requireContext(), "Notification listener is already granted.", Toast.LENGTH_SHORT).show()
         }

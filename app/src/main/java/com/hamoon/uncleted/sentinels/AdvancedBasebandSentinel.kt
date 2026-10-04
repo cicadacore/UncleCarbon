@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.sentinels
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.content.Context
 import android.os.Build
 import android.telephony.CellInfo
@@ -164,7 +165,7 @@ class AdvancedBasebandSentinel(private val context: Context) {
         lastAlertTimestamp = now
 
         Log.e(TAG, "!!! BASEBAND SECURITY ALERT: $reason !!! - $description")
-        EventLogger.log(context, "BASEBAND: $reason - $description")
+        EventLogger.log(context, SecurityEvent.BASEBAND_ALERT)
 
         PanicActionService.trigger(
             context,

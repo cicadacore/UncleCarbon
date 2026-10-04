@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
 import com.hamoon.uncleted.data.SecurityPreferences
+import com.hamoon.uncleted.core.LockdownManager
 import com.hamoon.uncleted.util.LocaleManager
 import com.hamoon.uncleted.util.NativeSecurityBridge
 
@@ -21,6 +22,8 @@ class UncleTedApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
+        LockdownManager.enforceIfEnabled(this)
 
         // 1. Enforce Native Hardware MTE Tagging & Anti-Debugging Memory Flags
         try {
@@ -78,7 +81,11 @@ class UncleTedApplication : Application() {
 
             override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
             override fun onActivityStarted(activity: Activity) {}
-            override fun onActivityResumed(activity: Activity) {}
+            override fun onActivityResumed(activity: Activity) {
+                if (activity is MainActivity) {
+                    LockdownManager.enforceIfEnabled(this@UncleTedApplication, reportToUser = true)
+                }
+            }
             override fun onActivityPaused(activity: Activity) {}
             override fun onActivityStopped(activity: Activity) {}
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}

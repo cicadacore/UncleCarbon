@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.util
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.content.Context
 import android.util.Log
 import com.hamoon.uncleted.core.DefenseCoordinator
@@ -18,8 +19,8 @@ object DeviceAdminHelper {
      * yet provisioned, the strategy no-ops safely and logs the skip.
      */
     fun wipeDeviceImmediately(context: Context, reason: String = "EMERGENCY_WIPE_INVOCATION") {
-        Log.w(TAG, "Invoking standard factory reset through DefenseCoordinator: reason=$reason")
-        EventLogger.log(context, "INVOCATION: wipeDeviceImmediately triggered (Reason: $reason)")
+        Log.w(TAG, "Invoking standard factory reset through DefenseCoordinator: reason=security trigger")
+        EventLogger.log(context, SecurityEvent.WIPE_INVOKED)
 
         CoroutineScope(Dispatchers.IO).launch {
             try {

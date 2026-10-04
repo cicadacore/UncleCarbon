@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.services
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Intent
@@ -192,13 +193,13 @@ class ZoneWipeService : Service() {
 
         if (registeredProviders.isEmpty()) {
             Log.e(TAG, "No usable location providers. Zone Wipe monitoring inactive.")
-            EventLogger.log(this, "ZONE WIPE: No location providers available; monitoring could not start.")
+            EventLogger.log(this, SecurityEvent.ZONE_UNAVAILABLE)
             stopSelf()
             return
         }
 
         Log.i(TAG, "Zone Wipe Service armed on providers: $registeredProviders")
-        EventLogger.log(this, "ZONE WIPE: Multi-zone perimeter monitoring active ($registeredProviders).")
+        EventLogger.log(this, SecurityEvent.ZONE_ARMED)
     }
 
     private fun processLocationSample(location: Location?) {
@@ -258,12 +259,12 @@ class ZoneWipeService : Service() {
 
         if (breachedZoneName != null) {
             consecutiveBreachCount++
-            Log.e(TAG, "DESTRUCTION ZONE BREACH: '$breachedZoneName' [$consecutiveBreachCount/$REQUIRED_CONSECUTIVE_BREACHES]")
+            Log.e(TAG, "Destruction zone breach detected.")
 
             if (consecutiveBreachCount >= REQUIRED_CONSECUTIVE_BREACHES) {
-                Log.e(TAG, "!!! CONFIRMED DEVICE INSIDE DESTRUCTION ZONE: '$breachedZoneName' !!!")
+                Log.e(TAG, "Destruction zone breach confirmed.")
                 Log.e(TAG, "!!! INITIATING IMMEDIATE GEOGRAPHIC SUICIDE !!!")
-                EventLogger.log(this, "CRITICAL: Confirmed breach of destruction zone '$breachedZoneName'. Initiating wipe.")
+                EventLogger.log(this, SecurityEvent.ZONE_BREACHED)
 
                 stopLocationUpdates()
 

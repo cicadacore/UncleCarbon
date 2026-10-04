@@ -53,10 +53,10 @@ class WatchdogWorker(appContext: Context, workerParams: WorkerParameters) :
             return try {
                 val smsManager = context.getSystemService(SmsManager::class.java)
                 smsManager.sendTextMessage(emergencyContact, null, body, null, null)
-                Log.i(TAG, "Watchdog SMS sent to $emergencyContact")
+                Log.i(TAG, "Watchdog SMS sent.")
                 Result.success()
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to send watchdog SMS.", e)
+                Log.e(TAG, "Failed to send watchdog SMS.")
                 Result.retry()
             }
         }

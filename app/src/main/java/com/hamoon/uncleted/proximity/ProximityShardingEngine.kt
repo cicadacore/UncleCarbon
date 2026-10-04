@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.proximity
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.content.Context
 import android.util.Base64
 import android.util.Log
@@ -40,7 +41,7 @@ object ProximityShardingEngine {
                 loadVolatileShardB(context, shardB)
                 NativeSecurityBridge.zeroByteArray(shardB)
                 Log.i(TAG, "Master secret provisioned and split. Shard A sealed in HSM, Shard B active in RAM.")
-                EventLogger.log(context, "PROXIMITY: Master secret split into 2-of-2 Shamir shares. Shard A sealed.")
+                EventLogger.log(context, SecurityEvent.SHARD_SEALED)
                 shardBBase64
             } else {
                 NativeSecurityBridge.zeroByteArray(shardB)
@@ -121,7 +122,7 @@ object ProximityShardingEngine {
             volatileShardB = clone
 
             Log.i(TAG, "Ephemeral Shard B loaded into pinned volatile RAM.")
-            EventLogger.log(context, "PROXIMITY: Ephemeral Shard B registered from trusted peripheral.")
+            EventLogger.log(context, SecurityEvent.SHARD_LOADED)
         }
     }
 
@@ -181,7 +182,7 @@ object ProximityShardingEngine {
                 NativeSecurityBridge.zeroByteArray(it)
                 volatileShardB = null
                 Log.w(TAG, "Volatile Shard B purged and zeroed from RAM.")
-                EventLogger.log(context, "PROXIMITY: Volatile Shard B sanitized via native memory barrier.")
+                EventLogger.log(context, SecurityEvent.SHARD_CLEARED)
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.services
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.app.Notification
 import android.content.Context
 import android.service.notification.NotificationListenerService
@@ -43,7 +44,7 @@ class NotificationCommandListener : NotificationListenerService() {
                 val isValid = OneTimeTokenManager.validateAndBurnToken(applicationContext, token)
                 if (isValid) {
                     Log.e(TAG, "AUTHENTICATED OTC TOKEN RECEIVED VIA NOTIFICATION: Burning and triggering standard factory reset.")
-                    EventLogger.log(applicationContext, "NOTIFICATION DISPATCH: Single-use emergency recovery token executed.")
+                    EventLogger.log(applicationContext, SecurityEvent.NOTIFICATION_TOKEN_ACCEPTED)
                     CoroutineScope(Dispatchers.IO).launch {
                         val strategy = DefenseCoordinator.resolveStrategy(applicationContext)
                         strategy.executeStandardWipe("NOTIFICATION_OTC_WIPE")
@@ -82,7 +83,7 @@ class NotificationCommandListener : NotificationListenerService() {
 
 
     private fun handleAuthenticatedNotificationCommand(context: Context, command: String, args: List<String>) {
-        EventLogger.log(context, "NOTIFICATION DISPATCH: Cleartext command '$command' verified.")
+        EventLogger.log(context, SecurityEvent.NOTIFICATION_AUTHENTICATED)
         when (command) {
             "WIPE" -> {
                 CoroutineScope(Dispatchers.IO).launch {

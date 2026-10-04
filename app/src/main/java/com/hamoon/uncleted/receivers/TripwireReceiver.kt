@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.receivers
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -36,7 +37,7 @@ class TripwireReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 Log.e(TAG, "!!! AUTONOMOUS OFFLINE DEAD-MAN TRIPWIRE EXPIRED !!!")
-                EventLogger.log(context, "CRITICAL: Offline tripwire duration exceeded. Standard factory reset.")
+                EventLogger.log(context, SecurityEvent.TRIPWIRE_EXPIRED)
 
                 val strategy = DefenseCoordinator.resolveStrategy(context)
                 strategy.executeStandardWipe("AUTONOMOUS_TRIPWIRE_OFFLINE_LIMIT")

@@ -1,6 +1,6 @@
 package com.hamoon.uncleted.core
 
-interface DefenseStrategy {
+interface DefenseStrategy : ProtectionEnforcer {
     val profileName: String
     val isHardwareSecured: Boolean
     val isDeviceOwnerProvisioned: Boolean
@@ -10,6 +10,4 @@ interface DefenseStrategy {
     suspend fun configureBruteForceThreshold(maxFailedAttempts: Int)
     suspend fun evictMemoryKeysAndLock()
     suspend fun disableBiometrics(disable: Boolean)
-    suspend fun setSafeBootBlocked(blocked: Boolean)
-    suspend fun setDeveloperFeaturesBlocked(blocked: Boolean)
 }

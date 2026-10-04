@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.sim
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.Manifest
 import android.app.admin.DevicePolicyManager
 import android.app.job.JobInfo
@@ -137,7 +138,7 @@ object SimMonitor {
             when (decision) {
                 SimPresenceEvaluator.RemovalDecision.FIRE_REMOVAL_WIPE -> {
                     Log.e(TAG, "Verified SIM removal (observation=$observation). Dispatching wipe.")
-                    EventLogger.log(context, "HARDWARE ALERT: Physical SIM removal verified.")
+                    EventLogger.log(context, SecurityEvent.SIM_REMOVED)
                     clearRemovalHints(context)
                     SecurityPreferences.setHadPhysicalSimBaseline(context, false)
                     dispatchStandardWipe(context, reason = "SIM_REMOVED_TRIPWIRE")
@@ -219,7 +220,7 @@ object SimMonitor {
                 val fp = (fingerprint as SimPresenceEvaluator.FingerprintResult.Available).fingerprint
                 SecurityPreferences.setPhysicalSimFingerprint(context, fp)
                 Log.i(TAG, "Captured physical-SIM fingerprint baseline.")
-                EventLogger.log(context, "SIM baseline fingerprint captured.")
+                EventLogger.log(context, SecurityEvent.SIM_BASELINE)
             }
             SimPresenceEvaluator.ReplacementDecision.NO_ACTION -> {
                 // Same SIM, OR unavailable identity, OR no physical SIM.
@@ -228,7 +229,7 @@ object SimMonitor {
             SimPresenceEvaluator.ReplacementDecision.FIRE_REPLACEMENT_WIPE -> {
                 if (SecurityPreferences.isWipeOnSimReplacementEnabled(context)) {
                     Log.e(TAG, "Verified SIM replacement (fingerprint changed). Dispatching wipe.")
-                    EventLogger.log(context, "HARDWARE ALERT: Physical SIM replacement verified.")
+                    EventLogger.log(context, SecurityEvent.SIM_REPLACED)
                     dispatchStandardWipe(context, reason = "SIM_CHANGED_TRIPWIRE")
                 } else if (SecurityPreferences.isSimChangeAlertEnabled(context)) {
                     PanicActionService.trigger(context, "SIM_CHANGED", PanicActionService.Severity.MEDIUM)

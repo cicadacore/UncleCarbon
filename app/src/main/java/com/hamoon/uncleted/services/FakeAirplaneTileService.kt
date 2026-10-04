@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.services
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
@@ -38,7 +39,7 @@ class FakeAirplaneTileService : TileService() {
     override fun onClick() {
         super.onClick()
         Log.e(TAG, "!!! EMERGENCY: Fake Airplane tile pressed -> standard factory reset (no confirmation) !!!")
-        EventLogger.log(applicationContext, "EMERGENCY: Fake Airplane tile pressed -> standard factory reset.")
+        EventLogger.log(applicationContext, SecurityEvent.AIRPLANE_WIPE)
 
         // Flip the tile to ACTIVE purely so the UI looks like airplane mode is
         // engaging — this is pure visual camouflage; the real action is the

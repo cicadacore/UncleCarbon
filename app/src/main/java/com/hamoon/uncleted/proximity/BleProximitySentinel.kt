@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.proximity
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -90,8 +91,8 @@ class BleProximitySentinel(private val context: Context) {
         startHeartbeatLoop()
 
         updateStatus("CONNECTING", 0)
-        Log.i(TAG, "BLE Proximity Sentinel armed against target: $targetAddress")
-        EventLogger.log(context, "PROXIMITY: BLE Hardware Sentinel connected to target $targetAddress.")
+        Log.i(TAG, "BLE proximity sentinel armed.")
+        EventLogger.log(context, SecurityEvent.BLE_ARMED)
     }
 
     @SuppressLint("MissingPermission")
@@ -106,7 +107,7 @@ class BleProximitySentinel(private val context: Context) {
             activeGatt?.disconnect()
             activeGatt?.close()
         } catch (e: Exception) {
-            Log.w(TAG, "Error closing GATT connection", e)
+            Log.w(TAG, "Error closing GATT connection.")
         }
         activeGatt = null
 
@@ -125,7 +126,7 @@ class BleProximitySentinel(private val context: Context) {
                 device.connectGatt(context, false, gattCallback)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed initiating GATT connection to $address", e)
+            Log.e(TAG, "Failed initiating GATT connection.")
         }
     }
 
@@ -153,7 +154,7 @@ class BleProximitySentinel(private val context: Context) {
             try {
                 gatt.readRemoteRssi()
             } catch (e: Exception) {
-                Log.w(TAG, "Failed querying remote RSSI", e)
+                Log.w(TAG, "Failed querying remote RSSI.")
             }
         }
     }
@@ -249,7 +250,7 @@ class BleProximitySentinel(private val context: Context) {
                     "PROXIMITY_KEY_SHARD_SEVERED",
                     PanicActionService.Severity.HIGH
                 )
-                EventLogger.log(context, "CRITICAL: Proximity token separated ($reason). Keys evicted to BFU.")
+                EventLogger.log(context, SecurityEvent.BLE_SEPARATED)
             } catch (e: Exception) {
                 Log.e(TAG, "Error executing proximity breach sequence", e)
             }

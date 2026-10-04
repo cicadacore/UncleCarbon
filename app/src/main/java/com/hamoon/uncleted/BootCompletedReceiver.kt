@@ -7,6 +7,10 @@ import android.os.Process
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.hamoon.uncleted.data.SecurityPreferences
+import com.hamoon.uncleted.core.LockdownManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.hamoon.uncleted.services.MonitoringService
 import com.hamoon.uncleted.services.ZoneWipeService
 import com.hamoon.uncleted.sim.SimMonitor
@@ -24,6 +28,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
+        if (action != Intent.ACTION_BOOT_COMPLETED && action != Intent.ACTION_LOCKED_BOOT_COMPLETED) return
 
         val isPrimaryUser = (Process.myUid() / 100000) == 0
         if (!isPrimaryUser) {
@@ -85,6 +90,14 @@ class BootCompletedReceiver : BroadcastReceiver() {
             }
         } else if (!isUnlocked) {
             Log.i(TAG, "Device remains Before First Unlock (BFU). Skipping CE-dependent tasks.")
+        }
+
+        // Keep the receiver alive until verification/reapplication completes,
+        // including LOCKED_BOOT_COMPLETED before credential storage is available.
+        val pendingResult = goAsync()
+        val enforcement = LockdownManager.enforceIfEnabled(context.applicationContext)
+        CoroutineScope(Dispatchers.IO).launch {
+            try { enforcement.join() } finally { pendingResult.finish() }
         }
     }
 }

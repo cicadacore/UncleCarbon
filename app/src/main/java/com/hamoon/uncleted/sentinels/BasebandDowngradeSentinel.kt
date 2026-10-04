@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.sentinels
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.content.Context
 import android.os.Build
 import android.telephony.NetworkRegistrationInfo
@@ -63,7 +64,7 @@ class BasebandDowngradeSentinel(private val context: Context) {
             }
             isMonitoring = true
             Log.i(TAG, "Baseband Downgrade Sentinel initialized and actively monitoring link-layer.")
-            EventLogger.log(context, "SENTINEL: Baseband 2G downgrade and Stingray monitor armed.")
+            EventLogger.log(context, SecurityEvent.BASEBAND_ARMED)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to register baseband telephony callback", e)
         }
@@ -129,7 +130,7 @@ class BasebandDowngradeSentinel(private val context: Context) {
             lastTriggerTimestamp = now
 
             Log.e(TAG, "CRITICAL: Forced baseband downgrade to 2G detected (Tech: $detectedTech)! Potential IMSI-Catcher / Stingray.")
-            EventLogger.log(context, "CRITICAL: Forced 2G downgrade detected (Tech Code: $detectedTech). Engaging radio killswitch.")
+            EventLogger.log(context, SecurityEvent.BASEBAND_DOWNGRADE)
 
             triggerRadioCountermeasures()
         }

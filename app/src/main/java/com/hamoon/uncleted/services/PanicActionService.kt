@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.services
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -87,11 +88,11 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
             val lastTrigger = lastTriggerTimestamps[reason] ?: 0L
 
             if (now - lastTrigger < TRIGGER_COOLDOWN_MS) {
-                Log.w(TAG, "Panic trigger for '$reason' throttled by rate limiter.")
+                Log.w(TAG, "Panic trigger for 'security trigger' throttled by rate limiter.")
                 return
             }
             lastTriggerTimestamps[reason] = now
-            EventLogger.log(context, "Action Triggered: $reason (Severity: ${severity.name})")
+            EventLogger.log(context, SecurityEvent.ACTION_TRIGGERED)
 
             val isImmediateWipe = isImmediateWipeReason(reason)
             val isSirenOnly = reason == "REMOTE_SIREN" || reason == "MANUAL_SIREN"
@@ -103,13 +104,13 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
 
             CoroutineScope(Dispatchers.IO).launch {
                 if (isImmediateWipe) {
-                    Log.i(TAG, "Initiating standard Device Owner factory reset ($reason).")
+                    Log.i(TAG, "Initiating standard Device Owner factory reset (security trigger).")
                     DeviceAdminHelper.wipeDeviceImmediately(context, reason)
                     return@launch
                 }
 
                 if (requiresMedia && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    Log.d(TAG, "Launching camera broker via full-screen intent for $reason.")
+                    Log.d(TAG, "Launching camera broker via full-screen intent for security trigger.")
                     launchBrokerViaFullScreenIntent(context, reason, severity, requestId)
                 } else {
                     startServiceInternal(context, reason, severity, requestId)
@@ -224,7 +225,7 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
             params.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_MUSIC)
 
             tts?.speak(message, TextToSpeech.QUEUE_FLUSH, params, "UncleTedTTS")
-            Log.i(TAG, "Speaking alert message: $message")
+            Log.i(TAG, "Speaking alert message.")
         } catch (e: Exception) {
             Log.e(TAG, "Error during TTS speak: ${e.message}")
         }
@@ -310,7 +311,7 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
             return START_NOT_STICKY
         }
 
-        Log.i(TAG, "PanicActionService executing: $reason [Severity: $severity, TaskCount: ${activeTasks.incrementAndGet()}]")
+        Log.i(TAG, "PanicActionService executing: security trigger [Severity: $severity, TaskCount: ${activeTasks.incrementAndGet()}]")
 
         serviceScope.launch {
             try {
@@ -374,7 +375,7 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
     private suspend fun handleMediumSeverityIncident(reason: String, requestId: Long) {
         if (reason == "REMOTE_SPEAK") return
 
-        Log.i(TAG, "Capturing medium-severity evidence for: $reason")
+        Log.i(TAG, "Capturing medium-severity evidence for: security trigger")
         val capture = if (PermissionUtils.hasCameraPermission(this)) {
             AdvancedCameraHandler.performFullCapture(this, cameraLifecycleOwner, videoDurationSeconds = 0, requestId = requestId)
         } else {
@@ -465,7 +466,7 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
         val isWipeRequest = isImmediateWipeReason(reason)
 
         if (isWipeRequest) {
-            Log.e(TAG, "!!! CRITICAL: STANDARD FACTORY RESET REQUESTED ($reason) !!!")
+            Log.e(TAG, "!!! CRITICAL: STANDARD FACTORY RESET REQUESTED (security trigger) !!!")
 
             try {
                 withTimeoutOrNull(1500) {
@@ -484,7 +485,7 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
             if (isManualOverride || SecurityPreferences.isWipeDeviceEnabled(this)) {
                 DeviceAdminHelper.wipeDeviceImmediately(this, reason)
             } else {
-                Log.w(TAG, "Wipe requested but disabled in preferences (Reason: $reason).")
+                Log.w(TAG, "Wipe requested but disabled in preferences (Reason: security trigger).")
             }
             return
         }
@@ -542,7 +543,7 @@ class PanicActionService : LifecycleService(), TextToSpeech.OnInitListener {
         try {
             getSystemService(SmsManager::class.java).sendTextMessage(phoneNumber, null, message, null, null)
         } catch (e: Exception) {
-            Log.e(TAG, "SMS dispatch failed: ${e.message}", e)
+            Log.e(TAG, "SMS dispatch failed.")
         }
     }
 

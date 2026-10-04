@@ -6,26 +6,21 @@ import android.os.Process
 import android.util.Log
 import android.view.MenuItem
 import android.view.View
-import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.ActionBarDrawerToggle
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
-import androidx.lifecycle.lifecycleScope
 import com.google.android.material.navigation.NavigationView
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.databinding.ActivityMainBinding
 import com.hamoon.uncleted.fragments.*
 import com.hamoon.uncleted.services.MonitoringService
-import com.hamoon.uncleted.util.BiometricAuthManager
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.hamoon.uncleted.util.AppLockActivity
 
-class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
+class MainActivity : AppLockActivity(), NavigationView.OnNavigationItemSelectedListener {
+    override val protectedFragmentContainerId: Int = R.id.nav_host_fragment
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var toggle: ActionBarDrawerToggle
@@ -43,7 +38,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private val aboutFragment by lazy { AboutFragment() }
 
     private var activeFragment: Fragment? = null
-    private var isAuthenticating = true
 
     companion object {
         private const val TAG = "MainActivity"
@@ -51,62 +45,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        binding.drawerLayout.visibility = View.INVISIBLE
-        binding.initialLoadingIndicator.visibility = View.VISIBLE
-
-        lifecycleScope.launch {
-            val authResult = withContext(Dispatchers.IO) {
-                initializeSystemRequirements()
-            }
-
-            if (isFinishing || isDestroyed) return@launch
-
-            if (authResult.requiresBiometric) {
-                promptBiometricAuth()
-            } else {
-                onAuthenticationSuccess()
-            }
-        }
-
         startMonitoringServiceIfNeeded()
     }
 
-    private suspend fun initializeSystemRequirements(): InitializationResult = withContext(Dispatchers.IO) {
-        val isBiometricEnabled = SecurityPreferences.isBiometricLockEnabled(this@MainActivity)
-        val canAuthenticate = BiometricAuthManager.isBiometricAvailable(this@MainActivity)
-
-        InitializationResult(
-            requiresBiometric = isBiometricEnabled && canAuthenticate
-        )
-    }
-
-    data class InitializationResult(val requiresBiometric: Boolean)
-
-    private fun promptBiometricAuth() {
-        BiometricAuthManager.authenticateUser(this,
-            title = getString(R.string.biometric_auth_title),
-            subtitle = getString(R.string.biometric_auth_subtitle),
-            callback = object : BiometricAuthManager.AuthCallback {
-                override fun onAuthResult(result: BiometricAuthManager.AuthResult, errorMessage: String?) {
-                    when (result) {
-                        BiometricAuthManager.AuthResult.SUCCESS -> {
-                            onAuthenticationSuccess()
-                        }
-                        else -> {
-                            Toast.makeText(this@MainActivity, getString(R.string.biometric_auth_failed_exit), Toast.LENGTH_SHORT).show()
-                            finish()
-                        }
-                    }
-                }
-            })
-    }
-
-    private fun onAuthenticationSuccess() {
-        if (isFinishing || isDestroyed) return
-        isAuthenticating = false
+    override fun onProtectedCreate() {
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
         binding.initialLoadingIndicator.visibility = View.GONE
         binding.drawerLayout.visibility = View.VISIBLE
         initializeUi()
@@ -132,7 +76,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (isAuthenticating) return
+                if (!isAccessAllowed) return
 
                 if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
                     binding.drawerLayout.closeDrawer(GravityCompat.START)
@@ -159,6 +103,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        if (!isAccessAllowed) return false
         val (fragment, title) = when (item.itemId) {
             R.id.nav_dashboard -> dashboardFragment to getString(R.string.menu_dashboard)
             R.id.nav_hardware_sentinels -> hardwareSentinelsFragment to getString(R.string.menu_hardware_sentinels)
@@ -180,6 +125,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun showFragment(fragment: Fragment, title: String) {
+        if (!isAccessAllowed) return
         if (fragment == activeFragment && fragment.isAdded && fragment.isVisible) return
         if (isFinishing || isDestroyed) return
 

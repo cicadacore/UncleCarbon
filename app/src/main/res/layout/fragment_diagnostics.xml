@@ -111,40 +111,16 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Log Capture &amp; Bug Recording"
+                    android:text="Security Audit &amp; Diagnostics"
                     android:textAppearance="?attr/textAppearanceTitleMedium" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Capture the logs right after encountering a bug, or record live while reproducing it."
+                    android:text="Review security events recorded after unlock and share a diagnostic report."
                     android:textAppearance="?attr/textAppearanceBodySmall"
                     android:textColor="?attr/colorOnSurfaceVariant" />
-
-                <!-- Scope Selection Chips -->
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chip_group_scope"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    app:singleSelection="true">
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_scope_all"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true"
-                        android:text="All System &amp; Root Logs" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_scope_app"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Uncle Ted Only" />
-                </com.google.android.material.chip.ChipGroup>
 
                 <!-- Action Buttons -->
                 <com.google.android.material.button.MaterialButton
@@ -153,7 +129,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="Grab Instant System Logs"
+                    android:text="Capture Diagnostic Report"
                     app:icon="@drawable/ic_touch_app_24" />
 
                 <LinearLayout
@@ -253,7 +229,7 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="monospace"
                         android:lineSpacingMultiplier="1.1"
-                        android:text="Tap 'Grab Instant System Logs' to generate a complete report, or tap 'Start Live Recording' to stream logs while reproducing bugs."
+                        android:text="Tap 'Capture Diagnostic Report' to save a report, or 'Start Live Recording' to review new security events."
                         android:textColor="#CCCCCC"
                         android:textIsSelectable="true"
                         android:textSize="11sp" />

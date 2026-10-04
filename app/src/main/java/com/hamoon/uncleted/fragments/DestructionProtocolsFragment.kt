@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.hamoon.uncleted.util.showProtected
 import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.databinding.FragmentDestructionProtocolsBinding
@@ -94,7 +95,7 @@ class DestructionProtocolsFragment : Fragment() {
                         strategy.executeStandardWipe("MANUAL_STANDARD_FACTORY_RESET")
                     }
                 }
-                .show()
+                .showProtected(requireActivity())
         }
     }
 

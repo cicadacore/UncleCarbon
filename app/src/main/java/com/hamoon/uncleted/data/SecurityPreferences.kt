@@ -8,7 +8,6 @@ import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.hamoon.uncleted.util.PolygonUtils
-import java.text.SimpleDateFormat
 import java.util.*
 
 object SecurityPreferences {
@@ -23,16 +22,28 @@ object SecurityPreferences {
     private val LOCK = Any()
     private const val PREFS_FILE_NAME = "secure_app_prefs"
     private const val DE_PREFS_FILE_NAME = "device_encrypted_prefs"
-    private const val EVENT_LOG_KEY = "event_log"
-    private const val MAX_LOG_ENTRIES = 150
     private const val CUSTOM_WIPE_ZONES_KEY = "CUSTOM_WIPE_ZONES"
 
     fun isUserUnlocked(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             val userManager = context.getSystemService(UserManager::class.java)
-            userManager?.isUserUnlocked ?: true
+            userManager?.isUserUnlocked ?: false
         } else {
             true
+        }
+    }
+
+    internal fun requireCredentialStorageContext(context: Context): Context {
+        check(isUserUnlocked(context)) { "Credential storage unavailable" }
+        // EncryptedSharedPreferences internally calls getApplicationContext().
+        // A context returned by createPackageContext() can return null there on
+        // newer Android releases, causing Tink to reject a fresh install. The
+        // application context is the package's normal CE context because this
+        // manifest does not opt into defaultToDeviceProtectedStorage.
+        return requireNotNull(context.applicationContext) {
+            "Application context unavailable"
+        }.also {
+            check(!it.isDeviceProtectedStorage) { "Credential storage required" }
         }
     }
 
@@ -58,7 +69,7 @@ object SecurityPreferences {
 
         return encryptedInstance ?: synchronized(LOCK) {
             encryptedInstance ?: try {
-                createEncryptedPrefs(context.applicationContext).also {
+                createEncryptedPrefs(requireCredentialStorageContext(context)).also {
                     encryptedInstance = it
                 }
             } catch (e: Exception) {
@@ -89,6 +100,9 @@ object SecurityPreferences {
      * kernel memory hardening). Safe to call repeatedly.
      */
     fun migrateObsoletePreferences(context: Context) {
+        eventHistory(context).discardLegacyDeviceHistory()
+        com.hamoon.uncleted.util.StorageLayout.purgeLegacyDeviceDiagnostics(context)
+        com.hamoon.uncleted.crypto.CryptoPreferences.removeObsoleteRollbackState(context)
         val obsoleteKeys = listOf(
             // PIN / Honeypot / Decoy subsystem
             "NORMAL_PIN", "DURESS_PIN", "WIPE_PIN", "HONEYPOT_PIN", "DECOY_USER_ID",
@@ -271,13 +285,15 @@ object SecurityPreferences {
     // 0.1 Safe Boot Policy (Anti-Bypass)
     // =========================================================================
     fun setSafeBootBlocked(context: Context, blocked: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_BLOCK_SAFE_BOOT", blocked).apply()
+        val effective = blocked || isLockdownEnabled(context)
+        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_BLOCK_SAFE_BOOT", effective).apply()
         if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("BLOCK_SAFE_BOOT", blocked).apply()
+            getInstance(context).edit().putBoolean("BLOCK_SAFE_BOOT", effective).apply()
         }
     }
 
     fun isSafeBootBlocked(context: Context): Boolean {
+        if (isLockdownEnabled(context)) return true
         return if (!isUserUnlocked(context)) {
             getDeviceProtectedPrefs(context).getBoolean("BFU_BLOCK_SAFE_BOOT", true)
         } else {
@@ -294,19 +310,42 @@ object SecurityPreferences {
     // explicitly opts in. Never silently enabled on upgrade.
     // =========================================================================
     fun setDeveloperFeaturesBlocked(context: Context, blocked: Boolean) {
-        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_BLOCK_DEVELOPER_FEATURES", blocked).apply()
+        val effective = blocked || isLockdownEnabled(context)
+        getDeviceProtectedPrefs(context).edit().putBoolean("BFU_BLOCK_DEVELOPER_FEATURES", effective).apply()
         if (isUserUnlocked(context)) {
-            getInstance(context).edit().putBoolean("BLOCK_DEVELOPER_FEATURES", blocked).apply()
+            getInstance(context).edit().putBoolean("BLOCK_DEVELOPER_FEATURES", effective).apply()
         }
     }
 
     fun isDeveloperFeaturesBlocked(context: Context): Boolean {
+        if (isLockdownEnabled(context)) return true
         // Fail-safe OR: if either mirror records the opt-in, treat it as enabled.
         return if (!isUserUnlocked(context)) {
             getDeviceProtectedPrefs(context).getBoolean("BFU_BLOCK_DEVELOPER_FEATURES", false)
         } else {
             getDeviceProtectedPrefs(context).getBoolean("BFU_BLOCK_DEVELOPER_FEATURES", false) ||
                     getInstance(context).getBoolean("BLOCK_DEVELOPER_FEATURES", false)
+        }
+    }
+
+    // A single authoritative, non-secret DE latch is readable before first unlock.
+    // Never mirror the latch into CE: stale mirrors must not undo a one-way choice.
+    fun isLockdownEnabled(context: Context): Boolean =
+        getDeviceProtectedPrefs(context).getBoolean("BFU_LOCKDOWN_ENABLED", false)
+
+    internal fun activateLockdown(context: Context) {
+        if (isLockdownEnabled(context)) return
+        val prefs = getDeviceProtectedPrefs(context)
+        val saved = prefs.edit()
+            .putBoolean("BFU_BLOCK_SAFE_BOOT", true)
+            .putBoolean("BFU_BLOCK_DEVELOPER_FEATURES", true)
+            .putBoolean("BFU_LOCKDOWN_ENABLED", true)
+            .commit()
+        if (!saved) {
+            // commit() updates memory even when disk I/O fails. Do not publish
+            // that unconfirmed latch as a successful activation.
+            prefs.edit().remove("BFU_LOCKDOWN_ENABLED").commit()
+            throw IllegalStateException("Could not persist Lockdown Mode. Please retry.")
         }
     }
 
@@ -611,29 +650,21 @@ object SecurityPreferences {
     // =========================================================================
     // 9. Event Logging
     // =========================================================================
-    fun logEvent(context: Context, message: String) {
-        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
-        val newEntry = "$timestamp - $message"
+    private fun eventHistory(context: Context) = SecurityEventHistory(
+        isUnlocked = { isUserUnlocked(context) },
+        credentialPrefs = {
+            // Explicit CE context even when called by a receiver holding a DE context.
+            requireCredentialStorageContext(context)
+                .getSharedPreferences(SecurityEventHistory.FILE_NAME, Context.MODE_PRIVATE)
+        },
+        devicePrefs = { getDeviceProtectedPrefs(context) }
+    )
 
-        val prefs = getDeviceProtectedPrefs(context)
-        val existingLogs = prefs.getStringSet(EVENT_LOG_KEY, mutableSetOf())?.toMutableList() ?: mutableListOf()
+    fun logEvent(context: Context, event: SecurityEvent) = eventHistory(context).append(event)
 
-        existingLogs.add(0, newEntry)
+    fun getLogs(context: Context): List<String> = eventHistory(context).read()
 
-        while (existingLogs.size > MAX_LOG_ENTRIES) {
-            existingLogs.removeAt(existingLogs.size - 1)
-        }
-
-        prefs.edit().putStringSet(EVENT_LOG_KEY, existingLogs.toSet()).apply()
-    }
-
-    fun getLogs(context: Context): List<String> {
-        return getDeviceProtectedPrefs(context).getStringSet(EVENT_LOG_KEY, setOf())?.sortedDescending() ?: emptyList()
-    }
-
-    fun clearLogs(context: Context) {
-        getDeviceProtectedPrefs(context).edit().remove(EVENT_LOG_KEY).apply()
-    }
+    fun clearLogs(context: Context) = eventHistory(context).clear()
 
     // =========================================================================
     // 10. Core Protection & Maintenance Mode
@@ -956,11 +987,31 @@ object SecurityPreferences {
     fun getSecretDialerCode(context: Context): String? =
         getInstance(context).getString("SECRET_DIALER_CODE", null)
 
-    fun setBiometricLockEnabled(context: Context, isEnabled: Boolean) =
-        getInstance(context).edit().putBoolean("BIOMETRIC_LOCK_ENABLED", isEnabled).apply()
+    // App-lock settings must never use getInstance's operational DE fallback.
+    // An unreadable setting is an authentication error, never "lock disabled".
+    private fun appLockPrefs(context: Context): SharedPreferences {
+        check(isUserUnlocked(context)) { "Credential storage unavailable" }
+        return encryptedInstance ?: synchronized(LOCK) {
+            encryptedInstance ?: createEncryptedPrefs(requireCredentialStorageContext(context))
+                .also { encryptedInstance = it }
+        }
+    }
+
+    fun setBiometricLockEnabled(context: Context, isEnabled: Boolean) {
+        check(appLockPrefs(context).edit().putBoolean("BIOMETRIC_LOCK_ENABLED", isEnabled).commit()) {
+            "Unable to save app lock preference"
+        }
+        // Older releases could save this setting into the fallback DE store.
+        // Retire that copy only after an explicit, successfully saved change.
+        val legacy = getDeviceProtectedPrefs(context)
+        if (legacy.contains("BIOMETRIC_LOCK_ENABLED")) {
+            check(legacy.edit().remove("BIOMETRIC_LOCK_ENABLED").commit())
+        }
+    }
 
     fun isBiometricLockEnabled(context: Context): Boolean =
-        getInstance(context).getBoolean("BIOMETRIC_LOCK_ENABLED", false)
+        appLockPrefs(context).getBoolean("BIOMETRIC_LOCK_ENABLED", false) ||
+            getDeviceProtectedPrefs(context).getBoolean("BIOMETRIC_LOCK_ENABLED", false)
 
     fun setTrustedVpnEnabled(context: Context, isEnabled: Boolean) =
         getInstance(context).edit().putBoolean("TRUSTED_VPN_ENABLED", isEnabled).apply()

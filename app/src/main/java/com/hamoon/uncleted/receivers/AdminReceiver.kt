@@ -2,6 +2,7 @@
 
 package com.hamoon.uncleted.receivers
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.Manifest
 import android.app.admin.DeviceAdminReceiver
 import android.app.admin.DevicePolicyManager
@@ -9,10 +10,10 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.UserHandle
-import android.os.UserManager
 import android.util.Log
 import com.hamoon.uncleted.R
 import com.hamoon.uncleted.core.DefenseCoordinator
+import com.hamoon.uncleted.core.LockdownManager
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.services.PanicActionService
 import com.hamoon.uncleted.util.EventLogger
@@ -37,7 +38,7 @@ class AdminReceiver : DeviceAdminReceiver() {
     override fun onEnabled(context: Context, intent: Intent) {
         super.onEnabled(context, intent)
         Log.i(TAG, "Device Admin enabled. Initializing hardware baseline policies.")
-        EventLogger.log(context, "Device Admin enabled successfully.")
+        EventLogger.log(context, SecurityEvent.ADMIN_ENABLED)
 
         val dpm = getManager(context)
         val admin = getWho(context)
@@ -54,13 +55,9 @@ class AdminReceiver : DeviceAdminReceiver() {
                     dpm.setPasswordQuality(admin, DevicePolicyManager.PASSWORD_QUALITY_NUMERIC_COMPLEX)
                     dpm.setPasswordMinimumLength(admin, 6)
 
-                    if (SecurityPreferences.isSafeBootBlocked(context)) {
-                        dpm.addUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
-                        Log.i(TAG, "Device Owner baseline enforced (including DISALLOW_SAFE_BOOT).")
-                    } else {
-                        dpm.clearUserRestriction(admin, UserManager.DISALLOW_SAFE_BOOT)
-                        Log.i(TAG, "Device Owner baseline enforced (DISALLOW_SAFE_BOOT cleared per preference).")
-                    }
+                    // Use the same guarded policy path as the settings UI.
+                    LockdownManager.setSafeBootBlocked(context, SecurityPreferences.isSafeBootBlocked(context)).join()
+                    LockdownManager.setDeveloperFeaturesBlocked(context, SecurityPreferences.isDeveloperFeaturesBlocked(context)).join()
 
                     // Self-grant READ_PHONE_STATE so the SIM state machine
                     // works without user interaction and remains functional
@@ -106,7 +103,7 @@ class AdminReceiver : DeviceAdminReceiver() {
         val dpm = getManager(context)
         val currentFailed = dpm.getCurrentFailedPasswordAttempts()
         Log.w(TAG, "Authentication failure detected. Hardware count: $currentFailed")
-        EventLogger.log(context, "Hardware Keyguard authentication failed (Count: $currentFailed)")
+        EventLogger.log(context, SecurityEvent.KEYGUARD_FAILED)
 
         SecurityPreferences.incrementFailedAttempts(context)
 
@@ -118,7 +115,7 @@ class AdminReceiver : DeviceAdminReceiver() {
             //    Routes through the single standard Device Owner factory-reset path.
             if (maxAllowedBeforeWipe in 1..currentFailed) {
                 Log.e(TAG, "Hardware failure count ($currentFailed) reached user wipe limit ($maxAllowedBeforeWipe). Initiating standard factory reset.")
-                EventLogger.log(context, "CRITICAL: Max failed password threshold exceeded ($currentFailed/$maxAllowedBeforeWipe). Standard factory reset.")
+                EventLogger.log(context, SecurityEvent.KEYGUARD_WIPE)
                 strategy.executeStandardWipe("MAX_FAILED_PASSWORDS_EXCEEDED")
                 return@launch
             }
@@ -174,7 +171,7 @@ class AdminReceiver : DeviceAdminReceiver() {
         }
 
         Log.w(TAG, "Hostile Device Admin deactivation detected. Triggering alert.")
-        EventLogger.log(context, "ALERT: Unauthorized Device Admin deactivation attempt.")
+        EventLogger.log(context, SecurityEvent.ADMIN_DEACTIVATION)
 
         PanicActionService.trigger(context, "UNINSTALL_ATTEMPT", PanicActionService.Severity.HIGH)
 
@@ -184,6 +181,6 @@ class AdminReceiver : DeviceAdminReceiver() {
     override fun onDisabled(context: Context, intent: Intent) {
         super.onDisabled(context, intent)
         Log.e(TAG, "CRITICAL: Device Admin has been disabled.")
-        EventLogger.log(context, "CRITICAL: Device Admin disabled.")
+        EventLogger.log(context, SecurityEvent.ADMIN_DISABLED)
     }
 }

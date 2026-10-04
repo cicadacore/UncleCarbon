@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.crypto
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -65,11 +66,8 @@ object StrongBoxSecurityManager {
             return null
         }
 
-        // Enforce anti-NAND mirroring rollback verification
-        if (!AntiRollbackManager.verifyStateIntegrity(context)) {
-            Log.e(TAG, "Hardware anti-rollback integrity check failed! Refusing master key delivery.")
-            return null
-        }
+        // AES-GCM authenticates ciphertext; Keystore isolates the key. Neither
+        // establishes freshness of app data restored from a userdata snapshot.
 
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
         keyStore.load(null)
@@ -101,13 +99,15 @@ object StrongBoxSecurityManager {
                     specBuilder.setIsStrongBoxBacked(true)
                 }
 
-                // Enforce hardware monotonic counter rollback resistance (Titan M2 / RPMB) via reflection
+                // Best-effort request for key rollback resistance on supporting devices.
+                // Hidden API reflection may fail, and existing keys are not attested
+                // for this property. This is NOT an app-data monotonic counter.
                 try {
                     val method = specBuilder.javaClass.getMethod("setRollbackResistant", Boolean::class.javaPrimitiveType)
                     method.invoke(specBuilder, true)
-                    Log.i(TAG, "Enforced setRollbackResistant(true) on hardware master key via reflection.")
+                    Log.i(TAG, "Requested key rollback resistance; not verified.")
                 } catch (e: Exception) {
-                    Log.w(TAG, "setRollbackResistant unsupported or restricted on this SoC: ${e.message}")
+                    Log.w(TAG, "Key rollback resistance request unavailable.")
                 }
             }
 
@@ -160,7 +160,7 @@ object StrongBoxSecurityManager {
     @Synchronized
     fun executeMasterKeySuicide(context: Context): Boolean {
         Log.e(TAG, "!!! INITIATING TITAN M2 / STRONGBOX CRYPTOGRAPHIC SUICIDE !!!")
-        EventLogger.log(context, "CRITICAL: Titan M2 / StrongBox master key hardware eviction invoked.")
+        EventLogger.log(context, SecurityEvent.KEY_DELETION_REQUESTED)
 
         return try {
             val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE)
@@ -176,7 +176,7 @@ object StrongBoxSecurityManager {
 
             CryptoPreferences.setSuicideExecuted(context, true)
             Log.e(TAG, "Cryptographic Suicide Completed: Master key slot zeroed in silicon.")
-            EventLogger.log(context, "SUCCESS: Master suicide key eradicated from hardware security module.")
+            EventLogger.log(context, SecurityEvent.KEY_DELETED)
             true
         } catch (e: Exception) {
             Log.e(TAG, "Cryptographic suicide failure: Could not delete hardware entry", e)
@@ -196,9 +196,6 @@ object StrongBoxSecurityManager {
 
             val iv = cipher.iv.clone()
             val cipherText = cipher.doFinal(plainBytes)
-
-            // Advance hardware rollback counter on successful encryption
-            AntiRollbackManager.registerSecurityEventAdvance(context)
 
             StrongBoxPayload(cipherText, iv)
         } catch (e: Exception) {
@@ -228,7 +225,7 @@ object StrongBoxSecurityManager {
             NativeSecurityBridge.pinMemory(decrypted)
             decrypted
         } catch (e: Exception) {
-            Log.e(TAG, "StrongBox decryption failed (Key revoked, tampered, or rollback detected)", e)
+            Log.e(TAG, "StrongBox decryption failed (key unavailable or ciphertext invalid)", e)
             null
         }
     }

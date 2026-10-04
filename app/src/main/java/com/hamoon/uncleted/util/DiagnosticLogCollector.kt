@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Process
 import android.util.Log
+import com.hamoon.uncleted.data.SecurityPreferences
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -45,11 +46,12 @@ object DiagnosticLogCollector {
         )
     }
 
-    suspend fun captureDiagnosticDump(context: Context, logScope: String = "ALL"): File? = withContext(Dispatchers.IO) {
-        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val logFile = File(StorageLayout.diagnosticsDir(context), "uncleted_bugreport_$timestamp.txt")
-
+    suspend fun captureDiagnosticDump(context: Context): File? = withContext(Dispatchers.IO) {
+        if (!SecurityPreferences.isUserUnlocked(context)) return@withContext null
         try {
+            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+            val logFile = File(StorageLayout.diagnosticsDir(context), "uncleted_bugreport_$timestamp.txt")
+
             val env = getEnvironmentDiagnostics(context)
 
             FileOutputStream(logFile).bufferedWriter().use { writer ->
@@ -69,7 +71,7 @@ object DiagnosticLogCollector {
                 writer.write("--- IN-APP EVENT AUDIT LOGS ---\n")
                 val auditLogs = EventLogger.getLogs(context)
                 if (auditLogs.isEmpty()) {
-                    writer.write("(No in-memory audit logs recorded)\n")
+                    writer.write("(No post-unlock audit events recorded)\n")
                 } else {
                     for (entry in auditLogs) {
                         writer.write("$entry\n")
@@ -77,21 +79,10 @@ object DiagnosticLogCollector {
                 }
                 writer.write("\n")
 
-                writer.write("--- LOGCAT BUFFER DUMP (SCOPE: $logScope, UNPRIVILEGED) ---\n")
-                val logcatCmd = arrayOf("logcat", "-d", "-v", "time", "--pid=${Process.myPid()}", "*:V")
-
-                try {
-                    val process = ProcessBuilder(*logcatCmd).start()
-                    process.inputStream.bufferedReader().useLines { lines ->
-                        lines.forEach { line ->
-                            val sanitized = sanitizeLine(line)
-                            writer.write("$sanitized\n")
-                        }
-                    }
-                    process.waitFor()
-                } catch (pe: Exception) {
-                    writer.write("Failed capturing logcat process: ${pe.message}\n")
-                }
+                // A regex cannot reliably remove arbitrary secrets from platform,
+                // library, exception or historical BFU logcat messages. Export only
+                // fixed audit messages from CE; never collect raw logcat buffers.
+                writer.write("Raw logcat is excluded for privacy.\n")
 
                 writer.write("\n=== END OF REPORT ===\n")
             }
@@ -99,12 +90,13 @@ object DiagnosticLogCollector {
             Log.i(TAG, "Diagnostic bug report captured at: ${logFile.absolutePath}")
             return@withContext logFile
         } catch (e: Exception) {
-            Log.e(TAG, "Failed capturing diagnostic dump: ${e.message}", e)
+            Log.e(TAG, "Failed capturing diagnostic dump.")
             return@withContext null
         }
     }
 
     fun createShareIntent(context: Context, logFile: File): Intent {
+        check(SecurityPreferences.isUserUnlocked(context)) { "Unlock required to export diagnostics" }
         val uri = FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",
@@ -115,12 +107,9 @@ object DiagnosticLogCollector {
             type = "text/plain"
             putExtra(Intent.EXTRA_STREAM, uri)
             putExtra(Intent.EXTRA_SUBJECT, "Uncle Ted Bug Report (${Build.MODEL})")
-            putExtra(Intent.EXTRA_TEXT, "Attached is the diagnostic logcat report for Uncle Ted.")
+            putExtra(Intent.EXTRA_TEXT, "Attached is the diagnostic audit report for Uncle Ted.")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     }
 
-    private fun sanitizeLine(line: String): String {
-        return line.replace(Regex("(?i)(pin|password|secret|salt)\\s*=\\s*['\"]?[^'\"\\s]+['\"]?"), "$1=[REDACTED]")
-    }
 }

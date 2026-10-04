@@ -477,4 +477,19 @@
         <item>&quot;ما می‌توانیم هر کاری که دوست داریم انجام دهیم، تا زمانی که آن کار بی‌اهمیت باشد.&quot;</item>
         <item>&quot;من به هیچ چیز باور ندارم.&quot;</item>
     </string-array>
+    <!-- One-way Device Owner Lockdown -->
+    <string name="lockdown_title">حالت قفل دائمی</string>
+    <string name="lockdown_summary">محافظت در برابر Safe Boot و حالت توسعه‌دهنده را خودکار فعال می‌کند و هر دو محافظت را برای همیشه روشن نگه می‌دارد.</string>
+    <string name="lockdown_confirmation_title">حالت قفل دائمی فعال شود؟</string>
+    <string name="lockdown_confirmation_message">حالت قفل دائمی، محافظت در برابر Safe Boot و حالت توسعه‌دهنده را خودکار فعال می‌کند و هر دو محافظت را برای همیشه روشن نگه می‌دارد. پس از فعال‌سازی، غیرفعال کردن آن‌ها از رابط عادی برنامه ممکن نیست.</string>
+    <string name="lockdown_enable_button">فعال‌سازی قفل دائمی</string>
+    <string name="lockdown_active">فعال</string>
+    <string name="lockdown_inactive">غیرفعال</string>
+    <string name="lockdown_attention">قفل دائمی نیاز به بررسی دارد — کنترل‌ها همچنان قفل هستند.\n%1$s</string>
+    <string name="protection_checking">در حال اعمال و تأیید محافظت‌ها…</string>
+    <string name="protection_locked_on">روشن — قفل‌شده توسط حالت قفل دائمی</string>
+    <string name="protection_locked_failed">اعمال نشده — قفل‌شده توسط حالت قفل دائمی</string>
+    <string name="protection_unknown_locked">تأیید نشده — قفل‌شده توسط حالت قفل دائمی</string>
+    <string name="protection_unknown">وضعیت محافظت تأیید نشد.</string>
+    <string name="protection_failed">به‌روزرسانی محافظت ناموفق بود. حالت قفل دائمی فعال نیست.\n%1$s</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.util
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.PendingIntent
@@ -84,8 +85,8 @@ object GeofenceHelper {
 
         try {
             lm.addProximityAlert(lat, lon, radiusMeters, NEVER_EXPIRE, proximityPendingIntent(zoneId))
-            Log.i(TAG, "Safe zone proximity alert registered: '$zoneId' at ($lat, $lon, ${radiusMeters}m).")
-            EventLogger.log(appContext, "GEOFENCE: Safe zone '$zoneId' established at $lat, $lon.")
+            Log.i(TAG, "Safe zone proximity alert registered.")
+            EventLogger.log(appContext, SecurityEvent.GEOFENCE_ADDED)
         } catch (e: SecurityException) {
             Log.e(TAG, "SecurityException adding proximity alert", e)
         } catch (e: Exception) {
@@ -99,8 +100,8 @@ object GeofenceHelper {
         val lm = appContext.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return
         try {
             lm.removeProximityAlert(proximityPendingIntent(zoneId))
-            Log.i(TAG, "Safe zone proximity alert removed: '$zoneId'.")
-            EventLogger.log(appContext, "GEOFENCE: Safe zone '$zoneId' removed.")
+            Log.i(TAG, "Safe zone proximity alert removed.")
+            EventLogger.log(appContext, SecurityEvent.GEOFENCE_REMOVED)
         } catch (e: Exception) {
             Log.e(TAG, "Failed removing proximity alert", e)
         }

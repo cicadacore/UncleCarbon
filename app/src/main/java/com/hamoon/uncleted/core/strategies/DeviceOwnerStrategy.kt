@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.core.strategies
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
@@ -8,6 +9,7 @@ import android.os.UserManager
 import android.util.Log
 import com.hamoon.uncleted.core.DebuggingPolicyLogic
 import com.hamoon.uncleted.core.DefenseStrategy
+import com.hamoon.uncleted.core.ProtectionState
 import com.hamoon.uncleted.core.WipeFlagBuilder
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.util.EventLogger
@@ -29,6 +31,8 @@ class DeviceOwnerStrategy(
 
     companion object {
         private const val TAG = "DeviceOwnerStrategy"
+        // Includes USB reconciliation, which shares the developer restriction.
+        private val policyLock = Any()
     }
 
     override val profileName: String = "DEVICE_OWNER_GRAPHENEOS"
@@ -42,6 +46,8 @@ class DeviceOwnerStrategy(
 
     private fun enforcePersistentBaselineRestrictions() {
         if (!isDeviceOwnerProvisioned) return
+        // LockdownManager owns verification/reporting for a latched Lockdown.
+        if (SecurityPreferences.isLockdownEnabled(context)) return
         try {
             applySafeBootPolicy(SecurityPreferences.isSafeBootBlocked(context))
             reconcileDebuggingFeaturesRestriction()
@@ -50,32 +56,59 @@ class DeviceOwnerStrategy(
         }
     }
 
-    private fun applySafeBootPolicy(blocked: Boolean) {
-        if (!isDeviceOwnerProvisioned) return
-        try {
-            if (blocked) {
-                dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
-                Log.i(TAG, "Device Owner applied DISALLOW_SAFE_BOOT restriction.")
-                EventLogger.log(context, "POLICY: Safe Boot blocked by Device Owner.")
-            } else {
-                dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
-                Log.w(TAG, "Device Owner cleared DISALLOW_SAFE_BOOT restriction (Safe Mode permitted).")
-                EventLogger.log(context, "POLICY WARNING: Safe Boot restriction removed by user.")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to update DISALLOW_SAFE_BOOT policy: ${e.message}", e)
+    private fun requireDeviceOwner() {
+        check(isDeviceOwnerProvisioned) {
+            "Device Owner privileges are unavailable. Provision or restore Device Owner access."
+        }
+    }
+
+    private fun readRestriction(key: String): Boolean {
+        requireDeviceOwner()
+        // API 34 separates local and global restrictions. Include both when
+        // reading back policies applied by this Device Owner.
+        return dpm.getUserRestrictions(adminComponent).getBoolean(key) ||
+            (Build.VERSION.SDK_INT >= 34 && dpm.getUserRestrictionsGlobally().getBoolean(key))
+    }
+
+    private fun applyRestriction(key: String, blocked: Boolean) {
+        if (readRestriction(key) != blocked) {
+            if (blocked) dpm.addUserRestriction(adminComponent, key)
+            else dpm.clearUserRestriction(adminComponent, key)
+        }
+        check(readRestriction(key) == blocked) { "Android did not apply $key=$blocked." }
+    }
+
+    override fun readProtectionState(): ProtectionState = synchronized(policyLock) {
+        ProtectionState(
+            readRestriction(UserManager.DISALLOW_SAFE_BOOT),
+            readRestriction(UserManager.DISALLOW_DEBUGGING_FEATURES)
+        )
+    }
+
+    private fun applySafeBootPolicy(blocked: Boolean) = synchronized(policyLock) {
+        val effective = blocked || SecurityPreferences.isLockdownEnabled(context)
+        val changed = readRestriction(UserManager.DISALLOW_SAFE_BOOT) != effective
+        applyRestriction(UserManager.DISALLOW_SAFE_BOOT, effective)
+        if (changed) {
+            EventLogger.log(context,
+                if (effective) SecurityEvent.SAFE_BOOT_BLOCKED else SecurityEvent.SAFE_BOOT_ALLOWED)
         }
     }
 
     override suspend fun setSafeBootBlocked(blocked: Boolean) {
-        applySafeBootPolicy(blocked)
+        synchronized(policyLock) {
+            applySafeBootPolicy(blocked)
+            SecurityPreferences.setSafeBootBlocked(context, blocked)
+        }
     }
 
     override suspend fun setDeveloperFeaturesBlocked(blocked: Boolean) {
-        // The user's choice is persisted by the caller (SecurityPreferences)
-        // before this runs. Reconciliation reads the effective state so Developer
-        // Interception and the USB lockdown can never clear each other's policy.
-        reconcileDebuggingFeaturesRestriction()
+        synchronized(policyLock) {
+            reconcileDebuggingFeaturesRestriction(blocked)
+            // Publish only after successful enforcement. Keep this under the same
+            // lock as USB reconciliation so it cannot race a new developer policy.
+            SecurityPreferences.setDeveloperFeaturesBlocked(context, blocked)
+        }
     }
 
     /**
@@ -83,23 +116,15 @@ class DeviceOwnerStrategy(
      * The restriction stays set while EITHER the user's Developer Interception
      * policy is enabled OR an active USB data-port lockdown requires it.
      */
-    private fun reconcileDebuggingFeaturesRestriction() {
-        if (!isDeviceOwnerProvisioned) return
+    private fun reconcileDebuggingFeaturesRestriction(
+        developerBlocked: Boolean? = null
+    ) = synchronized(policyLock) {
         val mustBlock = DebuggingPolicyLogic.shouldBlockDebugging(
-            developerFeaturesBlocked = SecurityPreferences.isDeveloperFeaturesBlocked(context),
+            developerFeaturesBlocked = (developerBlocked ?: SecurityPreferences.isDeveloperFeaturesBlocked(context)) ||
+                SecurityPreferences.isLockdownEnabled(context),
             usbDataPortDisabled = SecurityPreferences.isUsbDataPortDisabled(context)
         )
-        try {
-            if (mustBlock) {
-                dpm.addUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)
-                Log.i(TAG, "Device Owner enforcing DISALLOW_DEBUGGING_FEATURES (developer interception and/or USB lockdown active).")
-            } else {
-                dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_DEBUGGING_FEATURES)
-                Log.i(TAG, "Device Owner cleared DISALLOW_DEBUGGING_FEATURES (no active policy requires it).")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed reconciling DISALLOW_DEBUGGING_FEATURES policy: ${e.message}", e)
-        }
+        applyRestriction(UserManager.DISALLOW_DEBUGGING_FEATURES, mustBlock)
     }
 
     /**
@@ -109,8 +134,8 @@ class DeviceOwnerStrategy(
      */
     private fun requestWholeDeviceWipe(reason: String) {
         if (!isDeviceOwnerProvisioned) {
-            Log.w(TAG, "Standard wipe requested but Device Owner is not provisioned: $reason")
-            EventLogger.log(context, "WIPE_SKIPPED: Device Owner not provisioned ($reason).")
+            Log.w(TAG, "Standard wipe requested but Device Owner is not provisioned: security trigger")
+            EventLogger.log(context, SecurityEvent.WIPE_SKIPPED)
             return
         }
 
@@ -126,27 +151,27 @@ class DeviceOwnerStrategy(
         Log.i(TAG, "Composed wipe flags (eraseEsim=$eraseEsim).")
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                Log.i(TAG, "Executing dpm.wipeDevice() on API 34+ (Reason: $reason)")
+                Log.i(TAG, "Executing dpm.wipeDevice() on API 34+ (Reason: security trigger)")
                 dpm.wipeDevice(flags)
             } else {
                 @Suppress("DEPRECATION")
-                Log.i(TAG, "Executing dpm.wipeData() on API < 34 (Reason: $reason)")
+                Log.i(TAG, "Executing dpm.wipeData() on API < 34 (Reason: security trigger)")
                 dpm.wipeData(flags)
             }
         } catch (e: SecurityException) {
-            Log.e(TAG, "SecurityException during Device Owner wipe (Reason: $reason): ${e.message}", e)
+            Log.e(TAG, "SecurityException during Device Owner wipe (Reason: security trigger): ${e.message}", e)
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "IllegalStateException during Device Owner wipe (Reason: $reason): ${e.message}", e)
+            Log.e(TAG, "IllegalStateException during Device Owner wipe (Reason: security trigger): ${e.message}", e)
         } catch (e: UnsupportedOperationException) {
-            Log.e(TAG, "UnsupportedOperationException during Device Owner wipe (Reason: $reason): ${e.message}", e)
+            Log.e(TAG, "UnsupportedOperationException during Device Owner wipe (Reason: security trigger): ${e.message}", e)
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected exception during Device Owner wipe (Reason: $reason): ${e.message}", e)
+            Log.e(TAG, "Unexpected exception during Device Owner wipe (Reason: security trigger): ${e.message}", e)
         }
     }
 
     override suspend fun executeStandardWipe(reason: String) {
-        Log.i(TAG, "Executing standard platform wipe / factory reset (Reason: $reason)")
-        EventLogger.log(context, "STANDARD_WIPE: Executing normal factory reset via Device Owner.")
+        Log.i(TAG, "Executing standard platform wipe / factory reset (Reason: security trigger)")
+        EventLogger.log(context, SecurityEvent.WIPE_REQUESTED)
         requestWholeDeviceWipe(reason)
     }
 
@@ -156,7 +181,7 @@ class DeviceOwnerStrategy(
             return
         }
         Log.i(TAG, "Configuring hardware USB data signaling: enabled=$enabled")
-        EventLogger.log(context, "HARDWARE: USB data signaling toggled: enabled=$enabled")
+        EventLogger.log(context, SecurityEvent.USB_POLICY_CHANGED)
 
         // Method 1: Android 12+ (API 31+) USB HAL v1.3+ physical line disconnect
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -190,8 +215,10 @@ class DeviceOwnerStrategy(
                     dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_MOUNT_PHYSICAL_MEDIA)
                 }
             }
-            SecurityPreferences.setUsbDataPortDisabled(context, !enabled)
-            reconcileDebuggingFeaturesRestriction()
+            synchronized(policyLock) {
+                SecurityPreferences.setUsbDataPortDisabled(context, !enabled)
+                reconcileDebuggingFeaturesRestriction()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed modifying USB policy restrictions", e)
         }
@@ -215,7 +242,7 @@ class DeviceOwnerStrategy(
             return
         }
         Log.w(TAG, "Evicting Credential-Encrypted (CE) keys to cold BFU state via native Device Owner reboot.")
-        EventLogger.log(context, "ANTI-FORENSICS: Executing Device Owner native cold reboot to revert into BFU state.")
+        EventLogger.log(context, SecurityEvent.REBOOT_REQUESTED)
 
         try {
             dpm.reboot(adminComponent)

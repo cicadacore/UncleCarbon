@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.hamoon.uncleted.util.showProtected
 import com.hamoon.uncleted.EvidenceGalleryActivity
 import com.hamoon.uncleted.R
 import com.hamoon.uncleted.data.SecurityPreferences
@@ -193,7 +194,7 @@ class SurveillanceFragment : Fragment() {
                     }
                 }
                 .setNegativeButton("Cancel", null)
-                .show()
+                .showProtected(requireActivity())
         }
 
         binding.autoVideoDuration.setOnItemClickListener { _, _, position, _ ->
@@ -252,7 +253,7 @@ class SurveillanceFragment : Fragment() {
                         binding.switchWipeOnSimRemoval.isChecked = false
                         SecurityPreferences.setWipeOnSimRemovalEnabled(context, false)
                     }
-                    .show()
+                    .showProtected(requireActivity())
             } else {
                 SecurityPreferences.setWipeOnSimRemovalEnabled(context, false)
             }
@@ -271,7 +272,7 @@ class SurveillanceFragment : Fragment() {
                         binding.switchWipeOnSimReplacement.isChecked = false
                         SecurityPreferences.setWipeOnSimReplacementEnabled(context, false)
                     }
-                    .show()
+                    .showProtected(requireActivity())
             } else {
                 SecurityPreferences.setWipeOnSimReplacementEnabled(context, false)
             }

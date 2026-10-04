@@ -7,7 +7,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.net.Uri
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
@@ -16,7 +15,7 @@ import android.view.ViewGroup
 import android.widget.MediaController
 import android.widget.SeekBar
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import com.hamoon.uncleted.util.AppLockActivity
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -35,11 +34,12 @@ import java.io.RandomAccessFile
 import java.text.SimpleDateFormat
 import java.util.*
 
-class EvidenceGalleryActivity : AppCompatActivity() {
+class EvidenceGalleryActivity : AppLockActivity() {
 
     private lateinit var binding: ActivityEvidenceGalleryBinding
     private val allEvidenceItems = mutableListOf<EvidenceFileItem>()
     private val displayedItems = mutableListOf<EvidenceFileItem>()
+    private val protectedDialogs = mutableListOf<Dialog>()
     private lateinit var adapter: EvidenceMediaAdapter
 
     enum class EvidenceType {
@@ -55,8 +55,7 @@ class EvidenceGalleryActivity : AppCompatActivity() {
         val isEncrypted: Boolean
     )
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onProtectedCreate() {
         binding = ActivityEvidenceGalleryBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -81,6 +80,11 @@ class EvidenceGalleryActivity : AppCompatActivity() {
         }
 
         loadEvidenceFiles()
+    }
+
+    override fun onPause() {
+        protectedDialogs.toList().forEach { it.dismiss() }
+        super.onPause()
     }
 
     private fun setupFilterChips() {
@@ -176,7 +180,10 @@ class EvidenceGalleryActivity : AppCompatActivity() {
     }
 
     private fun openMediaItem(item: EvidenceFileItem) {
+        if (!isAccessAllowed) return
         val dialog = Dialog(this, R.style.Theme_UncleTed)
+        protectedDialogs.add(dialog)
+        dialog.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         val dialogBinding = DialogMediaViewerBinding.inflate(LayoutInflater.from(this))
         dialog.setContentView(dialogBinding.root)
 
@@ -273,6 +280,8 @@ class EvidenceGalleryActivity : AppCompatActivity() {
         }
 
         dialog.setOnDismissListener {
+            protectedDialogs.remove(dialog)
+            dialogBinding.vvVideoPlayer.stopPlayback()
             try {
                 if (mediaPlayer?.isPlaying == true) {
                     mediaPlayer.stop()
@@ -316,6 +325,7 @@ class EvidenceGalleryActivity : AppCompatActivity() {
     }
 
     private fun shareMediaFile(item: EvidenceFileItem) {
+        if (!isAccessAllowed) return
         try {
             val uri = FileProvider.getUriForFile(
                 this,
@@ -340,6 +350,7 @@ class EvidenceGalleryActivity : AppCompatActivity() {
     }
 
     private fun confirmShredSingleFile(item: EvidenceFileItem) {
+        if (!isAccessAllowed) return
         MaterialAlertDialogBuilder(this)
             .setTitle("Confirm File Shred")
             .setMessage("Permanently zero-fill and delete '${item.displayName}'? This file will be unrecoverable.")
@@ -349,10 +360,15 @@ class EvidenceGalleryActivity : AppCompatActivity() {
                 Toast.makeText(this, "File zeroed and shredded.", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .show().also {
+                protectedDialogs.add(it)
+                it.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                it.setOnDismissListener { _ -> protectedDialogs.remove(it) }
+            }
     }
 
     private fun confirmShredAll() {
+        if (!isAccessAllowed) return
         if (allEvidenceItems.isEmpty()) {
             Toast.makeText(this, "No evidence files to shred.", Toast.LENGTH_SHORT).show()
             return
@@ -373,7 +389,11 @@ class EvidenceGalleryActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Abort", null)
-            .show()
+            .show().also {
+                protectedDialogs.add(it)
+                it.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                it.setOnDismissListener { _ -> protectedDialogs.remove(it) }
+            }
     }
 
     private fun shredFile(file: File) {

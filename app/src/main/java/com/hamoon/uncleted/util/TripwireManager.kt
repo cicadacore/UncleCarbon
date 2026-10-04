@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.util
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -42,7 +43,7 @@ object TripwireManager {
 
         setHardwareAlarm(context, triggerAtEpoch)
         Log.i(TAG, "Hardware Dead-Man Tripwire armed via AlarmManager for $durationHours hours (Deadline: $triggerAtEpoch)")
-        EventLogger.log(context, "TRIPWIRE: Armed for $durationHours hours.")
+        EventLogger.log(context, SecurityEvent.TRIPWIRE_ARMED)
     }
 
     fun cancelTripwire(context: Context) {
@@ -50,7 +51,7 @@ object TripwireManager {
         val pendingIntent = getAlarmPendingIntent(context)
         alarmManager.cancel(pendingIntent)
         Log.i(TAG, "Hardware Tripwire alarm canceled.")
-        EventLogger.log(context, "TRIPWIRE: Disarmed.")
+        EventLogger.log(context, SecurityEvent.TRIPWIRE_DISARMED)
     }
 
     fun checkIn(context: Context) {
@@ -97,7 +98,7 @@ object TripwireManager {
 
         if (remainingMillis <= 0L) {
             Log.e(TAG, "CRITICAL: Tripwire deadline expired while offline/powered down! Executing BFU wipe.")
-            EventLogger.log(context, "CRITICAL: Dead-man tripwire expired during downtime. Initiating wipe.")
+            EventLogger.log(context, SecurityEvent.TRIPWIRE_DOWNTIME)
             CoroutineScope(Dispatchers.IO).launch {
                 val strategy = DefenseCoordinator.resolveStrategy(context)
                 strategy.executeStandardWipe("BFU_TRIPWIRE_EXPIRED_DURING_DOWNTIME")

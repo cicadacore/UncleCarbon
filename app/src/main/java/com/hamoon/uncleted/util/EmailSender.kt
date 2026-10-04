@@ -133,10 +133,10 @@ object EmailSender {
 
             message.setContent(multipart)
             Transport.send(message)
-            Log.d(TAG, "Email sent successfully to $recipientEmail")
+            Log.d(TAG, "Email sent successfully.")
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Error sending email to $recipientEmail: ${e.message}", e)
+            Log.e(TAG, "Email delivery failed.")
             false
         } finally {
             // Restore original ClassLoader

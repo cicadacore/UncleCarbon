@@ -54,6 +54,22 @@
     <string name="dev_interception_switch_label">Block Developer / Debugging Features (Device Owner)</string>
     <string name="dev_interception_summary">When enabled, the Device Owner blocks Android debugging features to prevent USB/ADB debugging from being enabled. This is independent of Safe Boot interception.</string>
 
+    <!-- One-way Device Owner Lockdown -->
+    <string name="lockdown_title">Lockdown Mode</string>
+    <string name="lockdown_summary">Automatically enables Safe Boot and Developer Mode protection and permanently locks both protections on.</string>
+    <string name="lockdown_confirmation_title">Enable Lockdown Mode?</string>
+    <string name="lockdown_confirmation_message">Lockdown Mode will automatically enable Safe Boot and Developer Mode protection and permanently lock both protections on. Once activated, they cannot be disabled from the normal app interface.</string>
+    <string name="lockdown_enable_button">ENABLE LOCKDOWN</string>
+    <string name="lockdown_active">ACTIVE</string>
+    <string name="lockdown_inactive">Not active</string>
+    <string name="lockdown_attention">LOCKDOWN REQUIRES ATTENTION — controls remain locked.\n%1$s</string>
+    <string name="protection_checking">Applying and verifying protections…</string>
+    <string name="protection_locked_on">ON — LOCKED BY LOCKDOWN MODE</string>
+    <string name="protection_locked_failed">NOT ENFORCED — LOCKED BY LOCKDOWN MODE</string>
+    <string name="protection_unknown_locked">UNVERIFIED — LOCKED BY LOCKDOWN MODE</string>
+    <string name="protection_unknown">Protection could not be verified.</string>
+    <string name="protection_failed">Protection update failed. Lockdown is not active.\n%1$s</string>
+
     <!-- Interactive location acquisition (Add Current Location as Wipe Zone) -->
     <string name="geo_zone_location_in_progress">Obtaining location fix…</string>
     <string name="geo_zone_location_in_progress_message">Acquiring a current location fix to create a wipe zone. This does not arm or trigger anything.</string>

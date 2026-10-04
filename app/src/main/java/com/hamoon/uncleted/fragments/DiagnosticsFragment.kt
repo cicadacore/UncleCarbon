@@ -5,7 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.Process
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -15,6 +14,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.hamoon.uncleted.R
 import com.hamoon.uncleted.databinding.FragmentDiagnosticsBinding
+import com.hamoon.uncleted.util.EventLogger
+import com.hamoon.uncleted.data.SecurityPreferences
+import kotlinx.coroutines.delay
 import com.hamoon.uncleted.util.DiagnosticLogCollector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -30,7 +32,6 @@ class DiagnosticsFragment : Fragment() {
 
     private var latestDumpFile: File? = null
     private var liveRecordingJob: Job? = null
-    private var liveProcess: java.lang.Process? = null
     private var isRecording = false
 
     override fun onCreateView(
@@ -79,12 +80,11 @@ class DiagnosticsFragment : Fragment() {
 
         // 1. Grab Instant Snapshot
         binding.btnCaptureInstant.setOnClickListener {
-            val scope = if (binding.chipScopeApp.isChecked) "APP_ONLY" else "ALL"
             binding.tvTerminalHeader.text = "Console Output: Capturing full diagnostic dump..."
             binding.btnCaptureInstant.isEnabled = false
 
             viewLifecycleOwner.lifecycleScope.launch {
-                val file = DiagnosticLogCollector.captureDiagnosticDump(context, scope)
+                val file = DiagnosticLogCollector.captureDiagnosticDump(context)
                 latestDumpFile = file
                 if (_binding == null) return@launch
 
@@ -100,7 +100,7 @@ class DiagnosticsFragment : Fragment() {
                     Toast.makeText(context, "Log report ready to share!", Toast.LENGTH_SHORT).show()
                 } else {
                     binding.tvTerminalHeader.text = "Console Output: Failed capturing dump."
-                    Toast.makeText(context, "Failed generating dump. Check root permissions.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Unable to generate diagnostic report.", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -144,40 +144,27 @@ class DiagnosticsFragment : Fragment() {
 
     private fun startLiveRecording() {
         val context = requireContext()
+        if (!SecurityPreferences.isUserUnlocked(context)) return
         isRecording = true
         binding.btnLiveRecord.text = "Stop & Save Recording"
         binding.btnLiveRecord.setTextColor(ContextCompat.getColor(context, R.color.status_red))
         binding.btnCaptureInstant.isEnabled = false
-        binding.tvTerminalHeader.text = "Console Output: LIVE STREAMING LOGS (Reproduce bug now)..."
+        binding.tvTerminalHeader.text = "Console Output: LIVE SECURITY EVENTS (after unlock)..."
         binding.tvTerminalContent.text = ""
 
         liveRecordingJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val cmd = arrayOf("logcat", "-v", "time", "--pid=${Process.myPid()}", "*:V")
-                liveProcess = ProcessBuilder(*cmd).start()
-                val bufferedReader = liveProcess!!.inputStream.bufferedReader()
-                val buffer = StringBuilder()
-                var lineCount = 0
-
-                // Fixed: Replaced forEachLine lambda with a while loop to support suspension functions
-                while (isActive) {
-                    val line = bufferedReader.readLine() ?: break
-                    buffer.append(line).append("\n")
-                    lineCount++
-
-                    if (lineCount % 10 == 0) {
-                        val currentText = buffer.toString()
-                        withContext(Dispatchers.Main) {
-                            if (_binding != null) {
-                                binding.tvTerminalContent.text = currentText.takeLast(4000)
-                            }
-                        }
+                while (isActive && SecurityPreferences.isUserUnlocked(context)) {
+                    val currentText = EventLogger.getLogs(context).joinToString("\n")
+                    withContext(Dispatchers.Main) {
+                        if (_binding != null) binding.tvTerminalContent.text = currentText.take(12000)
                     }
+                    delay(1000)
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     if (_binding != null) {
-                        binding.tvTerminalHeader.text = "Console Output: Live stream halted (${e.message})"
+                        binding.tvTerminalHeader.text = "Console Output: Audit stream halted."
                     }
                 }
             }
@@ -194,15 +181,10 @@ class DiagnosticsFragment : Fragment() {
         liveRecordingJob?.cancel()
         liveRecordingJob = null
 
-        try {
-            liveProcess?.destroy()
-        } catch (_: Exception) {}
-        liveProcess = null
-
         binding.tvTerminalHeader.text = "Console Output: Recording finished. Packaging report..."
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val file = DiagnosticLogCollector.captureDiagnosticDump(context, "ALL")
+            val file = DiagnosticLogCollector.captureDiagnosticDump(context)
             latestDumpFile = file
             if (_binding == null) return@launch
 
@@ -216,9 +198,6 @@ class DiagnosticsFragment : Fragment() {
 
     override fun onDestroyView() {
         liveRecordingJob?.cancel()
-        try {
-            liveProcess?.destroy()
-        } catch (_: Exception) {}
         super.onDestroyView()
         _binding = null
     }

@@ -23,7 +23,7 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         // Only act on our own proximity-alert broadcasts; reject anything else.
         if (intent.action != GeofenceHelper.ACTION_PROXIMITY_ALERT) {
-            Log.w("GeofenceReceiver", "Ignoring unrelated broadcast: ${intent.action}")
+            Log.w("GeofenceReceiver", "Ignoring unrelated broadcast.")
             return
         }
 
@@ -33,17 +33,16 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
         }
 
         val entering = intent.getBooleanExtra(LocationManager.KEY_PROXIMITY_ENTERING, false)
-        val zoneId = intent.getStringExtra(GeofenceHelper.EXTRA_ZONE_ID) ?: GeofenceHelper.GEOFENCE_ID
 
         if (!entering) {
-            Log.w("GeofenceReceiver", "Device has EXITED safe zone '$zoneId'!")
+            Log.w("GeofenceReceiver", "Device has exited a safe zone.")
             PanicActionService.trigger(
                 context,
                 "GEOFENCE_EXIT",
                 PanicActionService.Severity.LOW
             )
         } else {
-            Log.i("GeofenceReceiver", "Device has ENTERED safe zone '$zoneId'.")
+            Log.i("GeofenceReceiver", "Device has entered a safe zone.")
         }
     }
 }

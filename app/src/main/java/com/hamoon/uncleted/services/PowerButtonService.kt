@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.services
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.os.Handler
@@ -107,7 +108,7 @@ class PowerButtonService : AccessibilityService() {
                 sequenceIndex = 0
                 if (wipeTriggered.compareAndSet(false, true)) {
                     Log.e(tag, "Rapid volume sequence matched. Initiating standard factory reset.")
-                    EventLogger.log(this, "ACCESSIBILITY: Rapid volume sequence matched -> standard factory reset.")
+                    EventLogger.log(this, SecurityEvent.VOLUME_WIPE)
 
                     Handler(Looper.getMainLooper()).post {
                         Toast.makeText(applicationContext, "EMERGENCY FACTORY RESET TRIGGERED", Toast.LENGTH_LONG).show()

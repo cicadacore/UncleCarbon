@@ -73,7 +73,12 @@ class AuthenticationFragment : Fragment() {
         val context = requireContext()
 
         binding.switchBiometricLock.setOnCheckedChangeListener { _, isChecked ->
-            SecurityPreferences.setBiometricLockEnabled(context, isChecked)
+            try {
+                SecurityPreferences.setBiometricLockEnabled(context, isChecked)
+            } catch (_: Exception) {
+                Toast.makeText(context, "Unable to save app lock settings.", Toast.LENGTH_SHORT).show()
+                requireActivity().finish()
+            }
         }
 
         binding.autoMaxFailedAttempts.setOnItemClickListener { _, _, position, _ ->

@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.util
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.content.Context
 import android.util.Log
 import com.hamoon.uncleted.data.SecurityPreferences
@@ -100,12 +101,13 @@ object AdvancedEmailSender {
             message.setContent(multipart)
             Transport.send(message)
 
-            Log.i(TAG, "Advanced email sent successfully to $recipient")
+            Log.i(TAG, "Advanced email sent successfully.")
+            EventLogger.log(context, SecurityEvent.EMAIL_SENT)
             true
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send advanced email", e)
-            EventLogger.log(context, "ERROR: Failed to send email alert. Check credentials and connection.")
+            Log.e(TAG, "Advanced email delivery failed.")
+            EventLogger.log(context, SecurityEvent.EMAIL_FAILED)
             false
         } finally {
             Thread.currentThread().contextClassLoader = originalClassLoader
@@ -156,7 +158,6 @@ object AdvancedEmailSender {
         }
 
         builder.append("\nThis message was sent automatically by Uncle Ted security system.")
-        EventLogger.log(context, "Email alert sent: ${originalBody.take(50)}...")
         return builder.toString()
     }
 

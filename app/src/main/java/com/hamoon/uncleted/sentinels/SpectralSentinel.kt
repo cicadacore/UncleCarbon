@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.sentinels
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.app.KeyguardManager
 import android.content.Context
 import android.net.ConnectivityManager
@@ -151,7 +152,7 @@ class SpectralSentinel(private val context: Context) {
         }
         if (wasActive) {
             Log.w(TAG, "RF returned; quarantine cancelled")
-            EventLogger.log(context, "RF/Network-loss Sentinel: RF returned; quarantine cancelled.")
+            EventLogger.log(context, SecurityEvent.RF_RECOVERED)
         }
         if (currentState != SpectralState.NORMAL) transitionTo(SpectralState.NORMAL)
     }
@@ -173,7 +174,7 @@ class SpectralSentinel(private val context: Context) {
         if (currentState != SpectralState.QUARANTINE && currentState != SpectralState.ACTION_TRIGGERED) {
             transitionTo(SpectralState.FARADAY_CONFIRMED)
             Log.e(TAG, "Faraday-like isolation confirmed" + (wifiState?.let { " (wifi=$it)" } ?: ""))
-            EventLogger.log(context, "RF/Network-loss Sentinel: Faraday-like isolation confirmed.")
+            EventLogger.log(context, SecurityEvent.RF_ISOLATED)
         }
 
         val prev = loadQuarantineState()
@@ -183,7 +184,7 @@ class SpectralSentinel(private val context: Context) {
 
         if (!prev.active && step.state.active) {
             Log.w(TAG, "quarantine started duration=${quarantineMs}ms action=$action")
-            EventLogger.log(context, "RF/Network-loss Sentinel: quarantine started (${quarantineMs}ms, action=$action).")
+            EventLogger.log(context, SecurityEvent.RF_QUARANTINE)
             if (currentState != SpectralState.QUARANTINE) transitionTo(SpectralState.QUARANTINE)
         } else if (currentState != SpectralState.QUARANTINE && currentState != SpectralState.ACTION_TRIGGERED) {
             transitionTo(SpectralState.QUARANTINE)
@@ -205,7 +206,7 @@ class SpectralSentinel(private val context: Context) {
             if (SystemClock.elapsedRealtime() - lastDeviceOwnerDiagMs >= DEVICE_OWNER_DIAG_INTERVAL_MS) {
                 lastDeviceOwnerDiagMs = SystemClock.elapsedRealtime()
                 Log.e(TAG, "ACTION BLOCKED: WIPE requires Device Owner but app is not provisioned. No wipe performed.")
-                EventLogger.log(context, "RF/Network-loss Sentinel: WIPE blocked — Device Owner not provisioned.")
+                EventLogger.log(context, SecurityEvent.RF_WIPE_BLOCKED)
             }
             // Keep the confirmed quarantine active (do not pretend success); if Device
             // Owner is granted later and isolation still holds, it will fire then.
@@ -219,7 +220,7 @@ class SpectralSentinel(private val context: Context) {
 
         transitionTo(SpectralState.ACTION_TRIGGERED)
         Log.e(TAG, "ACTION CONFIRMED action=$action elapsed=${elapsedMs}ms")
-        EventLogger.log(context, "RF/Network-loss Sentinel triggered (elapsed=${elapsedMs}ms). Action: $action")
+        EventLogger.log(context, SecurityEvent.RF_TRIGGERED)
 
         // The event is complete; clear the persisted quarantine so a later genuine
         // event re-arms cleanly.

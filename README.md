@@ -33,7 +33,7 @@
 - [📊 Architectural Comparison: Deployment Profiles](#-architectural-comparison-deployment-profiles)
 - [🏗️ System Architecture (Dual-Profile & Sub-OS Engine)](#️-system-architecture-dual-profile--sub-os-engine)
 - [✨ Core Capabilities](#-core-capabilities)
-  - [1. Hardware Security Module & Anti-Rollback Suicide Key (Titan M2 / StrongBox)](#1-hardware-security-module--anti-rollback-suicide-key-titan-m2--strongbox)
+  - [1. Hardware Security Module & Key Deletion (Titan M2 / StrongBox)](#1-hardware-security-module--key-deletion-titan-m2--strongbox)
   - [2. Inverted Dead-Man Architecture: "Fail-Closed" Ephemeral Keys](#2-inverted-dead-man-architecture-fail-closed-ephemeral-keys)
   - [3. Out-of-Band Key Decoupling via OPRF (RFC 9497 / secp256r1)](#3-out-of-band-key-decoupling-via-oprf-rfc-9497--secp256r1)
   - [4. Zero-Latency Hardware USB PHY Annihilation (The Trapdoor Port)](#4-zero-latency-hardware-usb-phy-annihilation-the-trapdoor-port)
@@ -90,7 +90,7 @@ On modern Android (Android 9 through 17 / GrapheneOS), the platform enforces str
 | **OPRF Key Decoupling** | 🔴 Inoperable | 🟢 **RFC 9497 EC-OPRF (Fail-Closed)** | 🟢 **RFC 9497 EC-OPRF (Fail-Closed)** | Master storage secret is mathematically decoupled: $K_{master} = K_{local} \oplus \text{OPRF}(PIN, K_{remote})$. Chip-off flash dumps cannot be brute-forced offline. |
 | **Silicon-Level Storage Purge** | 🔴 Inoperable | 🟡 Hardware SE Wipe via DPM | 🟢 **True FBE Key Block Crypto-Shred** | Route B shreds actual Vold key directories, destroys 64KB metadata wrappers, and issues `BLKSECDISCARD` / `BLKDISCARD` ioctls directly to UFS/eMMC FTL controllers. |
 | **Zero-Latency USB Severing** | 🔴 Impossible | 🟢 **USB HAL v1.3+ Port Severing** | 🟢 **DWC3 / UDC PHY Cut + SysRq Trap** | Route A commands `dpm.setUsbDataSignalingEnabled(false)`; Route B unbinds DWC3 registers instantly upon screen-off and panics on unauthorized protocol queries. |
-| **Anti-NAND Mirroring Defense** | 🔴 Non-Existent | 🟢 **Hardware Monotonic Counter Bound** | 🟢 **Atomic Dual-Anchor State Machine** | Route A binds keys to Titan M2 / RPMB rollback resistance; Route B detects counter desync and forces defensive lockdown. |
+| **App-data snapshot rollback protection** | Not provided | Not verified | Not provided | Restorable userdata counters cannot establish freshness. Keystore key isolation and AES-GCM integrity are separate properties. |
 | **Post-Quantum Cryptography** | 🔴 Classical Only | 🟢 **ML-KEM-768 + X25519 (FIPS 203)** | 🟢 **ML-KEM-768 + X25519 (FIPS 203)** | Hybrid Post-Quantum KEM protects data and covert canaries against "Harvest Now, Decrypt Later" quantum cryptanalysis. |
 | **ARMv8.5-A MTE Hardening** | 🔴 Non-Enforced | 🟢 **Synchronous Mode (`sync`)** | 🟢 **Synchronous Mode (`sync`)** | Native layer sets `PR_MTE_TCF_SYNC` via `prctl()`, aborting spatial/temporal memory corruptions immediately via `SIGSEGV`. |
 | **Volatile Memory Sanitization** | 🔴 None (OS Swaps Cleanly) | 🟡 Process `mlock()` & Barriers | 🟢 **Kernel `drop_caches` & ZRAM Re-Key** | Route B executes kernel-level cache dropping, page compaction, and ZRAM swap reset on `ACTION_SCREEN_OFF`. |
@@ -125,7 +125,7 @@ Uncle Ted v10.0.1 features a decoupled, strategy-based architecture coordinated 
  ┌─────────────────────────────────────────────────┐   ┌─────────────────────────────────────────────────┐
  │ ROUTE A: DEVICE OWNER (AVB 2.0 LOCKED)          │   │ ROUTE B: PRIVILEGED ROOT / LSPOSED (UNLOCKED)   │
  │ - 100% Enforcing AVB 2.0 Root of Trust          │   │ - Native system_server LockSettingsService Hook │
- │ - Titan M2 StrongBox KeyMint & Anti-Rollback    │   │ - In-Process Atomic Decoy User Space Migration  │
+ │ - StrongBox KeyMint key isolation              │   │ - In-Process Atomic Decoy User Space Migration  │
  │ - Out-of-Band OPRF Key Decoupling (RFC 9497)    │   │ - Out-of-Band OPRF Key Decoupling (RFC 9497)    │
  │ - Fail-Closed Ephemeral Rolling Key Buffer      │   │ - Fail-Closed Ephemeral Rolling Key + Vold Lock │
  │ - NIST FIPS 203 ML-KEM-768 + X25519 PQC Engine  │   │ - JEDEC BLKSECDISCARD / BLKDISCARD IOCTL        │
@@ -146,9 +146,9 @@ Uncle Ted v10.0.1 features a decoupled, strategy-based architecture coordinated 
 
 ## ✨ Core Capabilities
 
-### 1. Hardware Security Module & Anti-Rollback Suicide Key (Titan M2 / StrongBox)
+### 1. Hardware Security Module & Key Deletion (Titan M2 / StrongBox)
 - **Discrete Silicon KeyMint (`StrongBoxSecurityManager`):** Protects application databases, sensitive preferences, and credential hashes using an AES-256-GCM master key provisioned inside discrete hardware silicon (`setIsStrongBoxBacked(true)`), isolated from the primary application processor.
-- **Hardware Monotonic Anti-Rollback Binding (`AntiRollbackManager`):** Protects cryptographic integrity using atomic state files (`AtomicFile`) and monotonic sequence verification with tolerance thresholds. Detects state rewinds indicative of **NAND Mirroring** (desoldering the UFS flash chip to perform PIN dictionaries and rewinding state) and executes defensive lockdown.
+- **Rollback limitation:** The former `AntiRollbackManager` compared a SharedPreferences counter with an app-data file. Both could be restored together, so it has been removed. Keystore key isolation and AES-GCM authentication remain; the optional hidden-API request for key rollback resistance is not verified and does not protect app-data freshness. See [security hardening review](docs/security-hardening.md).
 - **Sub-10ms Cryptographic Suicide:** In duress or catastrophic compromise scenarios, Uncle Ted calls `KeyStore.deleteEntry(MASTER_SUICIDE_KEY_ALIAS)`. Deleting this silicon-level register takes under 10 milliseconds and makes all encrypted databases, credentials, and offline caches permanently unrecoverable, rendering physical flash dump analysis mathematically futile.
 - **Weaver Hardware Rate-Limiting Weaponization:** In Route A, sets `dpm.setMaximumFailedPasswordsForWipe(admin, 3)`. The Titan M / Weaver chip enforces exponential backoffs and autonomously commands KeyMint to revoke root Key Encryption Keys (KEKs) upon 3 consecutive authentication failures, executing independently of userspace runtime health or battery state.
 
@@ -460,7 +460,6 @@ UncleTed-main/
 │   │   │   │   │       ├── DeviceOwnerStrategy.kt <-- Route A (Titan M2 / Locked AVB / wipeDevice)
 │   │   │   │   │       └── RootPrivilegedStrategy.kt <-- Route B (Root / LSPosed)
 │   │   │   │   ├── crypto/                       <-- Hardware Keystore, PQC, OPRF & Ephemeral Engine
-│   │   │   │   │   ├── AntiRollbackManager.kt    <-- Atomic dual-anchor monotonic counter
 │   │   │   │   │   ├── CryptoPreferences.kt      <-- Hardware-encrypted DE storage preferences
 │   │   │   │   │   ├── EphemeralKeyDecayEngine.kt<-- Fail-Closed entropy-driven key rolling & Vold lock
 │   │   │   │   │   ├── FastCryptoShredEngine.kt  <-- True FBE 4KB key block & metadata shredder
@@ -733,17 +732,16 @@ adb shell su -c "ls -la /data/adb/post-mount.d/00_uncleted_early_usb_kill.sh"
 -rwxr-xr-x 1 root root ... /data/adb/post-mount.d/00_uncleted_early_usb_kill.sh
 ```
 
-#### 6. Confirm Discrete Titan M2 / StrongBox Master Key & Rollback Protection
+#### 6. Inspect Keystore Key Provisioning (not a rollback attestation)
 Inspect logcat during app initialization:
 ```bash
-adb logcat -s "StrongBoxSecManager" "AntiRollbackManager" "UncleTedApplication"
+adb logcat -s "StrongBoxSecManager" "UncleTedApplication"
 ```
 *Expected output:*
 ```text
 StrongBoxSecManager: Initializing Master Suicide Key (StrongBox Supported: true)...
-StrongBoxSecManager: Enforced setRollbackResistant(true) on hardware master key via reflection.
+StrongBoxSecManager: Requested key rollback resistance; not verified.
 StrongBoxSecManager: Hardware master key successfully provisioned inside discrete HSM.
-AntiRollbackManager: Anti-rollback evaluation: Persisted=1001, LocalFile=1001
 UncleTedApplication: Native runtime memory defenses armed (Success: true).
 ```
 

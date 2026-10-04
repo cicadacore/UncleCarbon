@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.util
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
@@ -418,7 +419,7 @@ object ThreatDetectionEngine {
 
     private fun logThreatAnalysis(context: Context, threatLevel: ThreatLevel, threatCount: Int, confidence: Float) {
         val message = "Threat Analysis: Level=$threatLevel, Threats=$threatCount, Confidence=${(confidence * 100).toInt()}%"
-        EventLogger.log(context, message)
+        EventLogger.log(context, SecurityEvent.THREAT_ANALYSIS)
         Log.i(TAG, message)
 
         // Trigger alerts for high-level threats

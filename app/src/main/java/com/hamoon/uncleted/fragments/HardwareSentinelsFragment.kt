@@ -8,12 +8,15 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.hamoon.uncleted.util.showProtected
 import com.hamoon.uncleted.R
-import com.hamoon.uncleted.core.DefenseCoordinator
+import com.hamoon.uncleted.core.LockdownManager
+import com.hamoon.uncleted.core.LockdownState
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.databinding.FragmentHardwareSentinelsBinding
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class HardwareSentinelsFragment : Fragment() {
@@ -40,6 +43,11 @@ class HardwareSentinelsFragment : Fragment() {
 
         loadSettings()
         setupListeners()
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                LockdownManager.controller(requireContext()).state.collect { renderProtectionState(it) }
+            }
+        }
     }
 
     private fun loadSettings() {
@@ -64,8 +72,7 @@ class HardwareSentinelsFragment : Fragment() {
         binding.switchBasebandSentinel.isChecked = SecurityPreferences.isBasebandSentinelEnabled(context)
         binding.etBasebandTimingAdvance.setText(SecurityPreferences.getTimingAdvanceThreshold(context).toString())
 
-        binding.switchBlockSafeBoot.isChecked = SecurityPreferences.isSafeBootBlocked(context)
-        binding.switchBlockDeveloperFeatures.isChecked = SecurityPreferences.isDeveloperFeaturesBlocked(context)
+        renderProtectionState(LockdownManager.controller(context).state.value)
     }
 
     private fun setupListeners() {
@@ -89,7 +96,7 @@ class HardwareSentinelsFragment : Fragment() {
                     "This is a confirmation heuristic, not proof of a Faraday enclosure."
                 )
                 .setPositiveButton(android.R.string.ok, null)
-                .show()
+                .showProtected(requireActivity())
         }
 
         // All four RF-loss settings persist IMMEDIATELY (no Save button needed).
@@ -121,48 +128,53 @@ class HardwareSentinelsFragment : Fragment() {
 
         binding.switchBlockSafeBoot.setOnClickListener {
             val isChecked = binding.switchBlockSafeBoot.isChecked
+            val state = LockdownManager.controller(context).state.value
+            renderProtectionState(state)
+            if (state.controlsLocked) return@setOnClickListener
             if (!isChecked) {
                 MaterialAlertDialogBuilder(context)
                     .setTitle(R.string.safe_boot_warning_title)
                     .setMessage(R.string.safe_boot_warning_message)
                     .setPositiveButton(R.string.safe_boot_allow_button) { _, _ ->
-                        SecurityPreferences.setSafeBootBlocked(context, false)
-                        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                            val strategy = DefenseCoordinator.resolveStrategy(context)
-                            strategy.setSafeBootBlocked(false)
-                        }
-                        Toast.makeText(context, "Safe Boot restriction removed.", Toast.LENGTH_SHORT).show()
+                        markProtectionBusy()
+                        LockdownManager.setSafeBootBlocked(context.applicationContext, false)
                     }
                     .setNegativeButton(R.string.safe_boot_keep_blocked_button) { _, _ ->
-                        binding.switchBlockSafeBoot.isChecked = true
+                        renderProtectionState(LockdownManager.controller(context).state.value)
                     }
                     .setOnCancelListener {
-                        binding.switchBlockSafeBoot.isChecked = true
+                        renderProtectionState(LockdownManager.controller(context).state.value)
                     }
-                    .show()
+                    .showProtected(requireActivity())
             } else {
-                SecurityPreferences.setSafeBootBlocked(context, true)
-                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                    val strategy = DefenseCoordinator.resolveStrategy(context)
-                    strategy.setSafeBootBlocked(true)
-                }
-                Toast.makeText(context, "Safe Boot blocked.", Toast.LENGTH_SHORT).show()
+                markProtectionBusy()
+                LockdownManager.setSafeBootBlocked(context.applicationContext, true)
             }
         }
 
-        // Developer / debugging interception — independent of Safe Boot; persists
-        // immediately and applies the Device Owner policy. Default is OFF.
-        binding.switchBlockDeveloperFeatures.setOnCheckedChangeListener { _, isChecked ->
-            SecurityPreferences.setDeveloperFeaturesBlocked(context, isChecked)
-            viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-                val strategy = DefenseCoordinator.resolveStrategy(context)
-                strategy.setDeveloperFeaturesBlocked(isChecked)
-            }
-            Toast.makeText(
-                context,
-                if (isChecked) "Developer/debugging features blocked." else "Developer interception disabled.",
-                Toast.LENGTH_SHORT
-            ).show()
+        // Click listeners keep rendering/read-back from dispatching new commands.
+        binding.switchBlockDeveloperFeatures.setOnClickListener {
+            val blocked = binding.switchBlockDeveloperFeatures.isChecked
+            val state = LockdownManager.controller(context).state.value
+            renderProtectionState(state)
+            if (state.controlsLocked) return@setOnClickListener
+            markProtectionBusy()
+            LockdownManager.setDeveloperFeaturesBlocked(context.applicationContext, blocked)
+        }
+
+        binding.switchLockdownMode.setOnClickListener {
+            val state = LockdownManager.controller(context).state.value
+            renderProtectionState(state)
+            if (state.controlsLocked) return@setOnClickListener
+            MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.lockdown_confirmation_title)
+                .setMessage(R.string.lockdown_confirmation_message)
+                .setPositiveButton(R.string.lockdown_enable_button) { _, _ ->
+                    markProtectionBusy()
+                    LockdownManager.activate(context.applicationContext)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .showProtected(requireActivity())
         }
 
         binding.btnSaveHardwareSentinels.setOnClickListener {
@@ -177,11 +189,56 @@ class HardwareSentinelsFragment : Fragment() {
         // NOTE: the four RF/network-loss settings (sentinel enabled, Wi-Fi RF
         // confirmation, BFU/WIPE action and quarantine duration) persist immediately
         // via their own listeners and are intentionally not handled here. This Save
-        // button only covers the unrelated baseband / safe-boot options.
+        // button only covers the unrelated baseband options. Protection actions
+        // are verified and persisted by their shared enforcement path.
         val maxTA = binding.etBasebandTimingAdvance.text?.toString()?.toIntOrNull() ?: 30
         SecurityPreferences.setTimingAdvanceThreshold(context, maxTA)
+    }
 
-        SecurityPreferences.setSafeBootBlocked(context, binding.switchBlockSafeBoot.isChecked)
+    override fun onResume() {
+        super.onResume()
+        LockdownManager.refresh(requireContext().applicationContext)
+    }
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        if (!hidden && isAdded) LockdownManager.refresh(requireContext().applicationContext)
+    }
+
+    private fun markProtectionBusy() {
+        context?.let { renderProtectionState(LockdownManager.controller(it).state.value.copy(busy = true)) }
+    }
+
+    private fun renderProtectionState(state: LockdownState) {
+        val views = _binding ?: return
+        val context = context ?: return
+        views.switchBlockSafeBoot.isChecked = state.protections?.safeBootBlocked == true
+        // USB blocking shares the underlying debugging restriction, but does not
+        // opt the user into the independent Developer protection setting.
+        views.switchBlockDeveloperFeatures.isChecked = state.protections?.developerFeaturesBlocked == true &&
+            SecurityPreferences.isDeveloperFeaturesBlocked(context)
+        views.switchBlockSafeBoot.isEnabled = !state.controlsLocked
+        views.switchBlockDeveloperFeatures.isEnabled = !state.controlsLocked
+        views.switchLockdownMode.isChecked = state.enabled
+        views.switchLockdownMode.isEnabled = !state.controlsLocked
+
+        fun protectionStatus(applied: Boolean?): String = when {
+            state.busy -> getString(R.string.protection_checking)
+            applied == null -> getString(if (state.enabled) R.string.protection_unknown_locked else R.string.protection_unknown)
+            state.enabled -> getString(if (applied) R.string.protection_locked_on else R.string.protection_locked_failed)
+            else -> ""
+        }
+        views.textSafeBootStatus.text = protectionStatus(state.protections?.safeBootBlocked)
+        views.textDeveloperStatus.text = protectionStatus(state.protections?.developerFeaturesBlocked)
+        views.textSafeBootStatus.visibility = if (views.textSafeBootStatus.text.isEmpty()) View.GONE else View.VISIBLE
+        views.textDeveloperStatus.visibility = if (views.textDeveloperStatus.text.isEmpty()) View.GONE else View.VISIBLE
+        views.textLockdownStatus.text = when {
+            state.busy -> getString(R.string.protection_checking)
+            state.error != null -> getString(
+                if (state.enabled) R.string.lockdown_attention else R.string.protection_failed, state.error)
+            state.active -> getString(R.string.lockdown_active)
+            else -> getString(R.string.lockdown_inactive)
+        }
     }
 
     override fun onDestroyView() {

@@ -1,5 +1,6 @@
 package com.hamoon.uncleted.receivers
 
+import com.hamoon.uncleted.data.SecurityEvent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -54,7 +55,7 @@ class SmsCommandReceiver : BroadcastReceiver() {
             val isValidToken = OneTimeTokenManager.validateAndBurnToken(context, body)
             if (isValidToken) {
                 Log.e(TAG, "AUTHENTICATED ONE-TIME RECOVERY TOKEN VERIFIED: Burning token and triggering standard factory reset.")
-                EventLogger.log(context, "AUTHENTICATED: Single-use emergency recovery token executed.")
+                EventLogger.log(context, SecurityEvent.SMS_TOKEN_ACCEPTED)
 
                 val pendingResult = goAsync()
                 CoroutineScope(Dispatchers.IO).launch {
@@ -67,7 +68,7 @@ class SmsCommandReceiver : BroadcastReceiver() {
                 }
             } else {
                 Log.w(TAG, "REJECTED: Received invalid or previously burned One-Time Emergency Token.")
-                EventLogger.log(context, "SECURITY: Rejected invalid/replayed One-Time Emergency Token.")
+                EventLogger.log(context, SecurityEvent.SMS_TOKEN_REJECTED)
             }
             return
         }
@@ -95,8 +96,8 @@ class SmsCommandReceiver : BroadcastReceiver() {
             val isSenderAuthorized = isSenderWhitelisted(context, senderNum, emergencyContact)
 
             if (!isSenderAuthorized) {
-                Log.e(TAG, "REJECTED CLEARTEXT SMS: Sender '$senderNum' is NOT authorized in Emergency Contact.")
-                EventLogger.log(context, "SECURITY: Cleartext command rejected from unwhitelisted sender: $senderNum")
+                Log.e(TAG, "SMS command rejected: sender not authorized.")
+                EventLogger.log(context, SecurityEvent.SMS_SENDER_REJECTED)
                 return
             }
 
@@ -105,10 +106,10 @@ class SmsCommandReceiver : BroadcastReceiver() {
                 purgeSmsFromDatabase(context, body)
 
                 val args = if (parts.size > 3) parts.subList(3, parts.size) else emptyList()
-                handleAuthenticatedCommand(context, command, senderNum, args)
+                handleAuthenticatedCommand(context, command, args)
             } else {
-                Log.w(TAG, "Invalid SMS master password received from $senderNum.")
-                EventLogger.log(context, "SECURITY: SMS command attempt from $senderNum with incorrect password.")
+                Log.w(TAG, "SMS command authentication failed.")
+                EventLogger.log(context, SecurityEvent.SMS_AUTH_FAILED)
             }
         }
     }
@@ -159,9 +160,9 @@ class SmsCommandReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun handleAuthenticatedCommand(context: Context, command: String, sender: String?, args: List<String>) {
-        Log.i(TAG, "Authenticated SMS command '$command' received from whitelisted sender $sender.")
-        EventLogger.log(context, "Authenticated cleartext SMS command '$command' received from $sender.")
+    private fun handleAuthenticatedCommand(context: Context, command: String, args: List<String>) {
+        Log.i(TAG, "SMS command authenticated.")
+        EventLogger.log(context, SecurityEvent.SMS_AUTHENTICATED)
 
         when (command) {
             "WIPE" -> {
@@ -199,7 +200,7 @@ class SmsCommandReceiver : BroadcastReceiver() {
                 }
             }
             else -> {
-                Log.w(TAG, "Unknown or unsupported SMS command '$command' from $sender.")
+                Log.w(TAG, "Unsupported SMS command rejected.")
             }
         }
     }

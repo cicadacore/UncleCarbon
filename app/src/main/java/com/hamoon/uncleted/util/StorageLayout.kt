@@ -1,6 +1,7 @@
 package com.hamoon.uncleted.util
 
 import android.content.Context
+import com.hamoon.uncleted.data.SecurityPreferences
 import android.util.Log
 import java.io.File
 import java.nio.file.Files
@@ -19,7 +20,7 @@ import java.nio.file.LinkOption
  *
  * Only the dedicated `evidence/` and `diagnostics/` directories are exposed
  * through the FileProvider; the rest of `files/` (preferences, keys,
- * anti-rollback state, ...) and the cache directory are not.
+ * other private state, ...) and the cache directory are not.
  */
 object StorageLayout {
 
@@ -53,7 +54,25 @@ object StorageLayout {
     fun evidenceDir(context: Context): File = ensureDir(File(context.filesDir, EVIDENCE_DIR_NAME))
 
     /** `files/diagnostics/`, created if needed. */
-    fun diagnosticsDir(context: Context): File = ensureDir(File(context.filesDir, DIAGNOSTICS_DIR_NAME))
+    fun diagnosticsDir(context: Context): File {
+        check(SecurityPreferences.isUserUnlocked(context)) { "Unlock required for diagnostics" }
+        val ce = SecurityPreferences.requireCredentialStorageContext(context)
+        return ensureDir(File(ce.filesDir, DIAGNOSTICS_DIR_NAME))
+    }
+
+    /** Remove reports written with a DE context by older versions; never import them. */
+    fun purgeLegacyDeviceDiagnostics(context: Context) {
+        try {
+            val root = context.createDeviceProtectedStorageContext().filesDir
+            val names = Regex("uncleted_(bugreport|diagnostic)_[0-9]{8}_[0-9]{6}\\.txt")
+            for (dir in listOf(root, File(root, DIAGNOSTICS_DIR_NAME))) {
+                if (Files.isSymbolicLink(dir.toPath())) continue
+                dir.listFiles()?.filter { names.matches(it.name) }?.forEach {
+                    if (Files.isRegularFile(it.toPath(), LinkOption.NOFOLLOW_LINKS)) it.delete()
+                }
+            }
+        } catch (_: Exception) { }
+    }
 
     /** Legacy `files/Camera/`; never created, may not exist. */
     fun legacyCameraDir(context: Context): File = File(context.filesDir, LEGACY_CAMERA_DIR_NAME)
