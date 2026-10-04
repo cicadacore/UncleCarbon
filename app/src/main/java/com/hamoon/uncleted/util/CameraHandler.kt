@@ -107,7 +107,7 @@ object CameraHandler {
                 delay(250)
 
                 val photoFile = File(
-                    context.filesDir,
+                    StorageLayout.evidenceDir(context),
                     "IMG_${SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis())}.jpg"
                 )
 
@@ -206,7 +206,7 @@ object CameraHandler {
                 delay(250)
 
                 val videoFile = File(
-                    context.filesDir,
+                    StorageLayout.evidenceDir(context),
                     "VID_${SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis())}.mp4"
                 )
 

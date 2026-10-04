@@ -24,7 +24,7 @@ object LogcatManager {
      */
     suspend fun dumpLogcat(context: Context): File? = withContext(Dispatchers.IO) {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val logFile = File(context.filesDir, "uncleted_diagnostic_$timestamp.txt")
+        val logFile = File(StorageLayout.diagnosticsDir(context), "uncleted_diagnostic_$timestamp.txt")
 
         try {
             FileOutputStream(logFile).bufferedWriter().use { writer ->

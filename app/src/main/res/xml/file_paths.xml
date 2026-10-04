@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Grants FileProvider access to evidence files, images, and diagnostic dumps -->
-    <files-path name="shared_files" path="." />
-    <files-path name="diagnostics_files" path="diagnostics" />
-    <cache-path name="shared_cache" path="." />
+    <!--
+        Only the dedicated shareable directories are exposed (see util/StorageLayout).
+        Do NOT map the files/ or cache/ roots: they hold preferences, keys and
+        anti-rollback state that must never be reachable through a content URI.
+    -->
+    <files-path name="evidence_files" path="evidence/" />
+    <files-path name="diagnostics_files" path="diagnostics/" />
 </paths>

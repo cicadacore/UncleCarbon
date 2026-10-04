@@ -3,9 +3,11 @@ package com.hamoon.uncleted.receivers
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources
 import android.net.Uri
 import android.provider.Telephony
 import android.telephony.PhoneNumberUtils
+import android.telephony.TelephonyManager
 import android.util.Log
 import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.crypto.CryptoPreferences
@@ -90,7 +92,7 @@ class SmsCommandReceiver : BroadcastReceiver() {
             val password = parts[2]
 
             val emergencyContact = SecurityPreferences.getEmergencyContact(context)?.trim()
-            val isSenderAuthorized = isSenderWhitelisted(senderNum, emergencyContact)
+            val isSenderAuthorized = isSenderWhitelisted(context, senderNum, emergencyContact)
 
             if (!isSenderAuthorized) {
                 Log.e(TAG, "REJECTED CLEARTEXT SMS: Sender '$senderNum' is NOT authorized in Emergency Contact.")
@@ -111,25 +113,41 @@ class SmsCommandReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun isSenderWhitelisted(incomingNumber: String?, trustedContact: String?): Boolean {
-        if (incomingNumber.isNullOrBlank() || trustedContact.isNullOrBlank()) return false
-        if (trustedContact.contains("@")) return false
+    /**
+     * Exact sender authorization: both numbers are canonicalized to full E.164
+     * and must be identical. Anything that cannot be canonicalized (alphanumeric
+     * sender IDs, email contacts, local numbers with no known region, ...) is
+     * rejected. See [SmsSenderAuthorization].
+     */
+    private fun isSenderWhitelisted(context: Context, incomingNumber: String?, trustedContact: String?): Boolean {
+        return SmsSenderAuthorization.isAuthorized(
+            incomingNumber,
+            trustedContact,
+            resolveHomeRegionIso(context)
+        ) { number, region -> PhoneNumberUtils.formatNumberToE164(number, region) }
+    }
 
-        val normalizedIncoming = PhoneNumberUtils.stripSeparators(incomingNumber)
-        val normalizedTrusted = PhoneNumberUtils.stripSeparators(trustedContact)
-
-        @Suppress("DEPRECATION")
-        if (PhoneNumberUtils.compare(normalizedIncoming, normalizedTrusted)) {
-            return true
+    /**
+     * Region used to interpret numbers written without a '+' country code: the
+     * SIM's home country (the context in which the user typed a local number),
+     * falling back to the system locale's country. The serving network's
+     * country is intentionally not used, as it is wrong while roaming. Returns
+     * null when no region is known, so local-format numbers fail closed.
+     */
+    private fun resolveHomeRegionIso(context: Context): String? {
+        val simCountry = try {
+            context.getSystemService(TelephonyManager::class.java)?.simCountryIso
+        } catch (_: Exception) {
+            null
         }
+        SmsSenderAuthorization.normalizeRegionIso(simCountry)?.let { return it }
 
-        if (normalizedIncoming.length >= 7 && normalizedTrusted.length >= 7) {
-            val suffixIncoming = normalizedIncoming.takeLast(7)
-            val suffixTrusted = normalizedTrusted.takeLast(7)
-            return suffixIncoming == suffixTrusted
+        val localeCountry = try {
+            Resources.getSystem().configuration.locales[0]?.country
+        } catch (_: Exception) {
+            null
         }
-
-        return false
+        return SmsSenderAuthorization.normalizeRegionIso(localeCountry)
     }
 
     private fun purgeSmsFromDatabase(context: Context, bodySnippet: String) {

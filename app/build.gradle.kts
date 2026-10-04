@@ -3,6 +3,16 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+// Release signing material. The keystore is never committed (see .gitignore)
+// and the credentials come only from these environment variables: there are
+// no built-in, empty, generated or project-property fallbacks.
+val releaseKeystoreFile: File = rootProject.file("release.keystore")
+val releaseSigningEnvVars = listOf(
+    "UNCLETED_KEYSTORE_PASSWORD",
+    "UNCLETED_KEY_ALIAS",
+    "UNCLETED_KEY_PASSWORD"
+)
+
 android {
     namespace = "com.hamoon.uncleted"
     compileSdk = 34
@@ -44,18 +54,25 @@ android {
 
     signingConfigs {
         create("release") {
-            // Release keystore configuration. When the dedicated release
-            // keystore is absent we deliberately leave this config
-            // unconfigured rather than falling back to the shared Android
-            // debug key: a release artifact must never be signed with the
-            // debug key. The task-graph assertion below fails any release
+            // Release keystore configuration. Unless the dedicated release
+            // keystore AND all three credential environment variables are
+            // present, this config is deliberately left unconfigured rather
+            // than falling back to the shared Android debug key or to any
+            // default credential: a release artifact must never be signed
+            // with either. The task-graph assertion below fails any release
             // signing/packaging task instead of allowing a silent fallback.
-            val releaseKeystore = file("${rootProject.projectDir}/release.keystore")
-            if (releaseKeystore.exists()) {
-                storeFile = releaseKeystore
-                storePassword = System.getenv("UNCLETED_KEYSTORE_PASSWORD") ?: "uncleted_release"
-                keyAlias = System.getenv("UNCLETED_KEY_ALIAS") ?: "uncleted"
-                keyPassword = System.getenv("UNCLETED_KEY_PASSWORD") ?: "uncleted_release"
+            val storePasswordEnv = System.getenv("UNCLETED_KEYSTORE_PASSWORD")
+            val keyAliasEnv = System.getenv("UNCLETED_KEY_ALIAS")
+            val keyPasswordEnv = System.getenv("UNCLETED_KEY_PASSWORD")
+            if (releaseKeystoreFile.isFile &&
+                !storePasswordEnv.isNullOrBlank() &&
+                !keyAliasEnv.isNullOrBlank() &&
+                !keyPasswordEnv.isNullOrBlank()
+            ) {
+                storeFile = releaseKeystoreFile
+                storePassword = storePasswordEnv
+                keyAlias = keyAliasEnv
+                keyPassword = keyPasswordEnv
             }
         }
         getByName("debug") {
@@ -116,28 +133,37 @@ android {
 }
 
 // Security guard: a release build must never silently fall back to the shared
-// Android debug keystore. Fail fast if a release signing/packaging task is on
-// the graph while the dedicated release keystore is missing. Debug builds are
-// unaffected: only tasks that produce or sign a release artifact are checked.
+// Android debug keystore or to default credentials. Fail fast if a release
+// signing/packaging task is on the graph while the dedicated release keystore
+// or any of the credential environment variables is missing/blank. Debug
+// builds and Gradle sync are unaffected: only tasks that produce or sign a
+// release artifact are checked. Only the NAMES of missing variables are
+// reported; their values are never printed.
 gradle.taskGraph.whenReady {
     val releaseSigningRequested = allTasks.any { task ->
         task.project == project && (
             task.name.startsWith("assembleRelease") ||
             task.name.startsWith("bundleRelease") ||
             task.name.startsWith("packageRelease") ||
+            task.name.startsWith("signRelease") ||
             task.name.startsWith("validateSigningRelease")
         )
     }
     if (releaseSigningRequested) {
-        val releaseKeystore = file("${rootProject.projectDir}/release.keystore")
-        if (!releaseKeystore.exists()) {
+        val problems = mutableListOf<String>()
+        if (!releaseKeystoreFile.isFile) {
+            problems += "release.keystore not found at ${releaseKeystoreFile.absolutePath}"
+        }
+        val missingEnvVars = releaseSigningEnvVars.filter { System.getenv(it).isNullOrBlank() }
+        if (missingEnvVars.isNotEmpty()) {
+            problems += "missing or blank environment variable(s): ${missingEnvVars.joinToString(", ")}"
+        }
+        if (problems.isNotEmpty()) {
             throw GradleException(
-                "Release signing aborted: release.keystore not found at " +
-                    "${rootProject.projectDir}. Release artifacts must be signed with a " +
-                    "dedicated release key and must not fall back to the Android debug key. " +
-                    "Provide release.keystore (and the UNCLETED_KEYSTORE_PASSWORD / " +
-                    "UNCLETED_KEY_ALIAS / UNCLETED_KEY_PASSWORD environment variables) before " +
-                    "building a release."
+                "Release signing aborted: ${problems.joinToString("; ")}. Release artifacts " +
+                    "must be signed with the dedicated release key using credentials supplied " +
+                    "via ${releaseSigningEnvVars.joinToString(" / ")}; there is no fallback to " +
+                    "the Android debug key or to built-in credentials."
             )
         }
     }
@@ -147,10 +173,6 @@ dependencies {
     // --- XPOSED / LSPOSED HOOK API ---
     compileOnly("de.robv.android.xposed:api:82")
     compileOnly("de.robv.android.xposed:api:82:sources")
-
-    // --- CRYPTOGRAPHY & BOUNCY CASTLE (ED25519 & ML-KEM-768 PQC ENGINE) ---
-    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
 
     // --- ANDROIDX & MATERIAL ---
     implementation(libs.androidx.core.ktx)
@@ -168,8 +190,6 @@ dependencies {
     implementation(libs.androidx.security.crypto)
 
     // --- NETWORKING ---
-    implementation(libs.squareup.retrofit)
-    implementation(libs.squareup.converter.gson)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // --- COROUTINES ---

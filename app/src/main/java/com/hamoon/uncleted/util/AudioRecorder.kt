@@ -21,7 +21,7 @@ object AudioRecorder {
 
         // Correct container extension: MPEG-4 / AAC must be saved as .m4a
         val audioFile = File(
-            context.filesDir,
+            StorageLayout.evidenceDir(context),
             "AUD_${SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis())}.m4a"
         )
 
