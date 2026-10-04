@@ -26,6 +26,7 @@ import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.databinding.ActivityEvidenceGalleryBinding
 import com.hamoon.uncleted.databinding.DialogMediaViewerBinding
 import com.hamoon.uncleted.databinding.ItemEvidenceMediaBinding
+import com.hamoon.uncleted.util.StorageLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -126,14 +127,14 @@ class EvidenceGalleryActivity : AppCompatActivity() {
     private fun scanEvidenceFiles(): List<EvidenceFileItem> {
         val files = mutableListOf<File>()
 
-        // Scan app private filesDir
-        val privateFiles = filesDir.listFiles()
-        if (privateFiles != null) {
-            files.addAll(privateFiles)
-        }
+        // Move evidence written by older versions into the dedicated directory
+        StorageLayout.migrateLegacyEvidence(this)
 
-        // Scan Camera vault folder
-        val cameraDir = File(filesDir, "Camera")
+        // Scan the dedicated (FileProvider-shareable) evidence directory
+        StorageLayout.evidenceDir(this).listFiles()?.let { files.addAll(it) }
+
+        // Scan legacy Camera vault folder
+        val cameraDir = StorageLayout.legacyCameraDir(this)
         if (cameraDir.exists()) {
             cameraDir.listFiles()?.let { files.addAll(it) }
         }

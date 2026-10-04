@@ -30,10 +30,6 @@
 -keepresources META-INF/javamail.*
 -keepresources META-INF/mailcap*
 
-# BouncyCastle Cryptographic Provider (Ed25519 Engine)
--keep class org.bouncycastle.** { *; }
--dontwarn org.bouncycastle.**
-
 # LSPosed / Xposed API Hooks
 -keep class de.robv.android.xposed.** { *; }
 -dontwarn de.robv.android.xposed.**

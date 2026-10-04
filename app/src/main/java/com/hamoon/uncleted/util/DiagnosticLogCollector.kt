@@ -47,12 +47,7 @@ object DiagnosticLogCollector {
 
     suspend fun captureDiagnosticDump(context: Context, logScope: String = "ALL"): File? = withContext(Dispatchers.IO) {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val outputDir = File(context.filesDir, "diagnostics")
-        if (!outputDir.exists()) {
-            outputDir.mkdirs()
-        }
-
-        val logFile = File(outputDir, "uncleted_bugreport_$timestamp.txt")
+        val logFile = File(StorageLayout.diagnosticsDir(context), "uncleted_bugreport_$timestamp.txt")
 
         try {
             val env = getEnvironmentDiagnostics(context)

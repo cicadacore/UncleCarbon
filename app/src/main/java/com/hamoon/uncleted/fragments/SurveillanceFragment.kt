@@ -15,6 +15,7 @@ import com.hamoon.uncleted.R
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.databinding.FragmentSurveillanceBinding
 import com.hamoon.uncleted.services.PanicActionService
+import com.hamoon.uncleted.util.StorageLayout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -103,7 +104,9 @@ class SurveillanceFragment : Fragment() {
                 var count = 0
                 var bytes = 0L
 
-                val files = context.filesDir.listFiles()
+                StorageLayout.migrateLegacyEvidence(context)
+
+                val files = StorageLayout.evidenceDir(context).listFiles()
                 files?.forEach { f ->
                     val name = f.name
                     if (name.startsWith("IMG_") || name.startsWith("VID_") ||
@@ -113,7 +116,7 @@ class SurveillanceFragment : Fragment() {
                     }
                 }
 
-                val cameraDir = File(context.filesDir, "Camera")
+                val cameraDir = StorageLayout.legacyCameraDir(context)
                 if (cameraDir.exists()) {
                     cameraDir.listFiles()?.forEach { f ->
                         if (f.name.endsWith(".dng", ignoreCase = true)) {
@@ -153,14 +156,15 @@ class SurveillanceFragment : Fragment() {
                     viewLifecycleOwner.lifecycleScope.launch {
                         withContext(Dispatchers.IO) {
                             val targets = mutableListOf<File>()
-                            context.filesDir.listFiles()?.forEach { f ->
+                            StorageLayout.migrateLegacyEvidence(context)
+                            StorageLayout.evidenceDir(context).listFiles()?.forEach { f ->
                                 val name = f.name
                                 if (name.startsWith("IMG_") || name.startsWith("VID_") ||
                                     name.startsWith("AUD_") || name.endsWith(".dng", ignoreCase = true)) {
                                     targets.add(f)
                                 }
                             }
-                            val cameraDir = File(context.filesDir, "Camera")
+                            val cameraDir = StorageLayout.legacyCameraDir(context)
                             if (cameraDir.exists()) {
                                 cameraDir.listFiles()?.let { targets.addAll(it) }
                             }
