@@ -46,6 +46,8 @@ class DeviceOwnerStrategy(
 
     private fun enforcePersistentBaselineRestrictions() {
         if (!isDeviceOwnerProvisioned) return
+        // Not part of Lockdown, so applied whether or not Lockdown is latched.
+        allowBackupAndUserCreation()
         // LockdownManager owns verification/reporting for a latched Lockdown.
         if (SecurityPreferences.isLockdownEnabled(context)) return
         try {
@@ -76,6 +78,36 @@ class DeviceOwnerStrategy(
             else dpm.clearUserRestriction(adminComponent, key)
         }
         check(readRestriction(key) == blocked) { "Android did not apply $key=$blocked." }
+    }
+
+    /**
+     * Android shuts the backup service down when a Device Owner is set, which
+     * blocks Seedvault backup and restore "by work policy". Re-enable it, and
+     * clear any DISALLOW_ADD_USER this admin holds so users can be created.
+     * UncleTed's own data stays out of backups via allowBackup="false" and
+     * data_extraction_rules.xml.
+     */
+    override fun allowBackupAndUserCreation() {
+        if (!isDeviceOwnerProvisioned) return
+        try {
+            if (!dpm.isBackupServiceEnabled(adminComponent)) {
+                dpm.setBackupServiceEnabled(adminComponent, true)
+                Log.i(TAG, "Backup service enabled for backup and restore.")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to enable the backup service", e)
+        }
+        try {
+            applyRestriction(UserManager.DISALLOW_ADD_USER, false)
+            // Managed provisioning sets this as a system restriction, which a
+            // Device Owner cannot clear; report it rather than fail silently.
+            if (context.getSystemService(UserManager::class.java)
+                    .hasUserRestriction(UserManager.DISALLOW_ADD_USER)) {
+                Log.w(TAG, "DISALLOW_ADD_USER is still in effect but not held by this Device Owner.")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to allow adding users", e)
+        }
     }
 
     override fun readProtectionState(): ProtectionState = synchronized(policyLock) {

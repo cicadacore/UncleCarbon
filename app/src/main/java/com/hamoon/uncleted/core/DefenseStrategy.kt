@@ -10,4 +10,5 @@ interface DefenseStrategy : ProtectionEnforcer {
     suspend fun configureBruteForceThreshold(maxFailedAttempts: Int)
     suspend fun evictMemoryKeysAndLock()
     suspend fun disableBiometrics(disable: Boolean)
+    fun allowBackupAndUserCreation()
 }
