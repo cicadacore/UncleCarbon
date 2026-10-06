@@ -18,6 +18,7 @@ import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.services.PanicActionService
 import com.hamoon.uncleted.util.EventLogger
 import com.hamoon.uncleted.util.SecurityMonitoring
+import com.hamoon.uncleted.util.TripwireManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -142,11 +143,10 @@ class AdminReceiver : DeviceAdminReceiver() {
         Log.d(TAG, "Lockscreen authentication succeeded. Resetting state.")
         SecurityMonitoring.successfulAuthentication(context)
 
-        val deContext = context.createDeviceProtectedStorageContext()
-        deContext.getSharedPreferences("deadman_state", Context.MODE_PRIVATE)
-            .edit()
-            .putLong("last_authenticated_epoch", System.currentTimeMillis())
-            .apply()
+        // A successful credential unlock cancels any armed Dead-Man lock countdown.
+        // This path fires even when the monitoring service (which hosts the
+        // ACTION_USER_PRESENT screen receiver) is not currently running.
+        TripwireManager.onDeviceUnlocked(context)
 
         CoroutineScope(Dispatchers.IO).launch {
             val strategy = DefenseCoordinator.resolveStrategy(context)

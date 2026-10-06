@@ -6,8 +6,12 @@ import android.content.Intent
 import android.os.Process
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.hamoon.uncleted.core.DeadmanSentinelLogic
+import com.hamoon.uncleted.core.DefenseCoordinator
+import com.hamoon.uncleted.data.SecurityEvent
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.core.LockdownManager
+import com.hamoon.uncleted.util.EventLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -48,7 +52,24 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
         // 1. Direct Boot / BFU Phase (once per boot cycle)
         if (!isBfuInitialized.getAndSet(true)) {
-            TripwireManager.scheduleFromLastCheckIn(context)
+            // Restore an in-flight Dead-Man lock countdown across the reboot. A
+            // reboot never resets the timer: an overdue deadline wipes now (BFU
+            // path), otherwise the alarm is re-armed for the stored deadline.
+            when (TripwireManager.restoreAfterBoot(context)) {
+                DeadmanSentinelLogic.BootAction.WIPE -> {
+                    EventLogger.log(context, SecurityEvent.TRIPWIRE_DOWNTIME)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val strategy = DefenseCoordinator.resolveStrategy(context)
+                            strategy.executeStandardWipe("DEADMAN_LOCK_TIMEOUT")
+                            TripwireManager.clearAfterWipe(context)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed executing overdue Dead-Man wipe on boot", e)
+                        }
+                    }
+                }
+                else -> { /* NONE or RESCHEDULE already handled inside restoreAfterBoot */ }
+            }
 
             if (SecurityPreferences.isGeofenceSuicideEnabled(context)) {
                 val zoneIntent = Intent(context, ZoneWipeService::class.java)

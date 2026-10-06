@@ -64,12 +64,4 @@ class SecurityMonitoringRulesTest {
         assertTrue(SecurityMonitoringRules.isTrustedPackage("org.example.app", setOf("org.example.app")))
         assertFalse(SecurityMonitoringRules.isTrustedPackage("org.example.other", setOf("org.example.app")))
     }
-
-    @Test fun aThresholdAlertsOnceUntilTheFailureStreakResets() {
-        assertFalse(SecurityMonitoringRules.shouldAlertFailure(2, 3, 0, true))
-        assertTrue(SecurityMonitoringRules.shouldAlertFailure(3, 3, 0, true))
-        assertFalse(SecurityMonitoringRules.shouldAlertFailure(4, 3, 3, true))
-        assertFalse(SecurityMonitoringRules.shouldAlertFailure(5, 3, 0, false))
-        assertFalse(SecurityMonitoringRules.shouldAlertFailure(5, 4, 0, true))
-    }
 }

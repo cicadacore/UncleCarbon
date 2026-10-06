@@ -10,7 +10,7 @@ object OneTimeTokenManager {
 
     private const val PREFS_NAME = "uncleted_otc_store"
     private const val KEY_ACTIVE_TOKEN_HASHES = "active_otc_hashes"
-    private const val TOKEN_COUNT = 5
+    private const val TOKEN_COUNT = 1
 
     private fun getStorageContext(context: Context): Context {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -21,9 +21,10 @@ object OneTimeTokenManager {
     }
 
     /**
-     * Generates a batch of 5 high-entropy single-use emergency wipe tokens.
-     * Hashes of the tokens are stored in Device-Protected storage (accessible in BFU).
-     * The plaintext strings are returned to the caller for printing/saving.
+     * Generates exactly one high-entropy single-use emergency wipe token.
+     * Its hash is stored in Device-Protected storage (accessible in BFU), replacing
+     * any previously active token(s) so there is always at most one active token.
+     * The plaintext string is returned (as a single-element list) for printing/saving.
      */
     fun generateNewTokenBatch(context: Context): List<String> {
         val secureRandom = SecureRandom()

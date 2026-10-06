@@ -136,13 +136,12 @@
     <string name="ble_target_mac_hint">آدرس مک بلوتوث گجت پوشیدنی جفت‌شده</string>
     <string name="ble_rssi_threshold_hint">آستانه قدرت سیگنال قطع ارتباط (دسی‌بل، پیش‌فرض: -۸۵)</string>
     <string name="ble_breach_limit_hint">تعداد قطع سیگنال متوالی (پیش‌فرض: ۳)</string>
-    <string name="deadman_tripwire_title">دیده‌بان مرگبار خودکار در وضعیت BFU</string>
-    <string name="deadman_tripwire_desc">دیده‌بان سخت‌افزاری RTC در وضعیت بوت اولیه. در صورت خاموش ماندن یا آفلاین بودن دستگاه بیش از حد مجاز، پاک‌سازی خودکار رمزنگاری را اجرا می‌کند.</string>
+    <string name="deadman_tripwire_title">دیده‌بان مرگبار خودکار (Dead-Man)</string>
+    <string name="deadman_tripwire_desc">با قفل شدن دستگاه، عمو کربن شمارش معکوس دیده‌بان مرگبار را آغاز می‌کند. باز کردن موفق قفل دستگاه، شمارش معکوس را بازنشانی می‌کند. اگر دستگاه برای مدت پیکربندی‌شده قفل بماند، پروتکل پاک‌سازی استاندارد اجرا می‌شود. نیازی به اعلام حضور دستی نیست و اتصال شبکه بر شمارش معکوس تأثیری ندارد.</string>
     <string name="deadman_toggle_label">فعال‌سازی دیده‌بان نابودسازی خودکار داده‌ها</string>
-    <string name="deadman_duration_hint">مدت زمان آفلاین بودن برای پاک کردن اطلاعات</string>
-    <string name="btn_custom_tripwire_duration">تنظیم زمان آفلاین دلخواه (روز)</string>
-    <string name="tripwire_custom_dialog_title">تنظیم زمان دلخواه تله انفجاری</string>
-    <string name="deadman_checkin_button">اعلام حضور امنیتی دستی</string>
+    <string name="deadman_duration_hint">مدت زمان قفل‌ماندن پیش از پاک‌سازی</string>
+    <string name="btn_custom_tripwire_duration">تنظیم مدت زمان قفل دلخواه (روز)</string>
+    <string name="tripwire_custom_dialog_title">تنظیم زمان دلخواه دیده‌بان مرگبار</string>
     <string name="geofence_suicide_title">نابودسازی جغرافیایی چند منطقه‌ای</string>
     <string name="geofence_suicide_desc">الگوریتم دقیق رهگیری پرتو GPS. در صورت ورود دستگاه به مناطق پرخطر تعیین‌شده یا محیط‌های از پیش تعیین‌شده، اطلاعات بلافاصله نابود می‌شوند.</string>
     <string name="geofence_evin_toggle">دیده‌بان محدوده زندان اوین (پاک‌سازی خودکار)</string>
@@ -151,9 +150,9 @@
     <!-- Covert Signaling & Remote C2 -->
     <string name="remote_signaling_title">سیگنال‌دهی مخفی و کنترل از راه دور</string>
     <string name="remote_category_title">کنترل‌های سیگنال‌دهی از راه دور</string>
-    <string name="otc_tokens_title">توکن‌های بازیابی اضطراری یک‌بار مصرف (OTC)</string>
-    <string name="otc_tokens_desc">تولید مجموعه‌ای از ۵ توکن بازیابی اضطراری با آنتروپی بالا در حافظه محافظت‌شده. ارسال هر توکن بلافاصله دستگاه را پاک می‌کند.</string>
-    <string name="otc_generate_button">تولید برگه کیف پول اضطراری (۵ توکن)</string>
+    <string name="otc_tokens_title">توکن بازیابی اضطراری یک‌بار مصرف (OTC)</string>
+    <string name="otc_tokens_desc">تولید یک توکن بازیابی اضطراری یک‌بار مصرف با آنتروپی بالا در حافظه محافظت‌شده. ارسال این توکن معتبر و استفاده‌نشده بلافاصله دستگاه را پاک می‌کند. تولید توکن جدید، توکن قبلی را جایگزین می‌کند؛ بنابراین همیشه دقیقاً یک توکن فعال وجود دارد.</string>
+    <string name="otc_generate_button">تولید توکن اضطراری</string>
     <string name="sms_fallback_title">دستورات پیامکی سنتی (UNCLETED [CMD] [PWD])</string>
     <string name="sms_fallback_desc">فرمت دستورات برای استفاده از تلفن‌های دکمه‌ای ساده که به صورت پیش‌فرض کنترل می‌شود.</string>
     <string name="sms_cleartext_toggle">مجاز بودن دستورات پیامکی متنی ساده</string>

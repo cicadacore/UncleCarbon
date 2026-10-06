@@ -58,7 +58,7 @@ class RemoteSignalingFragment : Fragment() {
 
     private fun updateTokenCountDisplay() {
         val remaining = OneTimeTokenManager.getRemainingTokenCount(requireContext())
-        binding.tvOtcTokenStatus.text = "Active Single-Use Tokens in DE Store: $remaining"
+        binding.tvOtcTokenStatus.text = "Active Single-Use Token in DE Store: $remaining"
     }
 
     private fun setupListeners() {
@@ -72,13 +72,13 @@ class RemoteSignalingFragment : Fragment() {
 
         binding.btnBurnAllTokens.setOnClickListener {
             MaterialAlertDialogBuilder(context)
-                .setTitle("Burn All Emergency Tokens?")
-                .setMessage("All active single-use emergency wipe tokens will be removed from Device-Protected storage.")
+                .setTitle("Burn Emergency Token?")
+                .setMessage("The active single-use emergency wipe token will be removed from Device-Protected storage.")
                 .setNegativeButton("Cancel", null)
-                .setPositiveButton("Burn All") { _, _ ->
+                .setPositiveButton("Burn") { _, _ ->
                     OneTimeTokenManager.clearAllTokens(context)
                     updateTokenCountDisplay()
-                    Toast.makeText(context, "All emergency tokens burned.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Emergency token burned.", Toast.LENGTH_SHORT).show()
                 }
                 .showProtected(requireActivity())
         }
@@ -115,8 +115,8 @@ class RemoteSignalingFragment : Fragment() {
         val context = requireContext()
         val sheetContent = StringBuilder()
             .append("UNCLE CARBON EMERGENCY WALLET SHEET\n")
-            .append("Keep these single-use wipe tokens in your wallet/passport.\n")
-            .append("Texting any of these lines to this phone will request a Device Owner factory reset:\n\n")
+            .append("Keep this single-use wipe token in your wallet/passport.\n")
+            .append("Texting this line to this phone will request a Device Owner factory reset:\n\n")
 
         tokens.forEach { token ->
             sheetContent.append("• ").append(token).append("\n")
