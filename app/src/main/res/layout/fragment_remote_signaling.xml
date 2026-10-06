@@ -43,7 +43,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:fontFamily="monospace"
-                    android:text="Active Single-Use Tokens in DE Store: 0"
+                    android:text="Active Single-Use Token in DE Store: 0"
                     android:textAppearance="?attr/textAppearanceBodyMedium"
                     android:textColor="?attr/colorPrimary"/>
 
@@ -69,7 +69,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginStart="4dp"
-                        android:text="Burn All Tokens"
+                        android:text="Burn Token"
                         android:textColor="?attr/colorError"/>
                 </LinearLayout>
 

@@ -95,12 +95,11 @@
     <string name="ble_rssi_threshold_hint">Signal Cutoff RSSI (dBm, Default: -85)</string>
     <string name="ble_breach_limit_hint">Consecutive Missed Heartbeats (Default: 3)</string>
     <string name="deadman_tripwire_title">Dead-Man Wipe Sentinel</string>
-    <string name="deadman_tripwire_desc">Automatically requests a Device Owner factory reset if you do not check in before the selected deadline. Each manual check-in resets the countdown. If the deadline expires, UncleCarbon will request a standard Device Owner factory reset.</string>
+    <string name="deadman_tripwire_desc">When the device becomes locked, UncleCarbon starts the Dead-Man Wipe Sentinel countdown. Successfully unlocking the device resets the countdown. If the device remains locked for the configured period, the standard wipe protocol is triggered. No manual check-in is required and network connectivity does not affect the countdown.</string>
     <string name="deadman_toggle_label">Enable Dead-Man Wipe Sentinel</string>
-    <string name="deadman_duration_hint">Offline Duration to Trigger Wipe</string>
-    <string name="btn_custom_tripwire_duration">Set Custom Offline Duration (Days)</string>
+    <string name="deadman_duration_hint">Locked Duration Before Wipe</string>
+    <string name="btn_custom_tripwire_duration">Set Custom Locked Duration (Days)</string>
     <string name="tripwire_custom_dialog_title">Custom Dead-Man Duration</string>
-    <string name="deadman_checkin_button">Manual Security Check-In</string>
     <string name="geofence_suicide_title">Multi-Zone Geographic Suicide</string>
     <string name="geofence_suicide_desc">High-precision GPS Ray-Casting algorithm. Triggers instant cryptographic erasure if device breaches user-defined high-risk zones or pre-configured perimeters.</string>
     <string name="geofence_evin_toggle">Evin Prison Perimeter Sentinel (Auto-Wipe)</string>
@@ -109,9 +108,9 @@
     <!-- Covert Signaling & Remote C2 -->
     <string name="remote_signaling_title">Covert Signaling &amp; Remote C2</string>
     <string name="remote_category_title">Remote Signaling Controls</string>
-    <string name="otc_tokens_title">Single-Use Emergency Wipe Tokens</string>
-    <string name="otc_tokens_desc">Generates one-time emergency wipe tokens. When a valid unused token is received, UncleCarbon will consume the token and request a standard Device Owner factory reset.</string>
-    <string name="otc_generate_button">Generate Emergency Wipe Tokens</string>
+    <string name="otc_tokens_title">Single-Use Emergency Wipe Token</string>
+    <string name="otc_tokens_desc">Generates a single one-time emergency wipe token. When the valid unused token is received, UncleCarbon consumes it and requests a standard Device Owner factory reset. Generating a new token replaces any previous one, so there is always exactly one active token.</string>
+    <string name="otc_generate_button">Generate Emergency Wipe Token</string>
     <string name="sms_fallback_title">Permissive Burner Fallback (UNCLETED [CMD] [PWD])</string>
     <string name="sms_fallback_desc">Legacy command syntax for basic analog phones. Guarded by a dedicated authorization toggle.</string>
     <string name="sms_cleartext_toggle">Permit Cleartext SMS Fallback</string>

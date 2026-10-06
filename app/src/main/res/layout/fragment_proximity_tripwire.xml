@@ -194,14 +194,6 @@
                     android:layout_marginTop="8dp"
                     android:text="@string/btn_custom_tripwire_duration"/>
 
-                <Button
-                    android:id="@+id/btn_deadman_checkin"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="@string/deadman_checkin_button"/>
-
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

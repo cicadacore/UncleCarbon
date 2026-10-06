@@ -124,24 +124,19 @@ class ProximityTripwireFragment : Fragment() {
 
         binding.switchDeadmanTripwire.setOnCheckedChangeListener { _, isChecked ->
             SecurityPreferences.setTripwireEnabled(context, isChecked)
-            TripwireManager.scheduleOrCancelTripwire(context)
+            TripwireManager.onFeatureReconfigured(context)
         }
 
         binding.autoTripwireDuration.setOnItemClickListener { _, _, position, _ ->
             val values = resources.getStringArray(R.array.tripwire_duration_values)
             val selectedHours = values[position].toInt()
             SecurityPreferences.setTripwireDuration(context, selectedHours)
-            TripwireManager.scheduleOrCancelTripwire(context)
+            TripwireManager.onFeatureReconfigured(context)
         }
 
         // Custom Arbitrary Tripwire Duration Dialog
         binding.btnCustomTripwireDuration.setOnClickListener {
             showCustomTripwireDurationDialog()
-        }
-
-        binding.btnDeadmanCheckin.setOnClickListener {
-            TripwireManager.checkIn(context)
-            Toast.makeText(context, "Check-in recorded. Tripwire hardware alarm reset.", Toast.LENGTH_SHORT).show()
         }
 
         binding.switchGeofenceSuicide.setOnCheckedChangeListener { _, isChecked ->
@@ -200,7 +195,7 @@ class ProximityTripwireFragment : Fragment() {
 
         MaterialAlertDialogBuilder(context)
             .setTitle(R.string.tripwire_custom_dialog_title)
-            .setMessage("Set arbitrary offline inactivity timer before autonomous BFU wipe triggers:")
+            .setMessage("Set how long the device may remain locked (without a successful unlock) before the standard wipe triggers:")
             .setView(layout)
             .setPositiveButton("Set Duration") { _, _ ->
                 val daysInput = etDuration.text.toString().trim().toIntOrNull()
@@ -208,8 +203,8 @@ class ProximityTripwireFragment : Fragment() {
                     val customHours = daysInput * 24
                     SecurityPreferences.setTripwireDuration(context, customHours)
                     setupDurationDropdown(customHours)
-                    TripwireManager.scheduleOrCancelTripwire(context)
-                    Toast.makeText(context, "Dead-man tripwire set to $daysInput days ($customHours hours).", Toast.LENGTH_LONG).show()
+                    TripwireManager.onFeatureReconfigured(context)
+                    Toast.makeText(context, "Dead-man sentinel set to $daysInput days ($customHours hours). Countdown begins at next device lock.", Toast.LENGTH_LONG).show()
                 } else {
                     Toast.makeText(context, "Invalid duration entered.", Toast.LENGTH_SHORT).show()
                 }

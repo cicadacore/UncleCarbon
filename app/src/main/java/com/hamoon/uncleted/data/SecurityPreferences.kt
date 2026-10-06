@@ -7,6 +7,7 @@ import android.os.UserManager
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.hamoon.uncleted.core.DeadmanSentinelLogic
 import com.hamoon.uncleted.util.PolygonUtils
 import java.util.*
 
@@ -151,7 +152,10 @@ object SecurityPreferences {
             "ANTI_ROLLBACK_ENABLED", "BFU_ANTI_ROLLBACK_ENABLED",
             "HSM_STATUS_MONITORING", "BFU_HSM_STATUS_MONITORING",
             // RF/network-loss sentinel: motion confirmation replaced by Wi-Fi RF confirmation
-            "SPECTRAL_MOTION_REQUIRED", "BFU_SPECTRAL_MOTION_REQUIRED"
+            "SPECTRAL_MOTION_REQUIRED", "BFU_SPECTRAL_MOTION_REQUIRED",
+            // Legacy Dead-Man check-in timestamps. The sentinel is now a lock/unlock
+            // inactivity timer (BFU_DEADMAN_*); manual/network check-ins no longer exist.
+            "TRIPWIRE_LAST_CHECKIN", "BFU_TRIPWIRE_LAST_CHECKIN"
         )
 
         try {
@@ -898,9 +902,12 @@ object SecurityPreferences {
     // =========================================================================
     // 13.1 Destruction Protocols: optional eSIM/eUICC erasure on WIPE
     //
-    // Default FALSE and opt-in only. Mirrored into DE/BFU storage so a wipe
-    // triggered while the device is in Direct Boot / BFU state (before credential
-    // unlock) can still read the user's choice. Applies ONLY to actual
+    // Default TRUE on a fresh install: when no preference has been saved yet, a
+    // factory-reset wipe also erases eSIM/eUICC profiles. An existing user's
+    // explicit choice is always preserved — a stored OFF stays OFF across an
+    // upgrade; the new default only applies when nothing has been saved. Mirrored
+    // into DE/BFU storage so a wipe triggered in Direct Boot / BFU state (before
+    // credential unlock) can still read the choice. Applies ONLY to actual
     // factory-reset WIPE operations, never to Lock/BFU/reboot actions.
     // =========================================================================
     fun setEraseEsimOnWipeEnabled(context: Context, isEnabled: Boolean) {
@@ -911,15 +918,24 @@ object SecurityPreferences {
     }
 
     fun isEraseEsimOnWipeEnabled(context: Context): Boolean {
-        // The DE/BFU mirror is authoritative for the centralized wipe path, which
-        // may run before unlock. Fail-safe OR keeps the opt-in visible whichever
-        // store the caller can currently read.
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_ERASE_ESIM_ON_WIPE", false)
-        } else {
-            getDeviceProtectedPrefs(context).getBoolean("BFU_ERASE_ESIM_ON_WIPE", false) ||
-                    getInstance(context).getBoolean("ERASE_ESIM_ON_WIPE", false)
+        val de = getDeviceProtectedPrefs(context)
+        // Before unlock only the DE mirror is readable. An absent key means no
+        // explicit choice has been persisted yet -> fresh-install default TRUE.
+        if (!isUserUnlocked(context)) {
+            return de.getBoolean("BFU_ERASE_ESIM_ON_WIPE", true)
         }
+
+        val ce = getInstance(context)
+        val deHas = de.contains("BFU_ERASE_ESIM_ON_WIPE")
+        val ceHas = ce.contains("ERASE_ESIM_ON_WIPE")
+        // No saved preference in either store -> fresh-install default TRUE.
+        if (!deHas && !ceHas) return true
+
+        // A choice exists. Honor it with a fail-safe OR across whichever stores
+        // recorded it, so the opt-in stays visible to the pre-unlock wipe path
+        // while an explicit OFF (both stores false) remains OFF.
+        return (deHas && de.getBoolean("BFU_ERASE_ESIM_ON_WIPE", false)) ||
+                (ceHas && ce.getBoolean("ERASE_ESIM_ON_WIPE", false))
     }
 
     // =========================================================================
@@ -1073,31 +1089,52 @@ object SecurityPreferences {
     }
 
     fun getTripwireDuration(context: Context): Int {
+        val default = DeadmanSentinelLogic.DEFAULT_DURATION_HOURS
         return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getInt("BFU_TRIPWIRE_DURATION", 24)
+            getDeviceProtectedPrefs(context).getInt("BFU_TRIPWIRE_DURATION", default)
         } else {
             getDeviceProtectedPrefs(context).getInt(
                 "BFU_TRIPWIRE_DURATION",
-                getInstance(context).getInt("TRIPWIRE_DURATION", 24)
+                getInstance(context).getInt("TRIPWIRE_DURATION", default)
             )
         }
     }
 
-    fun setLastTripwireCheckIn(context: Context, timestamp: Long) {
-        getDeviceProtectedPrefs(context).edit().putLong("BFU_TRIPWIRE_LAST_CHECKIN", timestamp).apply()
-        if (isUserUnlocked(context)) {
-            getInstance(context).edit().putLong("TRIPWIRE_LAST_CHECKIN", timestamp).apply()
-        }
+    // -------------------------------------------------------------------------
+    // Dead-Man Sentinel runtime state (lock/unlock inactivity timer).
+    //
+    // The countdown is armed when the device locks (screen off) and cleared when
+    // it is successfully unlocked. These keys are the single source of truth for
+    // the alarm's stale-fire guard and for boot recovery, so they are stored in
+    // Device-Protected storage ONLY: they must be readable before first unlock
+    // (a wipe alarm or LOCKED_BOOT_COMPLETED can run in the Direct Boot window)
+    // and must never be mirrored into CE, where a stale copy could resurrect a
+    // deadline the user already cancelled.
+    // -------------------------------------------------------------------------
+    fun setDeadmanArmed(context: Context, armed: Boolean, lockStart: Long, deadline: Long) {
+        getDeviceProtectedPrefs(context).edit()
+            .putBoolean("BFU_DEADMAN_ARMED", armed)
+            .putLong("BFU_DEADMAN_LOCK_START", lockStart)
+            .putLong("BFU_DEADMAN_DEADLINE", deadline)
+            .apply()
     }
 
-    fun getLastTripwireCheckIn(context: Context): Long {
-        return if (!isUserUnlocked(context)) {
-            getDeviceProtectedPrefs(context).getLong("BFU_TRIPWIRE_LAST_CHECKIN", 0L)
-        } else {
-            val deTimestamp = getDeviceProtectedPrefs(context).getLong("BFU_TRIPWIRE_LAST_CHECKIN", 0L)
-            if (deTimestamp > 0L) deTimestamp else getInstance(context).getLong("TRIPWIRE_LAST_CHECKIN", 0L)
-        }
+    fun clearDeadmanState(context: Context) {
+        getDeviceProtectedPrefs(context).edit()
+            .putBoolean("BFU_DEADMAN_ARMED", false)
+            .putLong("BFU_DEADMAN_LOCK_START", 0L)
+            .putLong("BFU_DEADMAN_DEADLINE", 0L)
+            .apply()
     }
+
+    fun isDeadmanArmed(context: Context): Boolean =
+        getDeviceProtectedPrefs(context).getBoolean("BFU_DEADMAN_ARMED", false)
+
+    fun getDeadmanLockStart(context: Context): Long =
+        getDeviceProtectedPrefs(context).getLong("BFU_DEADMAN_LOCK_START", 0L)
+
+    fun getDeadmanDeadline(context: Context): Long =
+        getDeviceProtectedPrefs(context).getLong("BFU_DEADMAN_DEADLINE", 0L)
 
     // =========================================================================
     // 18. SMTP Email Alert Configuration

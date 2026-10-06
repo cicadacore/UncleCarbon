@@ -338,14 +338,6 @@
         </receiver>
 
         <receiver
-            android:name=".receivers.NetworkStateReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
-            </intent-filter>
-        </receiver>
-
-        <receiver
             android:name=".receivers.GeofenceBroadcastReceiver"
             android:enabled="true"
             android:exported="false" />

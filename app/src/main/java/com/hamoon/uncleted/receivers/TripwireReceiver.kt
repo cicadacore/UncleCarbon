@@ -6,9 +6,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.PowerManager
 import android.util.Log
+import com.hamoon.uncleted.core.DeadmanSentinelLogic
 import com.hamoon.uncleted.core.DefenseCoordinator
 import com.hamoon.uncleted.data.SecurityPreferences
 import com.hamoon.uncleted.util.EventLogger
+import com.hamoon.uncleted.util.TripwireManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,10 +23,14 @@ class TripwireReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        Log.e(TAG, "Tripwire alarm signal received: action=${intent.action}")
+        Log.e(TAG, "Dead-Man alarm signal received: action=${intent.action}")
 
-        if (!SecurityPreferences.isTripwireEnabled(context)) {
-            Log.d(TAG, "Tripwire received alarm but feature is currently disabled. Discarding.")
+        // Re-validate the persisted lock-countdown state before acting. A stale
+        // alarm — one left over from a countdown the user already cancelled by
+        // unlocking, or from a disabled/cleared sentinel — must never wipe. Any
+        // rescheduling of an early-fired alarm is handled inside resolveAlarmAction.
+        val action = TripwireManager.resolveAlarmAction(context)
+        if (action != DeadmanSentinelLogic.AlarmAction.WIPE) {
             return
         }
 
@@ -36,13 +42,14 @@ class TripwireReceiver : BroadcastReceiver() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                Log.e(TAG, "!!! AUTONOMOUS OFFLINE DEAD-MAN TRIPWIRE EXPIRED !!!")
+                Log.e(TAG, "!!! DEAD-MAN LOCK TIMEOUT REACHED !!!")
                 EventLogger.log(context, SecurityEvent.TRIPWIRE_EXPIRED)
 
                 val strategy = DefenseCoordinator.resolveStrategy(context)
-                strategy.executeStandardWipe("AUTONOMOUS_TRIPWIRE_OFFLINE_LIMIT")
+                strategy.executeStandardWipe("DEADMAN_LOCK_TIMEOUT")
+                TripwireManager.clearAfterWipe(context)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed executing tripwire expiration protocol", e)
+                Log.e(TAG, "Failed executing Dead-Man timeout protocol", e)
             } finally {
                 if (wakeLock.isHeld) {
                     wakeLock.release()

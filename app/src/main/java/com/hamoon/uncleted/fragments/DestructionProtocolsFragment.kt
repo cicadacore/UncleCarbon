@@ -69,7 +69,8 @@ class DestructionProtocolsFragment : Fragment() {
 
         // Erase eSIM on wipe: toggling this only changes the flags used IF a
         // future factory-reset wipe occurs. It never deletes an eSIM now, and
-        // never affects Lock/BFU actions. Default is OFF.
+        // never affects Lock/BFU actions. Default is ON (fresh install); an
+        // existing user's explicit choice is preserved.
         binding.switchEraseEsimOnWipe.setOnCheckedChangeListener { _, isChecked ->
             SecurityPreferences.setEraseEsimOnWipeEnabled(context, isChecked)
             if (isChecked) {
