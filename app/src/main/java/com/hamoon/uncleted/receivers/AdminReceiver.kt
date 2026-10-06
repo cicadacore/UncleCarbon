@@ -55,6 +55,9 @@ class AdminReceiver : DeviceAdminReceiver() {
                     LockdownManager.setSafeBootBlocked(context, SecurityPreferences.isSafeBootBlocked(context)).join()
                     LockdownManager.setDeveloperFeaturesBlocked(context, SecurityPreferences.isDeveloperFeaturesBlocked(context)).join()
 
+                    // Becoming Device Owner turns the backup service off.
+                    DefenseCoordinator.resolveStrategy(context).allowBackupAndUserCreation()
+
                     // Self-grant READ_PHONE_STATE so the SIM state machine
                     // works without user interaction and remains functional
                     // in the Direct-Boot window (before first unlock) when
