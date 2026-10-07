@@ -23,7 +23,8 @@ app can do on an unmodified, locked GrapheneOS device.
 > [!NOTE]
 > UncleCarbon is an independent fork and is not affiliated with the GrapheneOS
 > project. No endorsement by GrapheneOS or by the UncleTed authors is implied.
-> The version number (`10.0.1`) continues from the upstream codebase.
+> Version numbers continue from the upstream codebase (UncleTed's last release
+> was `10.0.1`).
 
 ## Contents
 

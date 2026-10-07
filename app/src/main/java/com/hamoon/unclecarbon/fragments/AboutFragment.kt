@@ -28,9 +28,9 @@ class AboutFragment : Fragment() {
 
         val resolvedVersionName = try {
             val pInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
-            pInfo.versionName ?: "10.0.1"
+            pInfo.versionName ?: "11.0.1"
         } catch (_: Exception) {
-            "10.0.1"
+            "11.0.1"
         }
 
         binding.tvAppVersion.text = "Version $resolvedVersionName"

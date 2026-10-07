@@ -328,7 +328,7 @@
     <!-- About Screen -->
     <string name="about_title">About Uncle Carbon</string>
     <string name="about_developer_credit">A fork of UncleTed, originally designed and engineered by Hamoon Soleimani</string>
-    <string name="about_app_version">Version 10.0.1</string>
+    <string name="about_app_version">Version 11.0.1</string>
     <string name="about_legal_disclaimer_title">Legal &amp; Operational Security Disclaimer</string>
     <string name="about_legal_disclaimer_body">UncleCarbon is intended for authorized defensive security use on devices you own or administer. Its destructive actions request a standard Android factory reset through Device Policy APIs, which cannot be undone. Never install this software without explicit, informed authorization from the device owner.</string>
     <string name="about_github">UncleTed author on GitHub</string>
