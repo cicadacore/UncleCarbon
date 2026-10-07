@@ -2,6 +2,10 @@
 
 Implemented 4 October 2026. Existing unrelated working-tree changes were preserved.
 
+Paths below use the current `com.hamoon.unclecarbon` package. The feature was
+implemented before the package rename from `com.hamoon.uncleted`; the rename did
+not change its behaviour. See the [README](../README.md#lockdown-mode) for a summary.
+
 ## Existing enforcement paths
 
 The Hardware Sentinels screen previously saved each preference, then called
@@ -120,20 +124,20 @@ starting-state permutations; the normal UI intentionally cannot reset Lockdown.
 
 | File | Change |
 | --- | --- |
-| `app/src/main/java/com/hamoon/uncleted/core/LockdownController.kt` | New serialized activation, verification, observable state, and OFF-request guards. |
-| `app/src/main/java/com/hamoon/uncleted/core/LockdownManager.kt` | New application-scoped controller, dispatch, and failure reporting. |
-| `app/src/main/java/com/hamoon/uncleted/core/DefenseStrategy.kt` | Shared protection-enforcement contract, including state read-back. |
-| `app/src/main/java/com/hamoon/uncleted/core/strategies/DeviceOwnerStrategy.kt` | Reuses DPM operations, verifies policies, reports errors, guards Lockdown and USB reconciliation. |
-| `app/src/main/java/com/hamoon/uncleted/data/SecurityPreferences.kt` | Durable device-protected latch and preference guards. |
-| `app/src/main/java/com/hamoon/uncleted/data/SecurityEvent.kt` | Fixed audit event for enforcement failure. |
-| `app/src/main/java/com/hamoon/uncleted/fragments/HardwareSentinelsFragment.kt` | Confirmation, shared actions, live verified/locked state, lifecycle refresh. |
-| `app/src/main/java/com/hamoon/uncleted/UncleTedApplication.kt` | Startup and MainActivity-resume enforcement. |
-| `app/src/main/java/com/hamoon/uncleted/BootCompletedReceiver.kt` | Direct-boot and post-unlock enforcement with receiver lifetime handling. |
-| `app/src/main/java/com/hamoon/uncleted/receivers/AdminReceiver.kt` | Routes baseline protection changes through the shared guarded actions. |
+| `app/src/main/java/com/hamoon/unclecarbon/core/LockdownController.kt` | New serialized activation, verification, observable state, and OFF-request guards. |
+| `app/src/main/java/com/hamoon/unclecarbon/core/LockdownManager.kt` | New application-scoped controller, dispatch, and failure reporting. |
+| `app/src/main/java/com/hamoon/unclecarbon/core/DefenseStrategy.kt` | Shared protection-enforcement contract, including state read-back. |
+| `app/src/main/java/com/hamoon/unclecarbon/core/strategies/DeviceOwnerStrategy.kt` | Reuses DPM operations, verifies policies, reports errors, guards Lockdown and USB reconciliation. |
+| `app/src/main/java/com/hamoon/unclecarbon/data/SecurityPreferences.kt` | Durable device-protected latch and preference guards. |
+| `app/src/main/java/com/hamoon/unclecarbon/data/SecurityEvent.kt` | Fixed audit event for enforcement failure. |
+| `app/src/main/java/com/hamoon/unclecarbon/fragments/HardwareSentinelsFragment.kt` | Confirmation, shared actions, live verified/locked state, lifecycle refresh. |
+| `app/src/main/java/com/hamoon/unclecarbon/UncleCarbonApplication.kt` | Startup and MainActivity-resume enforcement. |
+| `app/src/main/java/com/hamoon/unclecarbon/receivers/BootCompletedReceiver.kt` | Direct-boot and post-unlock enforcement with receiver lifetime handling. |
+| `app/src/main/java/com/hamoon/unclecarbon/receivers/AdminReceiver.kt` | Routes baseline protection changes through the shared guarded actions. |
 | `app/src/main/res/layout/fragment_hardware_sentinels.xml` | Third Material card and protection status labels. |
 | `app/src/main/res/values/strings.xml` | English confirmation, descriptions, and status/error text. |
 | `app/src/main/res/values-fa/strings.xml` | Persian equivalents of all new strings. |
-| `app/src/test/java/com/hamoon/uncleted/core/LockdownControllerTest.kt` | 18 regression tests. |
+| `app/src/test/java/com/hamoon/unclecarbon/core/LockdownControllerTest.kt` | 18 regression tests. |
 | `docs/lockdown-mode.md` | Implementation details, validation results, and remaining device checks. |
 
 Build output: `app/build/outputs/apk/debug/app-debug.apk`.

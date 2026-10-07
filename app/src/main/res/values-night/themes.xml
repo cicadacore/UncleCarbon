@@ -1,7 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme for night mode. -->
-    <!-- CHANGE THE PARENT to Base.Theme.UncleTed -->
-    <style name="Theme.UncleTed" parent="Base.Theme.UncleTed">
+    <!-- CHANGE THE PARENT to Base.Theme.UncleCarbon -->
+    <style name="Theme.UncleCarbon" parent="Base.Theme.UncleCarbon">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/md_theme_dark_primary</item>
         <item name="colorOnPrimary">@color/md_theme_dark_onPrimary</item>

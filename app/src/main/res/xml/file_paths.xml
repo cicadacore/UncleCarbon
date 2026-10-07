@@ -3,7 +3,7 @@
     <!--
         Only the dedicated shareable directories are exposed (see util/StorageLayout).
         Do NOT map the files/ or cache/ roots: they hold preferences, keys and
-        anti-rollback state that must never be reachable through a content URI.
+        other private state that must never be reachable through a content URI.
     -->
     <files-path name="evidence_files" path="evidence/" />
     <files-path name="diagnostics_files" path="diagnostics/" />

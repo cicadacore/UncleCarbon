@@ -1,0 +1,177 @@
+@file:Suppress("DEPRECATION")
+
+package com.hamoon.unclecarbon.receivers
+
+import com.hamoon.unclecarbon.data.SecurityEvent
+import android.Manifest
+import android.app.admin.DeviceAdminReceiver
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.os.UserHandle
+import android.util.Log
+import com.hamoon.unclecarbon.R
+import com.hamoon.unclecarbon.core.DefenseCoordinator
+import com.hamoon.unclecarbon.core.LockdownManager
+import com.hamoon.unclecarbon.data.SecurityPreferences
+import com.hamoon.unclecarbon.services.PanicActionService
+import com.hamoon.unclecarbon.util.EventLogger
+import com.hamoon.unclecarbon.util.SecurityMonitoring
+import com.hamoon.unclecarbon.util.TripwireManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+class AdminReceiver : DeviceAdminReceiver() {
+
+    companion object {
+        private const val TAG = "AdminReceiver"
+        fun getComponentName(context: Context): ComponentName {
+            return ComponentName(context, AdminReceiver::class.java)
+        }
+    }
+
+    override fun onEnabled(context: Context, intent: Intent) {
+        super.onEnabled(context, intent)
+        Log.i(TAG, "Device Admin enabled. Initializing hardware baseline policies.")
+        EventLogger.log(context, SecurityEvent.ADMIN_ENABLED)
+
+        val dpm = getManager(context)
+        val admin = getWho(context)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            if (dpm.isDeviceOwnerApp(context.packageName)) {
+                try {
+                    dpm.setStorageEncryption(admin, true)
+
+                    val maxFailedWipe = SecurityPreferences.getMaxFailedAttemptsForWipe(context)
+                    dpm.setMaximumFailedPasswordsForWipe(admin, maxFailedWipe)
+                    Log.i(TAG, "Device Owner Gatekeeper wipe limit configured: $maxFailedWipe (0 disables automatic wipe)")
+
+                    dpm.setPasswordQuality(admin, DevicePolicyManager.PASSWORD_QUALITY_NUMERIC_COMPLEX)
+                    dpm.setPasswordMinimumLength(admin, 6)
+
+                    // Use the same guarded policy path as the settings UI.
+                    LockdownManager.setSafeBootBlocked(context, SecurityPreferences.isSafeBootBlocked(context)).join()
+                    LockdownManager.setDeveloperFeaturesBlocked(context, SecurityPreferences.isDeveloperFeaturesBlocked(context)).join()
+
+                    // Becoming Device Owner turns the backup service off.
+                    DefenseCoordinator.resolveStrategy(context).allowBackupAndUserCreation()
+
+                    // Self-grant READ_PHONE_STATE so the SIM state machine
+                    // works without user interaction and remains functional
+                    // in the Direct-Boot window (before first unlock) when
+                    // the user cannot answer a runtime-permission dialog.
+                    try {
+                        val granted = dpm.setPermissionGrantState(
+                            admin,
+                            context.packageName,
+                            Manifest.permission.READ_PHONE_STATE,
+                            DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED,
+                        )
+                        Log.i(TAG, "Device Owner self-grant READ_PHONE_STATE: $granted")
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Device Owner self-grant of READ_PHONE_STATE failed: ${e.message}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed configuring initial Device Owner policies", e)
+                }
+            }
+        }
+    }
+
+    override fun onPasswordFailed(context: Context, intent: Intent) {
+        super.onPasswordFailed(context, intent)
+        handlePasswordFailure(context)
+    }
+
+    override fun onPasswordFailed(context: Context, intent: Intent, user: UserHandle) {
+        super.onPasswordFailed(context, intent, user)
+        handlePasswordFailure(context)
+    }
+
+    private fun handlePasswordFailure(context: Context) {
+        val dpm = getManager(context)
+        val currentFailed = runCatching { dpm.getCurrentFailedPasswordAttempts() }.getOrNull()
+        if (!SecurityMonitoring.failedAuthentication(context, currentFailed)) return
+        val currentFailedCount = currentFailed?.takeIf { it > 0 } ?: (SecurityPreferences.getFailedAttempts(context) + 1)
+        Log.w(TAG, "Authentication failure detected. Hardware count: $currentFailed")
+        SecurityPreferences.incrementFailedAttempts(context)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val strategy = DefenseCoordinator.resolveStrategy(context)
+            val maxAllowedBeforeWipe = SecurityPreferences.getMaxFailedAttemptsForWipe(context)
+
+            // 1. Check if user-configured brute-force wipe limit is exceeded.
+            //    Routes through the single standard Device Owner factory-reset path.
+            if (currentFailed != null && maxAllowedBeforeWipe in 1..currentFailed) {
+                Log.e(TAG, "Hardware failure count ($currentFailed) reached user wipe limit ($maxAllowedBeforeWipe). Initiating standard factory reset.")
+                EventLogger.log(context, SecurityEvent.KEYGUARD_WIPE)
+                strategy.executeStandardWipe("MAX_FAILED_PASSWORDS_EXCEEDED")
+                return@launch
+            }
+
+            // 2. Proactive defense on 3 consecutive failures: sever USB port & lock biometrics
+            if (currentFailedCount >= 3) {
+                Log.e(TAG, "Threshold >= 3 reached. Physically disabling USB port and locking biometrics.")
+                strategy.setUsbDataPortEnabled(false)
+                strategy.disableBiometrics(true)
+
+                if (SecurityPreferences.isIntruderSelfieEnabled(context)) {
+                    PanicActionService.trigger(
+                        context,
+                        "INTRUDER_SELFIE",
+                        PanicActionService.Severity.MEDIUM
+                    )
+                }
+            }
+        }
+    }
+
+    override fun onPasswordSucceeded(context: Context, intent: Intent) {
+        super.onPasswordSucceeded(context, intent)
+        handlePasswordSuccess(context)
+    }
+
+    override fun onPasswordSucceeded(context: Context, intent: Intent, user: UserHandle) {
+        super.onPasswordSucceeded(context, intent, user)
+        handlePasswordSuccess(context)
+    }
+
+    private fun handlePasswordSuccess(context: Context) {
+        Log.d(TAG, "Lockscreen authentication succeeded. Resetting state.")
+        SecurityMonitoring.successfulAuthentication(context)
+
+        // A successful credential unlock cancels any armed Dead-Man lock countdown.
+        // This path fires even when the monitoring service (which hosts the
+        // ACTION_USER_PRESENT screen receiver) is not currently running.
+        TripwireManager.onDeviceUnlocked(context)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val strategy = DefenseCoordinator.resolveStrategy(context)
+            strategy.disableBiometrics(false)
+            strategy.setUsbDataPortEnabled(true)
+        }
+    }
+
+    override fun onDisableRequested(context: Context, intent: Intent): CharSequence {
+        if (SecurityPreferences.isMaintenanceMode(context)) {
+            Log.i(TAG, "Admin deactivation authorized in maintenance mode.")
+            return "Maintenance mode active. Deactivation permitted."
+        }
+
+        Log.w(TAG, "Hostile Device Admin deactivation detected. Triggering alert.")
+        EventLogger.log(context, SecurityEvent.ADMIN_DEACTIVATION)
+
+        PanicActionService.trigger(context, "UNINSTALL_ATTEMPT", PanicActionService.Severity.HIGH)
+
+        return context.getString(R.string.admin_disable_warning)
+    }
+
+    override fun onDisabled(context: Context, intent: Intent) {
+        super.onDisabled(context, intent)
+        Log.e(TAG, "CRITICAL: Device Admin has been disabled.")
+        EventLogger.log(context, SecurityEvent.ADMIN_DISABLED)
+    }
+}

@@ -3,7 +3,7 @@
 -renamesourcefileattribute SourceFile
 
 # Native JNI Bridge Protection (MTE & Memory Zeroing)
--keep class com.hamoon.uncleted.util.NativeSecurityBridge {
+-keep class com.hamoon.unclecarbon.util.NativeSecurityBridge {
     native <methods>;
     *;
 }
@@ -11,9 +11,12 @@
     native <methods>;
 }
 
-# StrongBox & Titan M2 KeyStore Providers
+# Android Keystore / StrongBox providers
 -keep class android.security.keystore.** { *; }
 -keep class androidx.security.crypto.** { *; }
+# Compile-time-only annotations referenced by Tink (pulled in by security-crypto)
+-dontwarn javax.annotation.Nullable
+-dontwarn javax.annotation.concurrent.GuardedBy
 
 # JavaMail and Activation
 -keep class javax.mail.** { *; }
@@ -26,15 +29,7 @@
 -keep class com.sun.mail.smtp.** { *; }
 -keep class com.sun.mail.handlers.** { *; }
 -dontwarn com.sun.mail.**
+# META-INF/javamail.* and META-INF/mailcap* are Java resources; R8 keeps them as-is.
 
--keepresources META-INF/javamail.*
--keepresources META-INF/mailcap*
-
-# LSPosed / Xposed API Hooks
--keep class de.robv.android.xposed.** { *; }
--dontwarn de.robv.android.xposed.**
-
-# Keep hook implementations & Receivers
--keep class com.hamoon.uncleted.hooks.** { *; }
--keepclassmembers class com.hamoon.uncleted.hooks.** { *; }
--keep class com.hamoon.uncleted.receivers.** { *; }
+# Manifest-registered receivers
+-keep class com.hamoon.unclecarbon.receivers.** { *; }

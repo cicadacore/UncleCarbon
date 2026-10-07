@@ -8,18 +8,32 @@ plugins {
 // no built-in, empty, generated or project-property fallbacks.
 val releaseKeystoreFile: File = rootProject.file("release.keystore")
 val releaseSigningEnvVars = listOf(
-    "UNCLETED_KEYSTORE_PASSWORD",
-    "UNCLETED_KEY_ALIAS",
-    "UNCLETED_KEY_PASSWORD"
+    "UNCLECARBON_KEYSTORE_PASSWORD",
+    "UNCLECARBON_KEY_ALIAS",
+    "UNCLECARBON_KEY_PASSWORD"
 )
 
+// Alternatively, Android Studio's Build > Generate Signed Bundle / APK wizard
+// passes the keystore the user picks (or creates) as these Gradle properties.
+// AGP uses them in place of signingConfigs.release, but only when all four are
+// supplied. Nothing is stored in the project.
+val studioSigningProperties = listOf(
+    "android.injected.signing.store.file",
+    "android.injected.signing.store.password",
+    "android.injected.signing.key.alias",
+    "android.injected.signing.key.password"
+)
+val studioSigningInjected = studioSigningProperties.all {
+    !providers.gradleProperty(it).orNull.isNullOrBlank()
+}
+
 android {
-    namespace = "com.hamoon.uncleted"
+    namespace = "com.hamoon.unclecarbon"
     compileSdk = 34
     ndkVersion = "30.0.16248370"
 
     defaultConfig {
-        applicationId = "com.hamoon.uncleted"
+        applicationId = "com.hamoon.unclecarbon"
         minSdk = 28
         targetSdk = 34
         versionCode = 10
@@ -61,9 +75,9 @@ android {
             // default credential: a release artifact must never be signed
             // with either. The task-graph assertion below fails any release
             // signing/packaging task instead of allowing a silent fallback.
-            val storePasswordEnv = System.getenv("UNCLETED_KEYSTORE_PASSWORD")
-            val keyAliasEnv = System.getenv("UNCLETED_KEY_ALIAS")
-            val keyPasswordEnv = System.getenv("UNCLETED_KEY_PASSWORD")
+            val storePasswordEnv = System.getenv("UNCLECARBON_KEYSTORE_PASSWORD")
+            val keyAliasEnv = System.getenv("UNCLECARBON_KEY_ALIAS")
+            val keyPasswordEnv = System.getenv("UNCLECARBON_KEY_PASSWORD")
             if (releaseKeystoreFile.isFile &&
                 !storePasswordEnv.isNullOrBlank() &&
                 !keyAliasEnv.isNullOrBlank() &&
@@ -134,11 +148,12 @@ android {
 
 // Security guard: a release build must never silently fall back to the shared
 // Android debug keystore or to default credentials. Fail fast if a release
-// signing/packaging task is on the graph while the dedicated release keystore
-// or any of the credential environment variables is missing/blank. Debug
-// builds and Gradle sync are unaffected: only tasks that produce or sign a
-// release artifact are checked. Only the NAMES of missing variables are
-// reported; their values are never printed.
+// signing/packaging task is on the graph while Android Studio's signing wizard
+// has not supplied a key and the dedicated release keystore or any of the
+// credential environment variables is missing/blank. Debug builds and Gradle
+// sync are unaffected: only tasks that produce or sign a release artifact are
+// checked. Only the NAMES of missing variables are reported; their values are
+// never printed.
 gradle.taskGraph.whenReady {
     val releaseSigningRequested = allTasks.any { task ->
         task.project == project && (
@@ -149,7 +164,7 @@ gradle.taskGraph.whenReady {
             task.name.startsWith("validateSigningRelease")
         )
     }
-    if (releaseSigningRequested) {
+    if (releaseSigningRequested && !studioSigningInjected) {
         val problems = mutableListOf<String>()
         if (!releaseKeystoreFile.isFile) {
             problems += "release.keystore not found at ${releaseKeystoreFile.absolutePath}"
@@ -161,8 +176,9 @@ gradle.taskGraph.whenReady {
         if (problems.isNotEmpty()) {
             throw GradleException(
                 "Release signing aborted: ${problems.joinToString("; ")}. Release artifacts " +
-                    "must be signed with the dedicated release key using credentials supplied " +
-                    "via ${releaseSigningEnvVars.joinToString(" / ")}; there is no fallback to " +
+                    "must be signed with a release key: use Android Studio's Build > Generate " +
+                    "Signed Bundle / APK, or supply release.keystore with credentials via " +
+                    "${releaseSigningEnvVars.joinToString(" / ")}; there is no fallback to " +
                     "the Android debug key or to built-in credentials."
             )
         }
@@ -170,10 +186,6 @@ gradle.taskGraph.whenReady {
 }
 
 dependencies {
-    // --- XPOSED / LSPOSED HOOK API ---
-    compileOnly("de.robv.android.xposed:api:82")
-    compileOnly("de.robv.android.xposed:api:82:sources")
-
     // --- ANDROIDX & MATERIAL ---
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -189,9 +201,6 @@ dependencies {
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.security.crypto)
 
-    // --- NETWORKING ---
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
     // --- COROUTINES ---
     implementation(libs.kotlinx.coroutines.android)
 
@@ -203,15 +212,13 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.video)
-    implementation(libs.androidx.camera.view)
 
     // --- LIFECYCLE & WORKMANAGER ---
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.work.runtime.ktx)
 
-    // --- BIOMETRICS & MEDIA ---
+    // --- BIOMETRICS ---
     implementation("androidx.biometric:biometric:1.1.0")
-    implementation("androidx.media:media:1.7.0")
 
     // --- TESTING ---
     testImplementation(libs.junit)
