@@ -36,8 +36,8 @@ android {
         applicationId = "com.hamoon.unclecarbon"
         minSdk = 28
         targetSdk = 34
-        versionCode = 10
-        versionName = "10.0.1"
+        versionCode = 11
+        versionName = "11.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

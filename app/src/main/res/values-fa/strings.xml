@@ -302,7 +302,7 @@
     <!-- About Screen -->
     <string name="about_title">درباره عمو کربن</string>
     <string name="about_developer_credit">انشعابی از UncleTed؛ طراحی و مهندسی اصلی توسط هامون سلیمانی</string>
-    <string name="about_app_version">نسخه ۱۰.۰.۱</string>
+    <string name="about_app_version">نسخه ۱۱.۰.۱</string>
     <string name="about_legal_disclaimer_title">سلب مسئولیت قانونی و امنیتی</string>
     <string name="about_legal_disclaimer_body">عمو کربن فقط برای استفاده دفاعی و مجاز روی دستگاه‌هایی در نظر گرفته شده که مالک یا مدیر آن‌ها هستید. اقدامات مخرب آن از طریق APIهای Device Policy اندروید یک بازنشانی کارخانه‌ای استاندارد را درخواست می‌کنند که قابل بازگشت نیست. هرگز این نرم‌افزار را بدون رضایت صریح و آگاهانه مالک دستگاه نصب نکنید.</string>
     <string name="about_github">نویسنده UncleTed در گیت‌هاب</string>
