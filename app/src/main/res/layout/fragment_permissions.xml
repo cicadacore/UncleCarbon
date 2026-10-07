@@ -197,7 +197,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="40dp"
                     android:layout_marginTop="4dp"
-                    android:text="Allows Uncle Ted to receive remote distress and wipe triggers on devices using data-only eSIMs without SMS plans."
+                    android:text="Allows Uncle Carbon to receive remote distress and wipe triggers on devices using data-only eSIMs without SMS plans."
                     android:textAppearance="?attr/textAppearanceBodyMedium"
                     android:textColor="?attr/colorOnSurfaceVariant" />
                 <com.google.android.material.divider.MaterialDivider

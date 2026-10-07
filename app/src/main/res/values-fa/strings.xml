@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App & Navigation -->
-    <string name="app_name">عمو تد</string>
+    <string name="app_name">عمو کربن</string>
     <string name="app_name_hidden">سرویس سیستم</string>
     <string name="navigation_drawer_open">باز کردن منوی ناوبری</string>
     <string name="navigation_drawer_close">بستن منوی ناوبری</string>
-    <string name="nav_header_subtitle">کلبه‌ای در جنگل دیجیتال.</string>
+    <string name="nav_header_subtitle">کنترل‌های امنیتی Device Owner برای GrapheneOS</string>
 
     <!-- Domain-Driven Navigation Menus -->
     <string name="menu_dashboard">داشبورد و تله‌متری</string>
     <string name="menu_hardware_sentinels">دفاع سیلیکونی و سخت‌افزاری</string>
-    <string name="menu_authentication">احراز هویت و طعمه‌ها</string>
+    <string name="menu_authentication">احراز هویت</string>
     <string name="menu_proximity_tripwire">مجاورت و تله خودکار</string>
     <string name="menu_remote_signaling">سیگنال‌دهی مخفی و فرماندهی</string>
     <string name="menu_surveillance">نظارت و شواهد</string>
@@ -20,12 +20,6 @@
     <string name="menu_settings">تنظیمات برنامه</string>
     <string name="menu_about">درباره و ارجاعات</string>
 
-    <!-- Legacy / Compatibility Menu Aliases -->
-    <string name="menu_pins">احراز هویت</string>
-    <string name="menu_remote">کنترل از راه دور</string>
-    <string name="menu_features">ویژگی‌ها</string>
-    <string name="menu_manual_actions">اقدامات دستی</string>
-
     <!-- General UI Controls -->
     <string name="save">ذخیره</string>
     <string name="cancel">لغو</string>
@@ -33,73 +27,18 @@
     <string name="next">بعدی</string>
     <string name="previous">قبلی</string>
 
-    <!-- Lockscreen Authentication & Anti-Coercion -->
-    <string name="lock_screen_title">دستگاه امن است</string>
-    <string name="lock_screen_subtitle">برای احراز هویت پین را وارد کنید</string>
-    <string name="lock_screen_pin_hint">پین</string>
-    <string name="lock_screen_unlock_button">احراز هویت</string>
-    <string name="unauthorized_action_title">مداخله امنیتی</string>
-    <string name="unauthorized_action_subtitle">برای تایید اختیار فیزیکی اپراتور پین را وارد کنید</string>
-    <string name="config_error_title">خطای پیکربندی</string>
-    <string name="config_error_pins_not_set">پین‌های اصلی هنوز تنظیم نشده‌اند.</string>
-    <string name="incorrect_pin_toast">پین نادرست است</string>
-    <string name="biometric_auth_title">دروازه صفر-اعتماد عمو تد</string>
+    <!-- App Lock (biometric / device credential) -->
+    <string name="biometric_auth_title">دروازه صفر-اعتماد عمو کربن</string>
     <string name="biometric_auth_subtitle">حسگر بیومتریک را برای باز کردن قفل مجموعه دفاعی تأیید کنید</string>
     <string name="biometric_auth_failed_exit">احراز هویت رد شد. خروج از نشست.</string>
 
-    <!-- PIN Matrix & Deception -->
-    <string name="pins_category_title">ماتریس احراز هویت</string>
-    <string name="pins_normal_hint">پین عادی باز کردن قفل</string>
-    <string name="pins_duress_hint">پین اضطراری (تله هشدار خاموش)</string>
-    <string name="pins_save_button">ذخیره و مسلح‌سازی پین‌ها</string>
-    <string name="pins_saved_toast">تمام اطلاعات هویتی با موفقیت با پل سیستمی همگام‌سازی شد!</string>
-    <string name="wipe_pin_hint">پین قفل و پاک‌سازی سخت‌افزاری (مرگبار)</string>
-    <string name="honeypot_pin_hint">پین طعمه (انتقال به فضای کاربری ثانویه)</string>
-    <string name="max_failed_attempts_wipe_hint">حداکثر رمز اشتباه قبل از پاک‌سازی سخت‌افزاری</string>
-    <string name="pin_guide_title">راهنمای ماتریس عملکرد پین‌ها</string>
-    <string name="pin_guide_normal_title">۱. پین عادی باز کردن قفل</string>
-    <string name="pin_guide_normal_desc">نشست کاربر اصلی را تأیید کرده و شمارنده تلاش‌های ناموفق را ریست می‌کند.</string>
-    <string name="pin_guide_duress_title">۲. پین اضطراری (تله مخفی)</string>
-    <string name="pin_guide_duress_desc">احراز هویت را در سطح فریم‌ورک متوقف ساخته، خطای واقعی «پین نادرست» را نمایش می‌دهد و بی‌صدا عکس‌های دوگانه دوربین، صدای محیط و مختصات GPS را ارسال می‌کند.</string>
-    <string name="pin_guide_wipe_title">۳. پین نابودسازی (پاک‌سازی سیلیکونی)</string>
-    <string name="pin_guide_wipe_desc">بلافاصله به تراشه سخت‌افزاری HSM دستور ابطال کلیدهای اصلی را صادر می‌کند، هدرهای FBE را از طریق دستور JEDEC پاک کرده و به ریکاوری ریبوت می‌کند.</string>
-    <string name="pin_guide_honeypot_title">۴. پین طعمه (Decoy)</string>
-    <string name="pin_guide_honeypot_desc">کلیدهای رمزگذاری‌شده کاربر اصلی (User 0) را از طریق Vold از کرنل لینوکس حذف کرده، کاربر اصلی را در حالت امن BFU قفل می‌کند و نشست جاری را به پروفایل مجزای ثانویه اندروید منتقل می‌سازد.</string>
-
     <!-- Silicon & Hardware Sentinels -->
     <string name="hardware_sentinels_title">دیده‌بان‌های سیلیکونی و سخت‌افزاری</string>
-    <string name="pmic_battery_tamper_title">تله‌متری میکروسکوپی باتری PMIC و ضد دمونتاژ</string>
-    <string name="pmic_battery_tamper_desc">مقاومت الکتروشیمیایی باتری (R_int) و شوک حرارتی را در برابر اتصال کلمپ‌های منبع تغذیه آزمایشگاهی و باز کردن فیزیکی شاسی نظارت می‌کند.</string>
-    <string name="pmic_toggle_label">فعال‌سازی نظارت بر گذرگاه باتری PMIC</string>
-    <string name="pmic_recalibrate_button">قفل کردن خط مبنای فعلی باتری</string>
-    <string name="pmic_impedance_threshold_hint">آستانه تغییر امپدانس (پیش‌فرض: ۳۵ میلی‌اهم)</string>
-    <string name="pmic_thermal_threshold_hint">آستانه شوک حرارتی (پیش‌فرض: ۱۲.۰ درجه سانتی‌گراد)</string>
-    <string name="pmic_selinux_blocked_toast">دسترسی به نودهای SysFS باتری توسط سیاست SELinux پلتفرم (GrapheneOS/AOSP) مسدود است. تله‌متری PMIC در این دامنه در دسترس نیست.</string>
-    <string name="spectral_sentinel_title">دیده‌بان فروپاشی طیفی زیر ثانیه</string>
-    <string name="spectral_sentinel_desc">قطع همزمان امواج سلولار، وای‌فای و ماهواره را همراه با ریزحرکات فیزیکی برای تشخیص سریع مصادره و قرارگیری در کیسه فارادی نظارت می‌کند.</string>
-    <string name="spectral_toggle_label">فعال‌سازی تله ۴ ثانیه‌ای فروپاشی طیفی</string>
-    <string name="spectral_window_hint">بازه زمانی تأیید قطع امواج (میلی‌ثانیه)</string>
-    <string name="spectral_motion_required_label">نیاز به ریزحرکت (جلوگیری از هشدار اشتباه روی میز شب)</string>
-    <string name="faraday_blackout_title">دیده‌بان خودکار ۱۸۰ دقیقه‌ای خاموشی فارادی</string>
-    <string name="faraday_blackout_desc">بیدارباش ساعت سخت‌افزاری RTC. در صورتی که گوشی بیش از حد معین در کیسه فارادی یا گاوصندوق ایزوله بماند، به صورت خودکار کلیدها را به حالت BFU بازمی‌گرداند.</string>
-    <string name="faraday_toggle_label">فعال‌سازی دیده‌بان قطعی مداوم امواج رادیویی</string>
-    <string name="faraday_duration_hint">حداکثر زمان مجاز ایزولاسیون رادیویی (ساعت)</string>
-    <string name="baseband_sentinel_title">دیده‌بان مودم بیس‌باند و دستگاه‌های شنود IMSI</string>
-    <string name="baseband_sentinel_desc">فرکانس‌های ناامن نسل دوم (2G) را در سطح فریم‌ورک مودم حذف کرده و توپولوژی‌های غیرممکن ناشی از دستگاه‌های استینگری (سیگنال قوی با تاخیر زمانی بالا) را به دام می‌اندازد.</string>
-    <string name="baseband_2g_mask_toggle">حذف فرکانس‌های 2G در سطح مودم</string>
-    <string name="baseband_sentinel_toggle">فعال‌سازی تله دکل‌های جعلی و تاخیر انتشار (Timing Advance)</string>
-    <string name="baseband_timing_advance_hint">حداکثر تاخیر انتشار مجاز (آستانه: ۳۰ ~ ۲.۳ کیلومتر)</string>
-    <string name="usb_tripwire_title">دیده‌بان گذرگاه فیزیکی USB و دستگاه‌های جانبی</string>
-    <string name="usb_tripwire_desc">وضعیت کنترلر گجت کرنل لینوکس (UDC) را بررسی کرده و در زمان قفل بودن، خطوط داده D+/D- را از طریق USB HAL v1.3+ قطع می‌کند.</string>
-    <string name="usb_tripwire_toggle">قطع فیزیکی خطوط داده در پورت USB</string>
-    <string name="usb_filter_hint">فیلتر نوسانات گذرا (تعداد دفعات متوالی)</string>
 
     <!-- Safe Boot Interception Strings -->
     <string name="safe_boot_title">مسدودسازی حالت Safe Mode (ضد دور زدن)</string>
-    <string name="safe_boot_desc">از بوت شدن دستگاه در حالت Safe Mode اندروید که برنامه‌های امنیتی را غیرفعال می‌کند جلوگیری می‌نماید.</string>
-    <string name="safe_boot_toggle_label">مسدودسازی Safe Mode (مدیر دستگاه)</string>
     <string name="safe_boot_warning_title">مجاز کردن Safe Mode؟</string>
-    <string name="safe_boot_warning_message">هشدار امنیتی: مجاز کردن Safe Mode به هر فردی با دسترسی فیزیکی اجازه می‌دهد با نگه‌داشتن کلیدهای ولوم، دستگاه را در حالت Safe Mode بوت کرده و بدون نیاز به پین، لایه‌های نظارتی و ضدسرقت عمو تد را غیرفعال کند. آیا مطمئن هستید؟</string>
+    <string name="safe_boot_warning_message">هشدار امنیتی: مجاز کردن Safe Mode به هر فردی با دسترسی فیزیکی اجازه می‌دهد با نگه‌داشتن کلیدهای ولوم، دستگاه را در حالت Safe Mode بوت کرده و بدون نیاز به پین، لایه‌های نظارتی و ضدسرقت عمو کربن را غیرفعال کند. آیا مطمئن هستید؟</string>
     <string name="safe_boot_allow_button">مجاز کردن Safe Mode</string>
     <string name="safe_boot_keep_blocked_button">مسدود نگه دار</string>
 
@@ -122,18 +61,13 @@
     <string name="erase_esim_switch_label">پاک‌سازی پروفایل‌های eSIM/eUICC هنگام بازنشانی کارخانه‌ای</string>
     <string name="erase_esim_summary">در صورت فعال بودن، عمو کربن هنگام انجام هر wipe دستگاه، حذف پروفایل‌های eSIM/eUICC را نیز درخواست می‌کند. این گزینه بر عملیات قفل/BFU معمول تأثیری ندارد.</string>
 
-    <string name="zram_hardening_title">پاک‌سازی حافظه موقت RAM و کلیدگذاری مجدد ZRAM</string>
-    <string name="zram_hardening_desc">با قفل شدن صفحه (ACTION_SCREEN_OFF)، کَش‌های سیستمی کرنل را تخلیه کرده و کلیدهای رمزنگاری سواپ زودگذر را بلافاصله ریست می‌کند.</string>
-    <string name="zram_scrubbing_toggle">تخلیه کَش‌ها هنگام خاموش شدن صفحه (drop_caches)</string>
-    <string name="zram_rekeying_toggle">کلیدگذاری مجدد سواپ زودگذر ZRAM (روت)</string>
-    <string name="zram_manual_scrub_button">اجرای عملیات پاک‌سازی حافظه رم</string>
 
     <!-- Physical Proximity & Dead-Man Tripwires -->
     <string name="proximity_tripwire_title">دیده‌بان‌های مجاورت و تله‌های خودکار</string>
-    <string name="ble_proximity_title">موتور تقسیم کلید مجاورت BLE/UWB</string>
-    <string name="ble_proximity_desc">کلیدهای اصلی به دو سهم شامیر تقسیم می‌شوند. سهم A در تراشه Titan M2 ذخیره شده و سهم B در حافظه رم قرار می‌گیرد که با دور شدن گجت پوشیدنی بیش از ۲ متر بلافاصله محو می‌گردد.</string>
-    <string name="ble_proximity_toggle">فعال‌سازی تفکیک سخت‌افزاری ۲ از ۲ شامیر</string>
-    <string name="ble_target_mac_hint">آدرس مک بلوتوث گجت پوشیدنی جفت‌شده</string>
+    <string name="ble_proximity_title">دیده‌بان مجاورت BLE</string>
+    <string name="ble_proximity_desc">یک دستگاه بلوتوث پیکربندی‌شده را پایش می‌کند. اگر آن دستگاه برای مدت پیکربندی‌شده در نزدیکی شناسایی نشود، عمو کربن با استفاده از کنترل‌های Device Owner گوشی را ری‌استارت می‌کند تا به وضعیت BFU برگردد.</string>
+    <string name="ble_proximity_toggle">فعال‌سازی دیده‌بان مجاورت BLE</string>
+    <string name="ble_target_mac_hint">آدرس MAC دستگاه بلوتوث مورد اعتماد</string>
     <string name="ble_rssi_threshold_hint">آستانه قدرت سیگنال قطع ارتباط (دسی‌بل، پیش‌فرض: -۸۵)</string>
     <string name="ble_breach_limit_hint">تعداد قطع سیگنال متوالی (پیش‌فرض: ۳)</string>
     <string name="deadman_tripwire_title">دیده‌بان مرگبار خودکار (Dead-Man)</string>
@@ -143,7 +77,7 @@
     <string name="btn_custom_tripwire_duration">تنظیم مدت زمان قفل دلخواه (روز)</string>
     <string name="tripwire_custom_dialog_title">تنظیم زمان دلخواه دیده‌بان مرگبار</string>
     <string name="geofence_suicide_title">نابودسازی جغرافیایی چند منطقه‌ای</string>
-    <string name="geofence_suicide_desc">الگوریتم دقیق رهگیری پرتو GPS. در صورت ورود دستگاه به مناطق پرخطر تعیین‌شده یا محیط‌های از پیش تعیین‌شده، اطلاعات بلافاصله نابود می‌شوند.</string>
+    <string name="geofence_suicide_desc">موقعیت‌های دریافتی از سرویس مکان اندروید را با چندضلعی‌های مناطق پیکربندی‌شده مقایسه می‌کند. پس از چند موقعیت دقیق متوالی در داخل یک منطقه، عمو کربن بازنشانی کارخانه‌ای استاندارد Device Owner را درخواست می‌کند.</string>
     <string name="geofence_evin_toggle">دیده‌بان محدوده زندان اوین (پاک‌سازی خودکار)</string>
     <string name="geofence_manage_zones_button">مدیریت محدوده‌های اختصاصی نابودی</string>
 
@@ -153,11 +87,11 @@
     <string name="otc_tokens_title">توکن بازیابی اضطراری یک‌بار مصرف (OTC)</string>
     <string name="otc_tokens_desc">تولید یک توکن بازیابی اضطراری یک‌بار مصرف با آنتروپی بالا در حافظه محافظت‌شده. ارسال این توکن معتبر و استفاده‌نشده بلافاصله دستگاه را پاک می‌کند. تولید توکن جدید، توکن قبلی را جایگزین می‌کند؛ بنابراین همیشه دقیقاً یک توکن فعال وجود دارد.</string>
     <string name="otc_generate_button">تولید توکن اضطراری</string>
-    <string name="sms_fallback_title">دستورات پیامکی سنتی (UNCLETED [CMD] [PWD])</string>
+    <string name="sms_fallback_title">دستورات پیامکی سنتی (UNCLECARBON [CMD] [PWD])</string>
     <string name="sms_fallback_desc">فرمت دستورات برای استفاده از تلفن‌های دکمه‌ای ساده که به صورت پیش‌فرض کنترل می‌شود.</string>
     <string name="sms_cleartext_toggle">مجاز بودن دستورات پیامکی متنی ساده</string>
     <string name="sms_master_password_hint">رمز عبور اصلی دستورات پیامکی</string>
-    <string name="sms_master_password_helper">برای تایید همه دستورات پیامکی لازم است (مثال: \"UNCLETED WIPE [password]\")</string>
+    <string name="sms_master_password_helper">برای تایید همه دستورات پیامکی لازم است (مثال: \"UNCLECARBON WIPE [password]\")</string>
     <string name="sms_emergency_contact_hint">مخاطب اضطراری (تلفن یا ایمیل)</string>
     <string name="remote_emergency_contact_hint">مخاطب اضطراری (تلفن یا ایمیل)</string>
     <string name="remote_save_button">ذخیره تنظیمات کنترل از راه دور</string>
@@ -184,55 +118,39 @@
     <!-- SMS Command Reference Strings -->
     <string name="sms_command_guide_title">راهنمای دستورات پیامکی</string>
     <string name="sms_command_guide_instructions">از هر تلفنی یک پیامک با فرمت زیر به این دستگاه ارسال کنید. به جای \"[password]\" رمز عبور اصلی دستورات پیامکی خود را قرار دهید.</string>
-    <string name="sms_command_wipe">UNCLETED WIPE [password]</string>
+    <string name="sms_command_wipe">UNCLECARBON WIPE [password]</string>
     <string name="sms_command_wipe_desc">دستگاه را فوراً پاک می‌کند. برای دستیابی به حداکثر سرعت تخریب، هیچ شواهدی جمع‌آوری نمی‌شود.</string>
-    <string name="sms_command_evidence">UNCLETED EVIDENCE [password]</string>
+    <string name="sms_command_evidence">UNCLECARBON EVIDENCE [password]</string>
     <string name="sms_command_evidence_desc">ویدیو، صدا و موقعیت مکانی را ضبط کرده و از طریق ایمیل ارسال می‌کند.</string>
-    <string name="sms_command_siren">UNCLETED SIREN [password]</string>
+    <string name="sms_command_siren">UNCLECARBON SIREN [password]</string>
     <string name="sms_command_siren_desc">هشدار بالا ایجاد کرده، شواهد را فرستاده و آژیر بلندی را روی دستگاه به صدا درمی‌آورد.</string>
-    <string name="sms_command_lock">UNCLETED LOCK [password]</string>
-    <string name="sms_command_lock_desc">دستگاه را فوراً قفل کرده و صفحه ورود پین را نمایش می‌دهد.</string>
-    <string name="sms_command_locate">UNCLETED LOCATE [password]</string>
+    <string name="sms_command_lock">UNCLECARBON LOCK [password]</string>
+    <string name="sms_command_lock_desc">با دسترسی Device Owner دستگاه را ری‌استارت می‌کند تا به وضعیت پیش از اولین بازگشایی (BFU) برگردد. بدون Device Owner فقط صفحه را قفل می‌کند.</string>
+    <string name="sms_command_locate">UNCLECARBON LOCATE [password]</string>
     <string name="sms_command_locate_desc">موقعیت‌یابی دقیق ماهواره‌ای انجام داده و مختصات را فوراً ارسال می‌کند.</string>
-    <string name="sms_command_audio">UNCLETED AUDIO [password] [seconds]</string>
+    <string name="sms_command_audio">UNCLECARBON AUDIO [password] [seconds]</string>
     <string name="sms_command_audio_desc">صدای محیط را برای مدت مشخص‌شده (پیش‌فرض ۶۰ ثانیه) ضبط و ایمیل می‌کند.</string>
-    <string name="sms_command_speak">UNCLETED SPEAK [password] [message]</string>
+    <string name="sms_command_speak">UNCLECARBON SPEAK [password] [message]</string>
     <string name="sms_command_speak_desc">پیام را با استفاده از موتور تبدیل متن به گفتار با حداکثر بلندی صدا پخش می‌کند.</string>
-    <string name="sms_command_reboot">UNCLETED REBOOT [password]</string>
-    <string name="sms_command_reboot_desc">(فقط روت) دستگاه را بلافاصله ریبوت می‌کند.</string>
 
     <!-- Surveillance & Evidence Capture -->
     <string name="surveillance_title">نظارت مخفی و جمع‌آوری شواهد</string>
-    <string name="surveillance_desc">خط لوله ضبط مخفیانه شواهد که با وارد کردن پین اضطراری، پین طعمه یا دستکاری فیزیکی فعال می‌شود.</string>
     <string name="feature_record_video">فیلم‌برداری متوالی دوگانه با CameraX</string>
     <string name="feature_ambient_audio">ضبط مستقیم صدای محیط روی دیسک (MPEG-4 AAC)</string>
     <string name="feature_intruder_selfie">سلفی از مزاحم (۳+ تلاش ناموفق برای ورود رمز)</string>
-    <string name="save_selfie_locally">ذخیره سلفی در گالری دستگاه (Pictures/UncleTed)</string>
+    <string name="save_selfie_locally">ذخیره سلفی در گالری دستگاه (Pictures/UncleCarbon)</string>
     <string name="feature_sim_change">دیده‌بان تغییر هویت سخت‌افزاری سیم‌کارت</string>
     <string name="feature_wipe_on_sim_removal">نابودسازی فوری اطلاعات در صورت خروج سیم‌کارت (مرگبار)</string>
     <string name="shake_to_panic_feature">حسگر شتاب‌سنج و لرزش برای اعلام خطر</string>
-    <string name="root_surveillance_title">نظارت بر ورودی‌ها و بافر تصویر (روت)</string>
-    <string name="root_feature_stealth_screenshot">اسکرین‌شات مخفیانه از بافر تصویر (/system/bin/screencap)</string>
-    <string name="root_feature_keylogger">کی‌لاگر سخت‌افزاری (/dev/input/) و نرم‌افزاری</string>
-    <string name="root_feature_stealth_media">حذف نشانگر سبز دسترسی به دوربین و میکروفون</string>
 
     <!-- Emergency Destruction Protocols -->
-    <string name="destruction_title">پروتکل‌های انهدام و نابودسازی اضطراری</string>
-    <string name="destruction_desc">لایه‌های بازگشت‌ناپذیر پاک‌سازی داده‌ها با دور زدن لایه‌های فرسایش فلش و صدور مستقیم فرامین سیلیکونی JEDEC.</string>
+    <string name="destruction_title">کنترل‌های بازنشانی کارخانه‌ای استاندارد</string>
+    <string name="destruction_desc">بازنشانی کارخانه‌ای استاندارد Device Owner تنها اقدام مخرب در این نسخه GrapheneOS است. روال‌های سطح ۲/۳/۴ مبتنی بر کرنل و پارتیشن خام حذف شده‌اند، زیرا به روت یا دسترسی مستقیم به دستگاه‌های بلوکی نیاز دارند که روی GrapheneOS قفل‌شده و بدون روت در دسترس نیست.</string>
     <string name="feature_wipe_device">پاک‌سازی دستگاه در هشدارهای بحرانی</string>
     <string name="feature_hardware_wipe">پاک‌سازی با کلیدهای صدا (ولوم بالا-پایین-بالا-پایین)</string>
-    <string name="destruction_level_1_title">سطح ۱: بازنشانی کارخانه استاندارد پلتفرم اندروید</string>
-    <string name="destruction_level_1_desc">فراخوانی متد RecoverySystem یا تنظیم دستور BCB در مسیر /cache/recovery/command.</string>
-    <string name="destruction_level_2_title">سطح ۲: نابودی سریع رمزنگاری (JEDEC BLKSECDISCARD)</string>
-    <string name="destruction_level_2_desc">کلیدهای سخت‌افزاری StrongBox و Vold را پاک کرده و فرمان مستقیم سیلیکونی BLKSECDISCARD را به پارتیشن metadata ارسال می‌کند.</string>
-    <string name="destruction_level_3_title">سطح ۳: خودکشی سیستم‌عامل (سافت بریک)</string>
-    <string name="destruction_level_3_desc">علاوه بر پاک‌سازی داده‌ها، پارتیشن‌های اصلی بوت (boot, vendor_boot, init_boot) را صفر می‌کند. نیازمند فلش مجدد رام است.</string>
-    <string name="destruction_level_4_title">سطح ۴: زمستان هسته‌ای (خطر هارد بریک)</string>
-    <string name="destruction_level_4_desc">جدول پارتیشن‌ها و بلوک‌های اصلی بوت را صفر کرده و فرمان سخت‌افزاری SysRq را اجرا می‌کند. احتمال بالای خرابی دائمی سخت‌افزار.</string>
-    <string name="destruction_execute_level_1">اجرای سطح ۱: بازنشانی استاندارد</string>
-    <string name="destruction_execute_level_2">اجرای سطح ۲: نابودسازی سیلیکونی JEDEC</string>
-    <string name="destruction_execute_level_3">اجرای سطح ۳: خودکشی سیستم‌عامل (سافت بریک)</string>
-    <string name="destruction_execute_level_4">اجرای سطح ۴: زمستان هسته‌ای (مرگبار)</string>
+    <string name="destruction_level_1_title">بازنشانی کارخانه‌ای استاندارد Device Owner</string>
+    <string name="destruction_level_1_desc">در اندروید ۱۴ و بالاتر DevicePolicyManager.wipeDevice() و در نسخه‌های پشتیبانی‌شده قدیمی‌تر wipeData() را فراخوانی می‌کند. حافظه خارجی نیز پاک می‌شود؛ دستگاه ری‌استارت شده و داده‌های کاربر حذف می‌شوند.</string>
+    <string name="destruction_execute_level_1">اجرای بازنشانی کارخانه‌ای استاندارد</string>
 
     <!-- Automated Features & Categories -->
     <string name="features_panic_category">ویژگی‌های اضطراری و شواهد</string>
@@ -257,55 +175,8 @@
     <string name="feature_maintenance_enabled_toast">حالت تعمیر و نگهداری فعال شد.</string>
     <string name="feature_event_log_button">مشاهده گزارش رویدادهای امنیتی</string>
 
-    <!-- Root Feature Descriptions -->
-    <string name="root_features_title">ویژگی‌های اختصاصی دسترسی روت</string>
-    <string name="root_features_unavailable">دسترسی روت شناسایی نشد. این قابلیت‌ها غیرفعال هستند.</string>
-    <string name="root_feature_gps_spoof">جعل موقعیت مکانی GPS در حالت اضطراری</string>
-    <string name="decoy_gps_location_hint">موقعیت جعلی (مثال: 35.6892,51.3890)</string>
-    <string name="root_feature_silent_install">نصب بی‌صدای برنامه از راه دور</string>
-    <string name="remote_apk_url_hint">آدرس اینترنتی فایل APK برای نصب</string>
-    <string name="root_feature_firewall_tripwire">فایروال تله انفجاری</string>
-    <string name="root_feature_secure_wipe">پاک‌سازی امن داده‌ها (بازنویسی فیزیکی)</string>
-    <string name="root_feature_system_app">تبدیل به برنامه سیستمی (دائمی)</string>
-    <string name="root_feature_system_app_desc">انتقال برنامه به مسیر /system/priv-app سازگار با Magisk و KernelSU.</string>
-    <string name="system_app_warning_title">نیازمند ریبوت</string>
-    <string name="system_app_warning_message">این کار عمو تد را به عنوان برنامه سیستمی ادغام می‌کند و نیازمند ریبوت است. آیا ادامه می‌دهید؟</string>
-    <string name="system_app_converting_toast">در حال ساخت ماژول سیستمی و راه‌اندازی مجدد…</string>
-    <string name="system_app_failed_toast">انتقال به برنامه‌های سیستمی ناموفق بود. لاگ‌ها را بررسی کنید.</string>
-    <string name="root_ultimate_stealth_title">استتار و پایداری نهایی</string>
-    <string name="root_feature_unkillable_service">سرویس پس‌زمینه غیرقابل توقف</string>
-    <string name="root_feature_unkillable_service_desc">نصب اسکریپت دیمن در سطح روت که در صورت متوقف شدن سرویس، آن را احیا می‌کند.</string>
-    <string name="unkillable_enabled_toast">سرویس غیرقابل توقف فعال شد.</string>
-    <string name="unkillable_disabled_toast">سرویس غیرقابل توقف غیرفعال شد.</string>
-    <string name="operation_failed_toast">عملیات ناموفق بود. لاگ‌ها را بررسی کنید.</string>
-    <string name="root_feature_hide_process">پنهان‌سازی فرآیند از تسک منیجرها</string>
-    <string name="root_feature_hide_process_desc">ایزولاسیون فضای نامی فرآیند در Magisk و KernelSU را اعمال می‌کند.</string>
-    <string name="process_hiding_enabled_toast">پنهان‌سازی فرآیند فعال شد.</string>
-    <string name="process_hiding_disabled_toast">پنهان‌سازی فرآیند غیرفعال شد.</string>
-    <string name="process_hiding_failed_toast">پنهان‌سازی فرآیند ناموفق بود.</string>
-    <string name="root_feature_survive_reset">بقا پس از بازنشانی کارخانه (نگهبان AVB)</string>
-    <string name="root_feature_survive_reset_desc">استقرار اسکریپت بارگذار در ریکاوری؛ در صورت قفل بودن AVB 2.0 جهت جلوگیری از خرابی بوت مسدود می‌شود.</string>
-    <string name="loader_script_url_hint">آدرس اسکریپت بارگذار</string>
-    <string name="factory_reset_warning_title">هشدار اعتبارسنجی بوت و ریکاوری</string>
-    <string name="factory_reset_warning_message">تغییر مستقیم ریکاوری در صورت فعال بودن AVB باعث خرابی بوت خواهد شد.</string>
-    <string name="factory_reset_dialog_proceed">متوجه هستم، ادامه بده</string>
-    <string name="factory_reset_flashing_toast">در حال فلش کردن بارگذار…</string>
-    <string name="factory_reset_success_toast">بارگذار با موفقیت فلش شد.</string>
-    <string name="factory_reset_failed_toast">فلش بارگذار ناموفق بود. لاگ‌ها را بررسی کنید.</string>
-
     <!-- Manual Actions Legacy Strings -->
-    <string name="manual_actions_title">اقدامات دستی</string>
     <string name="manual_action_location">ارسال موقعیت مکانی</string>
-    <string name="manual_action_lock">قفل کردن دستگاه</string>
-    <string name="manual_action_siren">فعال‌سازی آژیر</string>
-    <string name="manual_action_wipe">پاک‌سازی داده‌ها (بحرانی)</string>
-    <string name="manual_wipe_confirmation_title">تایید پاک‌سازی داده‌ها</string>
-    <string name="manual_wipe_confirmation_message">آیا کاملاً مطمئن هستید؟ تمام اطلاعات شخصی به صورت بازگشت‌ناپذیر پاک خواهند شد.</string>
-    <string name="manual_wipe_confirm_button">بله، دستگاه را پاک کن</string>
-    <string name="manual_action_honeypot">ورود به فضای طعمه (Decoy)</string>
-    <string name="manual_honeypot_confirmation_title">ورود به پروفایل طعمه؟</string>
-    <string name="manual_honeypot_confirmation_message">این کار نشست جاری را فوراً به پروفایل ثانویه و ایزوله اندروید منتقل می‌کند.</string>
-    <string name="manual_honeypot_confirm_button">بله، تغییر کاربر</string>
 
     <!-- Permissions Screen & Guide -->
     <string name="permissions_category_core">مرزهای دسترسی و مجوزهای سیستمی</string>
@@ -334,14 +205,19 @@
     <string name="permissions_usage_already_granted_toast">دسترسی استفاده از قبل فعال است.</string>
     <string name="permissions_usage_skipped_toast">از اعطای دسترسی به استفاده صرف نظر شد.</string>
     <string name="permissions_required_dialog_title">دسترسی‌های ضروری</string>
-    <string name="permissions_required_dialog_message">عمو تد برای محافظت از امنیت شما به این دسترسی‌ها نیاز دارد:\n\n• دوربین: ثبت تصویر مزاحمان و متجاوزان\n• مکان: ارسال مختصات دقیق در زمان خطر\n• پیامک: دریافت و پردازش فرامین از راه دور\n• میکروفون: ضبط صدای محیط پیرامون\n• اعلان‌ها: نمایش هشدارهای امنیتی</string>
+    <string name="permissions_required_dialog_message">عمو کربن برای محافظت از امنیت شما به این دسترسی‌ها نیاز دارد:\n\n• دوربین: ثبت تصویر مزاحمان و متجاوزان\n• مکان: ارسال مختصات دقیق در زمان خطر\n• پیامک: دریافت و پردازش فرامین از راه دور\n• میکروفون: ضبط صدای محیط پیرامون\n• اعلان‌ها: نمایش هشدارهای امنیتی</string>
     <string name="permissions_required_dialog_grant">اعطای دسترسی‌ها</string>
-    <string name="permissions_admin_dialog_explanation">عمو تد برای انجام امور زیر نیازمند مجوز مدیر دستگاه است:\n\n• قفل کردن فوری دستگاه هنگام دریافت پیامک اضطراری\n• پاک‌سازی امن و غیرقابل بازگشت اطلاعات در شرایط اضطراری\n• جلوگیری از حذف برنامه توسط سارق یا افراد غیرمجاز</string>
+    <string name="permissions_admin_dialog_explanation">عمو کربن برای انجام امور زیر نیازمند مجوز مدیر دستگاه است:\n\n• قفل کردن دستگاه هنگام دریافت یک فرمان راه دور تأییدشده\n• درخواست بازنشانی کارخانه‌ای در شرایط اضطراری\n• دریافت اعلان تلاش‌های ناموفق بازگشایی قفل برای پایش امنیتی\n\nبیشتر محافظت‌ها به راه‌اندازی به‌عنوان Device Owner نیاز دارند.</string>
     <string name="permissions_accessibility_dialog_title">فعال‌سازی سرویس دسترسی‌پذیری</string>
     <string name="permissions_accessibility_dialog_open_settings">باز کردن تنظیمات</string>
     <string name="permissions_usage_dialog_title">دسترسی به آمار استفاده</string>
-    <string name="permissions_usage_dialog_message">این دسترسی اختیاری به عمو تد اجازه می‌دهد رفتارهای مشکوک و الگوهای غیرعادی را شناسایی کند.</string>
+    <string name="permissions_usage_dialog_message">این دسترسی اختیاری به عمو کربن اجازه می‌دهد رفتارهای مشکوک و الگوهای غیرعادی را شناسایی کند.</string>
     <string name="permissions_usage_dialog_skip">رد کردن</string>
+    <string name="permissions_accessibility_enable_prompt">لطفاً سرویس دسترس‌پذیری عمو کربن را برای پایش دکمه‌های صدا فعال کنید.</string>
+    <string name="permissions_overlay_dialog_title">دسترسی نمایش روی برنامه‌های دیگر</string>
+    <string name="permissions_overlay_dialog_message">عمو کربن روی برنامه‌های دیگر چیزی نمایش نمی‌دهد. اندروید برنامه‌های دارای این دسترسی را از برخی محدودیت‌های اجرای صفحه از پس‌زمینه معاف می‌کند؛ برنامه Device Owner از قبل این معافیت را دارد.</string>
+    <string name="permissions_notification_listener_dialog_title">دسترسی به اعلان‌ها (eSIM C2)</string>
+    <string name="permissions_notification_listener_dialog_message">به عمو کربن اجازه می‌دهد اعلان‌های دریافتی را برای یافتن توکن یک‌بارمصرف پاک‌سازی اضطراری و، در صورت فعال بودن حالت متن ساده، فرمان‌های راه دور تأییدشده با رمز عبور بررسی کند. برای دستگاه‌هایی با eSIM فقط-داده و بدون پیامک در نظر گرفته شده است. محتوای اعلان‌ها فقط روی خود دستگاه پردازش می‌شود.</string>
     <string name="permissions_button_runtime">دسترسی‌های اجرایی</string>
     <string name="permissions_button_admin">مدیر دستگاه</string>
     <string name="permissions_button_accessibility">سرویس دسترسی‌پذیری</string>
@@ -356,7 +232,7 @@
     <string name="guide_accessibility_title">سرویس دسترسی‌پذیری</string>
     <string name="guide_accessibility_desc">توالی فشردن سریع کلیدهای فیزیکی تنظیم صدا را برای پاک‌سازی سخت‌افزاری نظارت می‌کند.</string>
     <string name="guide_overlay_title">نمایش روی برنامه‌های دیگر</string>
-    <string name="guide_overlay_desc">امکان نمایش تمام‌صفحه قفل امنیتی روی سایر برنامه‌ها را فراهم می‌کند.</string>
+    <string name="guide_overlay_desc">اختیاری. عمو کربن روی برنامه‌های دیگر چیزی نمایش نمی‌دهد؛ این دسترسی فقط محدودیت‌های اندروید برای اجرای صفحه از پس‌زمینه را کاهش می‌دهد که Device Owner از قبل فراهم می‌کند.</string>
     <string name="guide_usage_title">دسترسی به استفاده (اختیاری)</string>
     <string name="guide_usage_desc">امکان پایش الگوهای غیرعادی در استفاده از برنامه‌ها را ممکن می‌سازد.</string>
 
@@ -374,16 +250,6 @@
     <!-- Event Log -->
     <string name="event_log_title">گزارش رویدادهای امنیتی</string>
     <string name="event_log_info">تمامی رویدادها، تحریک سنسورها و سیگنال‌ها در حافظه امن و حفاظت‌شده دستگاه ثبت می‌شوند.</string>
-
-    <!-- Decoy Launcher Messenger Trap Strings -->
-    <string name="decoy_app_signal">سیگنال</string>
-    <string name="decoy_app_telegram">تلگرام</string>
-    <string name="decoy_app_threema">تریما</string>
-    <string name="decoy_app_session">سشن</string>
-    <string name="decoy_launcher_traps_title">تله‌های لانچر با آیکون برنامه‌های پیام‌رسان</string>
-    <string name="decoy_launcher_traps_desc">آیکون‌های جعلی برنامه‌های پیام‌رسان را در صفحه اصلی قرار می‌دهد. باز کردن هر یک از برنامه‌های طعمه، بلافاصله پروتکل دفاعی پیکربندی‌شده را اجرا می‌کند.</string>
-    <string name="decoy_app_action_hint">اقدام در زمان باز شدن تله</string>
-    <string name="decoy_app_whatsapp">واتس‌اپ</string>
 
     <!-- Dashboard & Threat Assessment -->
     <string name="dashboard_threat_critical">دستکاری بحرانی سخت‌افزاری شناسایی شد</string>
@@ -413,25 +279,19 @@
     <string name="level_2_title">سطح وضعیت: تحت نظارت</string>
     <string name="level_2_desc">دیده‌بان‌های اصلی فعال هستند. تله‌های سخت‌افزاری بیشتر را فعال کنید.</string>
     <string name="level_3_title">سطح وضعیت: مستحکم</string>
-    <string name="level_3_desc">تراشه مجزای HSM و لایه‌های ضد اجبار فعال شده‌اند.</string>
+    <string name="level_3_desc">دفاع‌های سخت‌افزاری و لایه‌های ضد اجبار فعال هستند.</string>
     <string name="level_4_title">سطح وضعیت: دفاع سازمانی</string>
     <string name="level_4_desc">مالک دستگاه و دیده‌بان‌های سخت‌افزاری کاملاً فعال هستند.</string>
     <string name="level_5_title">سطح وضعیت: حداکثر اعتماد-صفر</string>
     <string name="level_5_desc">تمام دیده‌بان‌ها و لایه‌های دفاعی کاملاً فعال هستند.</string>
-    <string name="level_root_title">سطح وضعیت: حالت خدا (Root / LSPosed)</string>
-    <string name="level_root_desc">کنترل در سطح هسته لینوکس، تخلیه حافظه کلیدهای Vold و هوک‌های سیستم سرور فعال هستند.</string>
 
     <!-- Checklist Items -->
-    <string name="check_root_title">وضعیت دسترسی ممتاز روت</string>
-    <string name="check_root_desc">اعتبارسنجی دسترسی سوپریوزر (Magisk, KernelSU, APatch).</string>
-    <string name="check_pins_title">ماتریس احراز هویت</string>
-    <string name="check_pins_desc">تنظیم پین‌های عادی، اضطراری، پاک‌سازی و طعمه.</string>
     <string name="check_admin_title">مرجع سیاست‌های امنیتی سخت‌افزار</string>
     <string name="check_admin_desc">برای قطع داده پورت USB و پاک‌سازی سطح سیستم توسط مالک دستگاه الزامی است.</string>
     <string name="check_accessibility_title">فیلتر ورودی کلیدهای سخت‌افزاری</string>
     <string name="check_accessibility_desc">بررسی فشردن متوالی کلیدهای ولوم برای واکنش سریع.</string>
     <string name="check_permissions_title">قابلیت‌های سیستمی</string>
-    <string name="check_permissions_desc">دوربین، تله‌متری میکروسکوپی، تلفن و سرویس‌های پیش‌زمینه.</string>
+    <string name="check_permissions_desc">دوربین، میکروفون، موقعیت مکانی، پیامک و اعلان‌ها.</string>
     <string name="check_contact_title">ارسال هشدارهای از راه دور</string>
     <string name="check_contact_desc">کانال احراز هویت شده برای ارسال هشدارهای اضطراری.</string>
     <string name="check_intruder_title">نظارت ضد دستکاری</string>
@@ -440,26 +300,26 @@
     <string name="check_sim_desc">تشخیص تغییر فیزیکی سیم‌کارت بدون ایجاد خطای سیستمی.</string>
 
     <!-- About Screen -->
-    <string name="about_title">درباره عمو تد</string>
-    <string name="about_developer_credit">طراحی و مهندسی توسط هامون سلیمانی</string>
+    <string name="about_title">درباره عمو کربن</string>
+    <string name="about_developer_credit">انشعابی از UncleTed؛ طراحی و مهندسی اصلی توسط هامون سلیمانی</string>
     <string name="about_app_version">نسخه ۱۰.۰.۱</string>
     <string name="about_legal_disclaimer_title">سلب مسئولیت قانونی و امنیتی</string>
-    <string name="about_legal_disclaimer_body">عمو تد منحصراً برای پژوهش‌های آموزشی، ممیزی امنیتی مجاز، حفظ حریم خصوصی عملیاتی و حفاظت از حقوق انسانی در برابر اجبار فیزیکی و استخراج فارنزیک طراحی شده است. از بین بردن کلیدهای رمزنگاری، اطلاعات ذخیره‌شده را از لحاظ ریاضی و فیزیکی برای همیشه غیرقابل بازگشت می‌سازد. هرگز این نرم‌افزار را بدون رضایت صریح و آگاهانه مالک دستگاه نصب نکنید.</string>
-    <string name="about_github">مخزن گیت‌هاب</string>
-    <string name="about_website">وب‌سایت رسمی</string>
+    <string name="about_legal_disclaimer_body">عمو کربن فقط برای استفاده دفاعی و مجاز روی دستگاه‌هایی در نظر گرفته شده که مالک یا مدیر آن‌ها هستید. اقدامات مخرب آن از طریق APIهای Device Policy اندروید یک بازنشانی کارخانه‌ای استاندارد را درخواست می‌کنند که قابل بازگشت نیست. هرگز این نرم‌افزار را بدون رضایت صریح و آگاهانه مالک دستگاه نصب نکنید.</string>
+    <string name="about_github">نویسنده UncleTed در گیت‌هاب</string>
+    <string name="about_website">وب‌سایت نویسنده UncleTed</string>
     <string name="about_quotes_title">تد کزینسکی</string>
 
     <!-- Services & Notifications -->
-    <string name="accessibility_service_label">دیده‌بان فیلتر ورودی عمو تد</string>
+    <string name="accessibility_service_label">دیده‌بان فیلتر ورودی عمو کربن</string>
     <string name="accessibility_service_description">توالی فشردن کلیدهای صدا برای پاک‌سازی اضطراری را پایش می‌کند.</string>
-    <string name="notification_title">موتور دفاعی عمو تد فعال است</string>
+    <string name="notification_title">موتور دفاعی عمو کربن فعال است</string>
     <string name="notification_text">دیده‌بان‌های سخت‌افزاری و حافظه رم مسلح هستند.</string>
-    <string name="notification_channel_name">سرویس مرکزی دیده‌بان عمو تد</string>
+    <string name="notification_channel_name">سرویس مرکزی دیده‌بان عمو کربن</string>
     <string name="selfie_saved_notification_title">پرونده شواهد ثبت شد</string>
     <string name="selfie_saved_notification_body">برای مشاهده تصویر ثبت‌شده ضربه بزنید.</string>
     <string name="selfie_saved_notification_channel_name">هشدارهای ذخیره شواهد</string>
     <string name="admin_disable_warning">غیرفعال‌سازی این سرویس دفاع سخت‌افزاری را تضعیف می‌کند. این رویداد ثبت شد.</string>
-    <string name="watchdog_status_message">عمو تد: گزارش تله‌متری ضربان قلب</string>
+    <string name="watchdog_status_message">عمو کربن: گزارش تله‌متری ضربان قلب</string>
     <string name="watchdog_status_body">وضعیت:\nباتری: %1$s%%\nموقعیت: %2$s</string>
 
     <!-- Kaczynski Quotes Array -->

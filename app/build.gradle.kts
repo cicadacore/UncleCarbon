@@ -8,18 +8,18 @@ plugins {
 // no built-in, empty, generated or project-property fallbacks.
 val releaseKeystoreFile: File = rootProject.file("release.keystore")
 val releaseSigningEnvVars = listOf(
-    "UNCLETED_KEYSTORE_PASSWORD",
-    "UNCLETED_KEY_ALIAS",
-    "UNCLETED_KEY_PASSWORD"
+    "UNCLECARBON_KEYSTORE_PASSWORD",
+    "UNCLECARBON_KEY_ALIAS",
+    "UNCLECARBON_KEY_PASSWORD"
 )
 
 android {
-    namespace = "com.hamoon.uncleted"
+    namespace = "com.hamoon.unclecarbon"
     compileSdk = 34
     ndkVersion = "30.0.16248370"
 
     defaultConfig {
-        applicationId = "com.hamoon.uncleted"
+        applicationId = "com.hamoon.unclecarbon"
         minSdk = 28
         targetSdk = 34
         versionCode = 10
@@ -61,9 +61,9 @@ android {
             // default credential: a release artifact must never be signed
             // with either. The task-graph assertion below fails any release
             // signing/packaging task instead of allowing a silent fallback.
-            val storePasswordEnv = System.getenv("UNCLETED_KEYSTORE_PASSWORD")
-            val keyAliasEnv = System.getenv("UNCLETED_KEY_ALIAS")
-            val keyPasswordEnv = System.getenv("UNCLETED_KEY_PASSWORD")
+            val storePasswordEnv = System.getenv("UNCLECARBON_KEYSTORE_PASSWORD")
+            val keyAliasEnv = System.getenv("UNCLECARBON_KEY_ALIAS")
+            val keyPasswordEnv = System.getenv("UNCLECARBON_KEY_PASSWORD")
             if (releaseKeystoreFile.isFile &&
                 !storePasswordEnv.isNullOrBlank() &&
                 !keyAliasEnv.isNullOrBlank() &&
@@ -170,10 +170,6 @@ gradle.taskGraph.whenReady {
 }
 
 dependencies {
-    // --- XPOSED / LSPOSED HOOK API ---
-    compileOnly("de.robv.android.xposed:api:82")
-    compileOnly("de.robv.android.xposed:api:82:sources")
-
     // --- ANDROIDX & MATERIAL ---
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -189,9 +185,6 @@ dependencies {
     implementation(libs.androidx.preference.ktx)
     implementation(libs.androidx.security.crypto)
 
-    // --- NETWORKING ---
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
     // --- COROUTINES ---
     implementation(libs.kotlinx.coroutines.android)
 
@@ -203,15 +196,13 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.video)
-    implementation(libs.androidx.camera.view)
 
     // --- LIFECYCLE & WORKMANAGER ---
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.work.runtime.ktx)
 
-    // --- BIOMETRICS & MEDIA ---
+    // --- BIOMETRICS ---
     implementation("androidx.biometric:biometric:1.1.0")
-    implementation("androidx.media:media:1.7.0")
 
     // --- TESTING ---
     testImplementation(libs.junit)

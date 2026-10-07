@@ -135,7 +135,8 @@ recreation. Use a dedicated fixture for destructive-action checks.
 
 ## Changed files
 
-Paths below are relative to `app/src/main/java/com/hamoon/uncleted/` unless shown otherwise.
+Paths below are relative to `app/src/main/java/com/hamoon/unclecarbon/` unless shown otherwise.
+(The changes predate the package rename from `com.hamoon.uncleted`.)
 
 | File(s) | Security change |
 | --- | --- |

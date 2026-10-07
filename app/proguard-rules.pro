@@ -3,7 +3,7 @@
 -renamesourcefileattribute SourceFile
 
 # Native JNI Bridge Protection (MTE & Memory Zeroing)
--keep class com.hamoon.uncleted.util.NativeSecurityBridge {
+-keep class com.hamoon.unclecarbon.util.NativeSecurityBridge {
     native <methods>;
     *;
 }
@@ -11,7 +11,7 @@
     native <methods>;
 }
 
-# StrongBox & Titan M2 KeyStore Providers
+# Android Keystore / StrongBox providers
 -keep class android.security.keystore.** { *; }
 -keep class androidx.security.crypto.** { *; }
 
@@ -30,11 +30,5 @@
 -keepresources META-INF/javamail.*
 -keepresources META-INF/mailcap*
 
-# LSPosed / Xposed API Hooks
--keep class de.robv.android.xposed.** { *; }
--dontwarn de.robv.android.xposed.**
-
-# Keep hook implementations & Receivers
--keep class com.hamoon.uncleted.hooks.** { *; }
--keepclassmembers class com.hamoon.uncleted.hooks.** { *; }
--keep class com.hamoon.uncleted.receivers.** { *; }
+# Manifest-registered receivers
+-keep class com.hamoon.unclecarbon.receivers.** { *; }

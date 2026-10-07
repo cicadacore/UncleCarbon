@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22.1)
 
-project("uncleted_native")
+project("unclecarbon_native")
 
 # Enforce C++17 Standard
 set(CMAKE_CXX_STANDARD 17)
@@ -20,7 +20,7 @@ add_compile_options(
 
 # Declare native defense library
 add_library(
-    uncleted_native
+    unclecarbon_native
     SHARED
     native-security.cpp
 )
@@ -31,7 +31,7 @@ find_library(android-lib android)
 
 # Link essential libraries (zlib for compression, log for diagnostics)
 target_link_libraries(
-    uncleted_native
+    unclecarbon_native
     ${log-lib}
     ${android-lib}
     -lz

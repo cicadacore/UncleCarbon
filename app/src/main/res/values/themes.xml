@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- 1. RENAME the original theme to "Base.Theme.UncleTed" -->
-    <style name="Base.Theme.UncleTed" parent="Theme.Material3.DayNight.NoActionBar">
+    <!-- 1. RENAME the original theme to "Base.Theme.UncleCarbon" -->
+    <style name="Base.Theme.UncleCarbon" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/md_theme_light_primary</item>
         <item name="colorOnPrimary">@color/md_theme_light_onPrimary</item>
@@ -33,10 +33,10 @@
     </style>
 
     <!-- 2. CREATE the final theme which inherits from the Base theme. -->
-    <style name="Theme.UncleTed" parent="Base.Theme.UncleTed" />
+    <style name="Theme.UncleCarbon" parent="Base.Theme.UncleCarbon" />
 
     <!-- ### NEW: AMOLED Black Theme ### -->
-    <style name="Theme.UncleTed.Amoled" parent="Base.Theme.UncleTed">
+    <style name="Theme.UncleCarbon.Amoled" parent="Base.Theme.UncleCarbon">
         <!-- Re-apply all dark theme colors but with pure black surfaces -->
         <item name="colorPrimary">@color/md_theme_dark_primary</item>
         <item name="colorOnPrimary">@color/md_theme_dark_onPrimary</item>
@@ -67,7 +67,7 @@
     </style>
 
     <!-- ADDED: A custom transparent theme for our Broker Activity -->
-    <style name="Theme.UncleTed.Transparent" parent="Theme.UncleTed">
+    <style name="Theme.UncleCarbon.Transparent" parent="Theme.UncleCarbon">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>
@@ -77,7 +77,7 @@
     </style>
 
     <!-- ### NEW: Transparent variant for the AMOLED theme ### -->
-    <style name="Theme.UncleTed.Amoled.Transparent" parent="Theme.UncleTed.Amoled">
+    <style name="Theme.UncleCarbon.Amoled.Transparent" parent="Theme.UncleCarbon.Amoled">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>
@@ -87,7 +87,7 @@
     </style>
 
 
-	<style name="Theme.UncleTed.NoActionBar.FullScreen" parent="Theme.UncleTed">
+	<style name="Theme.UncleCarbon.NoActionBar.FullScreen" parent="Theme.UncleCarbon">
 		<item name="android:windowNoTitle">true</item>
 		<item name="android:windowActionBar">false</item>
 		<item name="android:windowFullscreen">true</item>

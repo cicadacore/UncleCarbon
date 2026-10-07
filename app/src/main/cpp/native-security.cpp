@@ -3,28 +3,16 @@
 #include <vector>
 #include <cstring>
 #include <atomic>
-#include <fcntl.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/prctl.h>
-#include <linux/fs.h>
 #include <zlib.h>
 #include <android/log.h>
 
-#define TAG "UncleTed-Native"
+#define TAG "UncleCarbon-Native"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
-
-// Linux Kernel Block Discard IOCTL Definitions
-#ifndef BLKDISCARD
-#define BLKDISCARD _IO(0x12, 119)
-#endif
-
-#ifndef BLKSECDISCARD
-#define BLKSECDISCARD _IO(0x12, 125)
-#endif
 
 // ARMv8.5-A Synchronous MTE Tag Checking Control Flags
 #ifndef PR_SET_TAGGED_ADDR_CTRL
@@ -323,7 +311,7 @@ static bool zlibDecompress(const uint8_t* inData, size_t inLen, std::vector<uint
 // =============================================================================
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_hamoon_uncleted_util_NativeSecurityBridge_applyProcessHardening(JNIEnv* /* env */, jobject /* this */) {
+Java_com_hamoon_unclecarbon_util_NativeSecurityBridge_applyProcessHardening(JNIEnv* /* env */, jobject /* this */) {
     bool success = true;
 
     // 1. Anti-Debugging: Disable core dumps and ptrace memory inspection
@@ -344,7 +332,7 @@ Java_com_hamoon_uncleted_util_NativeSecurityBridge_applyProcessHardening(JNIEnv*
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_hamoon_uncleted_util_NativeSecurityBridge_isMteActive(JNIEnv* /* env */, jobject /* this */) {
+Java_com_hamoon_unclecarbon_util_NativeSecurityBridge_isMteActive(JNIEnv* /* env */, jobject /* this */) {
     int res = prctl(56 /* PR_GET_TAGGED_ADDR_CTRL */, 0, 0, 0, 0);
     if (res >= 0 && (res & PR_MTE_TCF_SYNC)) {
         return JNI_TRUE;
@@ -353,7 +341,7 @@ Java_com_hamoon_uncleted_util_NativeSecurityBridge_isMteActive(JNIEnv* /* env */
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_hamoon_uncleted_util_NativeSecurityBridge_secureZeroMemory(JNIEnv* env, jobject /* this */, jbyteArray buffer) {
+Java_com_hamoon_unclecarbon_util_NativeSecurityBridge_secureZeroMemory(JNIEnv* env, jobject /* this */, jbyteArray buffer) {
     if (!buffer) return;
     jsize len = env->GetArrayLength(buffer);
     if (len <= 0) return;
@@ -366,7 +354,7 @@ Java_com_hamoon_uncleted_util_NativeSecurityBridge_secureZeroMemory(JNIEnv* env,
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_hamoon_uncleted_util_NativeSecurityBridge_lockMemoryPages(JNIEnv* env, jobject /* this */, jbyteArray data) {
+Java_com_hamoon_unclecarbon_util_NativeSecurityBridge_lockMemoryPages(JNIEnv* env, jobject /* this */, jbyteArray data) {
     if (!data) return JNI_FALSE;
     jsize len = env->GetArrayLength(data);
     if (len <= 0) return JNI_TRUE;
@@ -380,7 +368,7 @@ Java_com_hamoon_uncleted_util_NativeSecurityBridge_lockMemoryPages(JNIEnv* env, 
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_hamoon_uncleted_util_NativeSecurityBridge_unlockMemoryPages(JNIEnv* env, jobject /* this */, jbyteArray data) {
+Java_com_hamoon_unclecarbon_util_NativeSecurityBridge_unlockMemoryPages(JNIEnv* env, jobject /* this */, jbyteArray data) {
     if (!data) return JNI_FALSE;
     jsize len = env->GetArrayLength(data);
     if (len <= 0) return JNI_TRUE;
@@ -393,39 +381,8 @@ Java_com_hamoon_uncleted_util_NativeSecurityBridge_unlockMemoryPages(JNIEnv* env
     return (ret == 0) ? JNI_TRUE : JNI_FALSE;
 }
 
-extern "C" JNIEXPORT jboolean JNICALL
-Java_com_hamoon_uncleted_util_NativeSecurityBridge_purgeBlockDevice(JNIEnv* env, jobject /* this */, jstring pathStr) {
-    if (!pathStr) return JNI_FALSE;
-    const char* path = env->GetStringUTFChars(pathStr, nullptr);
-    if (!path) return JNI_FALSE;
-
-    LOGE("Native purgeBlockDevice: opening %s", path);
-    int fd = open(path, O_RDWR | O_SYNC);
-    if (fd < 0) {
-        LOGE("Failed opening block device %s (errno: %d)", path, errno);
-        env->ReleaseStringUTFChars(pathStr, path);
-        return JNI_FALSE;
-    }
-
-    uint64_t range[2] = {0, 0};
-    if (ioctl(fd, BLKGETSIZE64, &range[1]) < 0) {
-        range[1] = 64ULL * 1024ULL * 1024ULL; // 64MB fallback
-    }
-
-    int ret = ioctl(fd, BLKSECDISCARD, &range);
-    if (ret != 0) {
-        LOGW("BLKSECDISCARD unsupported (errno: %d). Attempting BLKDISCARD...", errno);
-        ret = ioctl(fd, BLKDISCARD, &range);
-    }
-
-    fsync(fd);
-    close(fd);
-    env->ReleaseStringUTFChars(pathStr, path);
-    return (ret == 0) ? JNI_TRUE : JNI_FALSE;
-}
-
 extern "C" JNIEXPORT jbyteArray JNICALL
-Java_com_hamoon_uncleted_util_NativeSecurityBridge_executeCesNative(
+Java_com_hamoon_unclecarbon_util_NativeSecurityBridge_executeCesNative(
     JNIEnv* env, jobject /* this */, jbyteArray input, jbyteArray key, jbyteArray nonce) {
 
     if (!input || !key || !nonce) return nullptr;
@@ -475,7 +432,7 @@ Java_com_hamoon_uncleted_util_NativeSecurityBridge_executeCesNative(
 }
 
 extern "C" JNIEXPORT jbyteArray JNICALL
-Java_com_hamoon_uncleted_util_NativeSecurityBridge_executeCesDecryptNative(
+Java_com_hamoon_unclecarbon_util_NativeSecurityBridge_executeCesDecryptNative(
     JNIEnv* env, jobject /* this */, jbyteArray inputWithTag, jbyteArray key, jbyteArray nonce) {
 
     if (!inputWithTag || !key || !nonce) return nullptr;

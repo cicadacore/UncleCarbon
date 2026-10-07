@@ -2,9 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- PROTECTED BROADCAST DECLARATIONS -->
-    <protected-broadcast android:name="com.hamoon.uncleted.ACTION_TRIPWIRE_EXPIRED" />
-
     <!-- CAMERA AND TELEPHONY FEATURES -->
     <uses-feature
         android:name="android.hardware.camera.any"
@@ -17,10 +14,6 @@
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="false" />
-
-    <!-- DEVICE OWNER PRIVILEGED PERMISSIONS -->
-    <uses-permission android:name="android.permission.REBOOT" tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.MANAGE_DEVICE_ADMINS" tools:ignore="ProtectedPermissions" />
 
     <!-- BLUETOOTH PROXIMITY PERMISSIONS -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
@@ -43,9 +36,6 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission
-        android:name="android.permission.BIND_ACCESSIBILITY_SERVICE"
-        tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -82,7 +72,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
-        android:name=".UncleTedApplication"
+        android:name=".UncleCarbonApplication"
         android:allowBackup="false"
         android:memtagMode="sync"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -91,7 +81,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.UncleTed"
+        android:theme="@style/Theme.UncleCarbon"
         android:enableOnBackInvokedCallback="true"
         tools:targetApi="34">
 
@@ -114,7 +104,7 @@
             android:name=".EvidenceGalleryActivity"
             android:exported="false"
             android:label="Evidence Locker &amp; Media Vault"
-            android:theme="@style/Theme.UncleTed" />
+            android:theme="@style/Theme.UncleCarbon" />
 
         <!-- Launcher Alias for Stealth Mode -->
         <activity-alias
@@ -140,7 +130,7 @@
             android:turnScreenOn="true"
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
-            android:theme="@style/Theme.UncleTed.Transparent" />
+            android:theme="@style/Theme.UncleCarbon.Transparent" />
 
         <!-- Background Services -->
         <service
@@ -194,7 +184,7 @@
         <!-- Notification Listener Service for Data-Only eSIM C2 -->
         <service
             android:name=".services.NotificationCommandListener"
-            android:label="Uncle Ted Covert Dispatch Listener"
+            android:label="Uncle Carbon Covert Dispatch Listener"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
             android:exported="true">
             <intent-filter>
@@ -205,7 +195,7 @@
         <!-- Quick Settings Tiles -->
         <service
             android:name=".services.LockTileService"
-            android:label="Uncle Ted: Lock"
+            android:label="Uncle Carbon: Lock"
             android:icon="@drawable/ic_lock_24"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:exported="true">
@@ -216,7 +206,7 @@
 
         <service
             android:name=".services.SirenTileService"
-            android:label="Uncle Ted: Siren"
+            android:label="Uncle Carbon: Siren"
             android:icon="@drawable/ic_alert_24"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:exported="true">
@@ -227,7 +217,7 @@
 
         <service
             android:name=".services.LocationTileService"
-            android:label="Uncle Ted: Location"
+            android:label="Uncle Carbon: Location"
             android:icon="@drawable/ic_info_24"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:exported="true">
@@ -238,7 +228,7 @@
 
         <service
             android:name=".services.WipeTileService"
-            android:label="Uncle Ted: WIPE"
+            android:label="Uncle Carbon: WIPE"
             android:icon="@drawable/ic_alert_triangle_24"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:exported="true">
@@ -247,7 +237,7 @@
             </intent-filter>
         </service>
 
-        <!-- Decoy Quick Settings Airplane Mode Tile Trap -->
+        <!-- Emergency Quick Settings tile labelled as Airplane mode (immediate factory reset) -->
         <service
             android:name=".services.FakeAirplaneTileService"
             android:label="Airplane mode"
@@ -296,7 +286,7 @@
             android:exported="false"
             android:directBootAware="true">
             <intent-filter>
-                <action android:name="com.hamoon.uncleted.ACTION_TRIPWIRE_EXPIRED" />
+                <action android:name="com.hamoon.unclecarbon.ACTION_TRIPWIRE_EXPIRED" />
             </intent-filter>
         </receiver>
 
@@ -345,7 +335,7 @@
         <receiver
             android:name=".widgets.PanicWidgetProvider"
             android:exported="true"
-            android:label="Uncle Ted Controls">
+            android:label="Uncle Carbon Controls">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

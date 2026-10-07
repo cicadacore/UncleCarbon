@@ -10,10 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // Xposed API Repository
-        maven("https://api.xposed.info/")
     }
 }
 
-rootProject.name = "Uncle Ted"
+rootProject.name = "UncleCarbon"
 include(":app")

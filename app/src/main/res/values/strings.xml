@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App & Navigation -->
-    <string name="app_name">Uncle Ted</string>
+    <string name="app_name">Uncle Carbon</string>
     <string name="app_name_hidden">System Service</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_header_subtitle">A cabin in the digital woods.</string>
+    <string name="nav_header_subtitle">Device Owner security controls for GrapheneOS</string>
 
     <!-- Domain-Driven Navigation Menus -->
     <string name="menu_dashboard">Dashboard &amp; Telemetry</string>
@@ -29,11 +29,11 @@
 
     <!-- Authentication (GrapheneOS Device Owner build) -->
     <string name="authentication_header">Device Credential (GrapheneOS)</string>
-    <string name="authentication_graphene_notice">The GrapheneOS lockscreen PIN is the only credential UncleTed relies on. For a duress credential, use GrapheneOS Settings → Security → Duress password/PIN. UncleTed does not implement its own PINs on this fork.</string>
+    <string name="authentication_graphene_notice">The GrapheneOS lockscreen PIN is the only credential UncleCarbon relies on. For a duress credential, use GrapheneOS Settings → Security → Duress password/PIN. UncleCarbon does not implement its own PINs.</string>
     <string name="max_failed_attempts_title">Max Failed Keyguard Attempts</string>
-    <string name="max_failed_attempts_summary">After this many consecutive wrong attempts at the GrapheneOS lockscreen, UncleTed invokes a standard Device Owner factory reset.</string>
-    <string name="feature_biometric_lock_summary">Require biometric authentication to open UncleTed.</string>
-    <string name="biometric_auth_title">Uncle Ted Zero-Trust Gate</string>
+    <string name="max_failed_attempts_summary">After this many consecutive wrong attempts at the GrapheneOS lockscreen, UncleCarbon invokes a standard Device Owner factory reset.</string>
+    <string name="feature_biometric_lock_summary">Require biometric authentication to open UncleCarbon.</string>
+    <string name="biometric_auth_title">Uncle Carbon Zero-Trust Gate</string>
     <string name="biometric_auth_subtitle">Authenticate biometric sensor to unlock defense suite</string>
     <string name="biometric_auth_failed_exit">Authentication rejected. Terminating session.</string>
 
@@ -43,9 +43,9 @@
     <!-- Safe Boot Interception -->
     <string name="safe_boot_title">Safe Boot Interception (Anti-Bypass)</string>
     <string name="safe_boot_switch_label">Block Safe Boot (Device Owner)</string>
-    <string name="safe_boot_summary">When enabled, the Device Owner refuses reboots into Android Safe Mode so adversaries cannot neutralize UncleTed sentinels by holding hardware keys at boot.</string>
+    <string name="safe_boot_summary">When enabled, the Device Owner refuses reboots into Android Safe Mode so adversaries cannot neutralize UncleCarbon sentinels by holding hardware keys at boot.</string>
     <string name="safe_boot_warning_title">Allow Safe Mode?</string>
-    <string name="safe_boot_warning_message">Allowing Safe Mode lets anyone with physical access reboot the device into Safe Mode, which disables UncleTed background sentinels. Are you sure?</string>
+    <string name="safe_boot_warning_message">Allowing Safe Mode lets anyone with physical access reboot the device into Safe Mode, which disables UncleCarbon background sentinels. Are you sure?</string>
     <string name="safe_boot_allow_button">Allow Safe Mode</string>
     <string name="safe_boot_keep_blocked_button">Keep Blocked</string>
 
@@ -101,7 +101,7 @@
     <string name="btn_custom_tripwire_duration">Set Custom Locked Duration (Days)</string>
     <string name="tripwire_custom_dialog_title">Custom Dead-Man Duration</string>
     <string name="geofence_suicide_title">Multi-Zone Geographic Suicide</string>
-    <string name="geofence_suicide_desc">High-precision GPS Ray-Casting algorithm. Triggers instant cryptographic erasure if device breaches user-defined high-risk zones or pre-configured perimeters.</string>
+    <string name="geofence_suicide_desc">Checks framework location fixes against the configured zone polygons. After several consecutive accurate fixes inside a zone, UncleCarbon requests a standard Device Owner factory reset.</string>
     <string name="geofence_evin_toggle">Evin Prison Perimeter Sentinel (Auto-Wipe)</string>
     <string name="geofence_manage_zones_button">Manage Custom Destruction Zones</string>
 
@@ -111,11 +111,11 @@
     <string name="otc_tokens_title">Single-Use Emergency Wipe Token</string>
     <string name="otc_tokens_desc">Generates a single one-time emergency wipe token. When the valid unused token is received, UncleCarbon consumes it and requests a standard Device Owner factory reset. Generating a new token replaces any previous one, so there is always exactly one active token.</string>
     <string name="otc_generate_button">Generate Emergency Wipe Token</string>
-    <string name="sms_fallback_title">Permissive Burner Fallback (UNCLETED [CMD] [PWD])</string>
+    <string name="sms_fallback_title">Permissive Burner Fallback (UNCLECARBON [CMD] [PWD])</string>
     <string name="sms_fallback_desc">Legacy command syntax for basic analog phones. Guarded by a dedicated authorization toggle.</string>
     <string name="sms_cleartext_toggle">Permit Cleartext SMS Fallback</string>
     <string name="sms_master_password_hint">SMS Command Master Password</string>
-    <string name="sms_master_password_helper">Required to authenticate all SMS commands (e.g., \"UNCLETED WIPE [password]\")</string>
+    <string name="sms_master_password_helper">Required to authenticate all SMS commands (e.g., \"UNCLECARBON WIPE [password]\")</string>
     <string name="sms_emergency_contact_hint">Emergency Contact (Phone or Email)</string>
     <string name="remote_emergency_contact_hint">Emergency Contact (Phone or Email)</string>
     <string name="remote_save_button">Save Remote Settings</string>
@@ -142,30 +142,27 @@
     <!-- SMS Command Reference Strings -->
     <string name="sms_command_guide_title">SMS Command Guide</string>
     <string name="sms_command_guide_instructions">Send an SMS to this device from any phone using the following format. Replace \"[password]\" with your SMS Command Master Password.</string>
-    <string name="sms_command_wipe">UNCLETED WIPE [password]</string>
+    <string name="sms_command_wipe">UNCLECARBON WIPE [password]</string>
     <string name="sms_command_wipe_desc">Wipes the device IMMEDIATELY. No evidence is collected to ensure maximum speed of destruction.</string>
-    <string name="sms_command_evidence">UNCLETED EVIDENCE [password]</string>
+    <string name="sms_command_evidence">UNCLECARBON EVIDENCE [password]</string>
     <string name="sms_command_evidence_desc">Records video, audio, and location. Saves files locally and sends them via Email.</string>
-    <string name="sms_command_siren">UNCLETED SIREN [password]</string>
+    <string name="sms_command_siren">UNCLECARBON SIREN [password]</string>
     <string name="sms_command_siren_desc">Triggers a HIGH alert, sends evidence, and activates a loud siren on the device.</string>
-    <string name="sms_command_lock">UNCLETED LOCK [password]</string>
-    <string name="sms_command_lock_desc">Immediately locks the device and shows the secure PIN entry screen.</string>
-    <string name="sms_command_locate">UNCLETED LOCATE [password]</string>
+    <string name="sms_command_lock">UNCLECARBON LOCK [password]</string>
+    <string name="sms_command_lock_desc">Reboots the device with Device Owner privileges, returning it to the before-first-unlock state. Without Device Owner it only locks the screen.</string>
+    <string name="sms_command_locate">UNCLECARBON LOCATE [password]</string>
     <string name="sms_command_locate_desc">Forces a high-accuracy GPS fix and sends the location via SMS or Email immediately.</string>
-    <string name="sms_command_audio">UNCLETED AUDIO [password] [seconds]</string>
+    <string name="sms_command_audio">UNCLECARBON AUDIO [password] [seconds]</string>
     <string name="sms_command_audio_desc">Silently records ambient audio for the specified seconds (default 60s) and emails the file.</string>
-    <string name="sms_command_speak">UNCLETED SPEAK [password] [message]</string>
+    <string name="sms_command_speak">UNCLECARBON SPEAK [password] [message]</string>
     <string name="sms_command_speak_desc">Uses Text-to-Speech to read the message aloud at maximum volume.</string>
-    <string name="sms_command_reboot">UNCLETED REBOOT [password]</string>
-    <string name="sms_command_reboot_desc">(Root Only) Forces the device to reboot immediately.</string>
 
     <!-- Surveillance & Evidence Capture -->
     <string name="surveillance_title">Covert Surveillance &amp; Evidence</string>
-    <string name="surveillance_desc">Multi-modal evidence gathering pipeline operating silently in the background upon duress, honeypot, or physical breach triggers.</string>
     <string name="feature_record_video">Sequential CameraX Dual Video Recording</string>
     <string name="feature_ambient_audio">Direct-to-Disk Ambient Audio Capture (MPEG-4 AAC)</string>
     <string name="feature_intruder_selfie">Intruder Selfie (3+ Consecutive Failed Passcodes)</string>
-    <string name="save_selfie_locally">Persist Intruder Selfie to Public Pictures/UncleTed</string>
+    <string name="save_selfie_locally">Persist Intruder Selfie to Public Pictures/UncleCarbon</string>
     <string name="feature_sim_change">Hardware SIM Card Identity Sentinel</string>
     <string name="feature_wipe_on_sim_removal">Factory Reset on SIM Removal</string>
     <string name="shake_to_panic_feature">Micro-Motion &amp; Accelerometer Shake Sentinel</string>
@@ -174,7 +171,7 @@
     <string name="destruction_desc">Device Owner standard factory reset is the only destructive action in this GrapheneOS fork. Level 2/3/4 kernel/raw-partition routines were removed because they require root or raw block device access that is unavailable on an unrooted locked GrapheneOS install.</string>
     <string name="feature_wipe_device">Allow Factory Reset on Critical Alerts</string>
     <string name="feature_hardware_wipe">Rapid Volume Sequence Factory Reset</string>
-    <string name="feature_hardware_wipe_summary">Press VOL UP → VOL DOWN → VOL UP → VOL DOWN quickly to invoke a standard Device Owner factory reset. Requires UncleTed\'s Accessibility Service to be enabled.</string>
+    <string name="feature_hardware_wipe_summary">Press VOL UP → VOL DOWN → VOL UP → VOL DOWN quickly to invoke a standard Device Owner factory reset. Requires UncleCarbon\'s Accessibility Service to be enabled.</string>
     <string name="destruction_level_1_title">Standard Device Owner Factory Reset</string>
     <string name="destruction_level_1_desc">Invokes DevicePolicyManager.wipeDevice() on Android 14+ or wipeData() on earlier supported versions. External storage is included; the device reboots and user data is removed.</string>
     <string name="destruction_execute_level_1">Execute Standard Factory Reset</string>
@@ -233,14 +230,19 @@
     <string name="permissions_usage_already_granted_toast">Usage Access already granted.</string>
     <string name="permissions_usage_skipped_toast">Usage access permission skipped.</string>
     <string name="permissions_required_dialog_title">Permissions Required</string>
-    <string name="permissions_required_dialog_message">Uncle Ted needs these permissions to protect your device:\n\n• Camera: Take photos of intruders\n• Location: Send your location in emergencies\n• SMS: Send and receive remote commands\n• Microphone: Record ambient audio\n• Notifications: Show alerts</string>
+    <string name="permissions_required_dialog_message">Uncle Carbon needs these permissions to protect your device:\n\n• Camera: Take photos of intruders\n• Location: Send your location in emergencies\n• SMS: Send and receive remote commands\n• Microphone: Record ambient audio\n• Notifications: Show alerts</string>
     <string name="permissions_required_dialog_grant">Grant Permissions</string>
-    <string name="permissions_admin_dialog_explanation">Uncle Ted requires Device Admin permission to:\n\n• Remotely lock your device when receiving SMS commands\n• Securely wipe your device data in emergency situations\n• Prevent unauthorized uninstallation of the security app\n\nThis permission is essential for the core security features.</string>
+    <string name="permissions_admin_dialog_explanation">Uncle Carbon requires Device Admin permission to:\n\n• Lock your device when it receives an authenticated remote command\n• Request a factory reset in emergency situations\n• Receive failed-unlock callbacks for security monitoring\n\nDevice Owner provisioning is required for most protections.</string>
     <string name="permissions_accessibility_dialog_title">Enable Accessibility Service</string>
     <string name="permissions_accessibility_dialog_open_settings">Open Settings</string>
     <string name="permissions_usage_dialog_title">Usage Access Permission</string>
-    <string name="permissions_usage_dialog_message">This optional permission allows Uncle Ted to monitor app usage patterns for anomaly detection.</string>
+    <string name="permissions_usage_dialog_message">This optional permission allows Uncle Carbon to monitor app usage patterns for anomaly detection.</string>
     <string name="permissions_usage_dialog_skip">Skip</string>
+    <string name="permissions_accessibility_enable_prompt">Please enable the Uncle Carbon accessibility service for hardware volume monitoring.</string>
+    <string name="permissions_overlay_dialog_title">Draw Over Other Apps Permission</string>
+    <string name="permissions_overlay_dialog_message">Uncle Carbon does not draw over other apps. Android exempts apps holding this access from some background activity-start limits; a Device Owner app is already exempt.</string>
+    <string name="permissions_notification_listener_dialog_title">Notification Listener Access (eSIM C2)</string>
+    <string name="permissions_notification_listener_dialog_message">Lets Uncle Carbon read incoming notifications for its one-time emergency wipe token and, when the cleartext fallback is enabled, password-authenticated remote commands. Intended for devices on data-only eSIM plans without SMS. Notification content is processed on the device only.</string>
     <string name="permissions_button_runtime">Runtime Permissions</string>
     <string name="permissions_button_admin">Device Admin</string>
     <string name="permissions_button_accessibility">Accessibility Service</string>
@@ -255,7 +257,7 @@
     <string name="guide_accessibility_title">Accessibility Service</string>
     <string name="guide_accessibility_desc">Monitors rapid hardware volume sequences.</string>
     <string name="guide_overlay_title">Draw Over Other Apps</string>
-    <string name="guide_overlay_desc">Allows displaying full-screen lockscreens.</string>
+    <string name="guide_overlay_desc">Optional. Uncle Carbon does not draw over other apps; this access only relaxes Android\'s background activity-start limits, which Device Owner already does.</string>
     <string name="guide_usage_title">Usage Access (Optional)</string>
     <string name="guide_usage_desc">Grants ability to monitor app usage patterns for anomalies.</string>
 
@@ -309,7 +311,7 @@
     <string name="level_5_desc">All sentinels and defenses fully active.</string>
     <!-- Checklist Items -->
     <string name="check_device_owner_title">Device Owner Provisioned</string>
-    <string name="check_device_owner_desc">UncleTed is provisioned as the GrapheneOS Device Owner (dpm.isDeviceOwnerApp).</string>
+    <string name="check_device_owner_desc">UncleCarbon is provisioned as the Device Owner (dpm.isDeviceOwnerApp).</string>
     <string name="check_admin_title">Device Admin Active</string>
     <string name="check_admin_desc">Required for standard Device Owner factory reset and USB signaling policy.</string>
     <string name="check_accessibility_title">Hardware Key Input Filtering</string>
@@ -324,13 +326,13 @@
     <string name="check_sim_desc">Detects SIM removal and SIM replacement; routes to standard factory reset when armed.</string>
 
     <!-- About Screen -->
-    <string name="about_title">About Uncle Ted</string>
-    <string name="about_developer_credit">Designed and Engineered by Hamoon Soleimani</string>
+    <string name="about_title">About Uncle Carbon</string>
+    <string name="about_developer_credit">A fork of UncleTed, originally designed and engineered by Hamoon Soleimani</string>
     <string name="about_app_version">Version 10.0.1</string>
     <string name="about_legal_disclaimer_title">Legal &amp; Operational Security Disclaimer</string>
-    <string name="about_legal_disclaimer_body">Uncle Ted is engineered strictly for educational research, authorized defensive security auditing, high-risk operational privacy, and human rights protection against physical coercion and forensic seizure. Erasing cryptographic key material renders underlying storage mathematically and physically unrecoverable. Never install this software without explicit, informed authorization from the device owner.</string>
-    <string name="about_github">GitHub Repository</string>
-    <string name="about_website">Official Website</string>
+    <string name="about_legal_disclaimer_body">UncleCarbon is intended for authorized defensive security use on devices you own or administer. Its destructive actions request a standard Android factory reset through Device Policy APIs, which cannot be undone. Never install this software without explicit, informed authorization from the device owner.</string>
+    <string name="about_github">UncleTed author on GitHub</string>
+    <string name="about_website">UncleTed author website</string>
     <string name="about_quotes_title">Ted Kaczynski</string>
 
     <string name="category_failed_authentication">Failed Authentication</string>
@@ -356,16 +358,16 @@
     <string name="monitor_event_history_summary">Open the local event history.</string>
 
     <!-- Services & Notifications -->
-    <string name="accessibility_service_label">Uncle Ted Input Filter Sentinel</string>
+    <string name="accessibility_service_label">Uncle Carbon Input Filter Sentinel</string>
     <string name="accessibility_service_description">Monitors hardware volume button wipe sequences and physical security events.</string>
-    <string name="notification_title">Uncle Ted Defense Engine Active</string>
+    <string name="notification_title">Uncle Carbon Defense Engine Active</string>
     <string name="notification_text">Hardware sentinels and memory defenses armed.</string>
-    <string name="notification_channel_name">Uncle Ted Core Sentinel Service</string>
+    <string name="notification_channel_name">Uncle Carbon Core Sentinel Service</string>
     <string name="selfie_saved_notification_title">Intruder Dossier Captured</string>
     <string name="selfie_saved_notification_body">Tap to view captured evidentiary photo.</string>
     <string name="selfie_saved_notification_channel_name">Evidentiary File Alerts</string>
     <string name="admin_disable_warning">Disabling this service compromises discrete hardware defenses. Incident logged.</string>
-    <string name="watchdog_status_message">Uncle Ted: Telemetry Heartbeat</string>
+    <string name="watchdog_status_message">Uncle Carbon: Telemetry Heartbeat</string>
     <string name="watchdog_status_body">Status:\nBattery: %1$s%%\nLocation: %2$s</string>
 
     <!-- Kaczynski Quotes Array -->

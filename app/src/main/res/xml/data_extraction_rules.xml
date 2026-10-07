@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   UncleTed holds credentials and trigger secrets, so none of its data may leave
+   UncleCarbon holds credentials and trigger secrets, so none of its data may leave
    the device. The Device Owner re-enables the system backup service for
    Seedvault; android:allowBackup="false" blocks cloud backup on Android 12+ but
    not device-to-device transfer, so every domain is excluded from both.

@@ -48,7 +48,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Provides immediate inspection of your root manager, system priv-app mount state, and kernel environment to pinpoint bugs."
+                    android:text="Shows Device Owner and Device Admin status, the platform build and security monitoring state to help pinpoint problems."
                     android:textAppearance="?attr/textAppearanceBodySmall"
                     android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -75,21 +75,21 @@
                             android:textAppearance="?attr/textAppearanceBodySmall" />
 
                         <TextView
-                            android:id="@+id/tv_diag_root"
+                            android:id="@+id/tv_diag_device_owner"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:fontFamily="monospace"
-                            android:text="Root: Scanning..."
+                            android:text="Device Owner: Checking..."
                             android:textAppearance="?attr/textAppearanceBodySmall" />
 
                         <TextView
-                            android:id="@+id/tv_diag_privapp"
+                            android:id="@+id/tv_diag_device_admin"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="3dp"
                             android:fontFamily="monospace"
-                            android:text="Priv-App: Verifying Mount..."
+                            android:text="Device Admin: Checking..."
                             android:textAppearance="?attr/textAppearanceBodySmall" />
 
                         <TextView
