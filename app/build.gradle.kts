@@ -13,6 +13,20 @@ val releaseSigningEnvVars = listOf(
     "UNCLECARBON_KEY_PASSWORD"
 )
 
+// Alternatively, Android Studio's Build > Generate Signed Bundle / APK wizard
+// passes the keystore the user picks (or creates) as these Gradle properties.
+// AGP uses them in place of signingConfigs.release, but only when all four are
+// supplied. Nothing is stored in the project.
+val studioSigningProperties = listOf(
+    "android.injected.signing.store.file",
+    "android.injected.signing.store.password",
+    "android.injected.signing.key.alias",
+    "android.injected.signing.key.password"
+)
+val studioSigningInjected = studioSigningProperties.all {
+    !providers.gradleProperty(it).orNull.isNullOrBlank()
+}
+
 android {
     namespace = "com.hamoon.unclecarbon"
     compileSdk = 34
@@ -134,11 +148,12 @@ android {
 
 // Security guard: a release build must never silently fall back to the shared
 // Android debug keystore or to default credentials. Fail fast if a release
-// signing/packaging task is on the graph while the dedicated release keystore
-// or any of the credential environment variables is missing/blank. Debug
-// builds and Gradle sync are unaffected: only tasks that produce or sign a
-// release artifact are checked. Only the NAMES of missing variables are
-// reported; their values are never printed.
+// signing/packaging task is on the graph while Android Studio's signing wizard
+// has not supplied a key and the dedicated release keystore or any of the
+// credential environment variables is missing/blank. Debug builds and Gradle
+// sync are unaffected: only tasks that produce or sign a release artifact are
+// checked. Only the NAMES of missing variables are reported; their values are
+// never printed.
 gradle.taskGraph.whenReady {
     val releaseSigningRequested = allTasks.any { task ->
         task.project == project && (
@@ -149,7 +164,7 @@ gradle.taskGraph.whenReady {
             task.name.startsWith("validateSigningRelease")
         )
     }
-    if (releaseSigningRequested) {
+    if (releaseSigningRequested && !studioSigningInjected) {
         val problems = mutableListOf<String>()
         if (!releaseKeystoreFile.isFile) {
             problems += "release.keystore not found at ${releaseKeystoreFile.absolutePath}"
@@ -161,8 +176,9 @@ gradle.taskGraph.whenReady {
         if (problems.isNotEmpty()) {
             throw GradleException(
                 "Release signing aborted: ${problems.joinToString("; ")}. Release artifacts " +
-                    "must be signed with the dedicated release key using credentials supplied " +
-                    "via ${releaseSigningEnvVars.joinToString(" / ")}; there is no fallback to " +
+                    "must be signed with a release key: use Android Studio's Build > Generate " +
+                    "Signed Bundle / APK, or supply release.keystore with credentials via " +
+                    "${releaseSigningEnvVars.joinToString(" / ")}; there is no fallback to " +
                     "the Android debug key or to built-in credentials."
             )
         }

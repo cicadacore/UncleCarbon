@@ -4,8 +4,13 @@
    Seedvault; android:allowBackup="false" blocks cloud backup on Android 12+ but
    not device-to-device transfer, so every domain is excluded from both.
    See https://developer.android.com/about/versions/12/backup-restore#xml-changes
+   The device_* (device-protected storage) domains are valid at runtime
+   (android.app.backup.FullBackup) but unknown to AGP 8.2's lint, which would
+   otherwise fail release builds with FullBackupContent false positives.
 -->
-<data-extraction-rules>
+<data-extraction-rules
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="FullBackupContent">
     <cloud-backup>
         <exclude domain="root" path="." />
         <exclude domain="file" path="." />

@@ -446,10 +446,17 @@ Debug build:
 # app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Release build. Release signing is fail-closed: the build aborts unless
-`release.keystore` exists in the repository root **and** all three variables
-are set. There is no fallback to the debug key, and only the names of missing
-variables are printed.
+Release build. Release signing is fail-closed: the build aborts unless a
+release key is supplied, and there is no fallback to the debug key. Supply the
+key in one of two ways.
+
+In Android Studio, use **Build → Generate Signed Bundle / APK → APK**, choose
+an existing keystore or click **Create new…**, enter the alias and passwords,
+and pick the `release` variant. The wizard passes the key to Gradle for that
+build only; nothing is written to the project.
+
+From the command line, put `release.keystore` in the repository root **and**
+set all three variables. Only the names of missing variables are printed.
 
 ```bash
 export UNCLECARBON_KEYSTORE_PASSWORD='…'

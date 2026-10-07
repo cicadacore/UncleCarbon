@@ -14,6 +14,9 @@
 # Android Keystore / StrongBox providers
 -keep class android.security.keystore.** { *; }
 -keep class androidx.security.crypto.** { *; }
+# Compile-time-only annotations referenced by Tink (pulled in by security-crypto)
+-dontwarn javax.annotation.Nullable
+-dontwarn javax.annotation.concurrent.GuardedBy
 
 # JavaMail and Activation
 -keep class javax.mail.** { *; }
@@ -26,9 +29,7 @@
 -keep class com.sun.mail.smtp.** { *; }
 -keep class com.sun.mail.handlers.** { *; }
 -dontwarn com.sun.mail.**
-
--keepresources META-INF/javamail.*
--keepresources META-INF/mailcap*
+# META-INF/javamail.* and META-INF/mailcap* are Java resources; R8 keeps them as-is.
 
 # Manifest-registered receivers
 -keep class com.hamoon.unclecarbon.receivers.** { *; }
