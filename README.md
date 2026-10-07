@@ -39,6 +39,7 @@ app can do on an unmodified, locked GrapheneOS device.
 - [Requirements](#requirements)
 - [Building](#building)
 - [Device Owner provisioning](#device-owner-provisioning)
+- [Post-installation hardening checklist](#post-installation-hardening-checklist)
 - [Permissions](#permissions)
 - [Threat model](#threat-model)
 - [Destructive actions and data-loss warning](#destructive-actions-and-data-loss-warning)
@@ -156,7 +157,9 @@ GrapheneOS ships its own controls in this area, for example an auto-reboot
 timer, a duress PIN/password, USB-C port restrictions while locked, a 2G
 toggle, and hardened memory allocation with MTE on supported hardware. Check
 the [GrapheneOS documentation](https://grapheneos.org/features) for current
-behaviour. UncleCarbon does not replace any of these:
+behaviour, and the
+[post-installation hardening checklist](#post-installation-hardening-checklist)
+for recommended settings. UncleCarbon does not replace any of these:
 
 - It does not implement its own lock-screen PINs. Use GrapheneOS's duress
   credential for a duress wipe.
@@ -466,55 +469,175 @@ reset.
 
 Understand Device Owner before you start. A Device Owner app cannot be
 uninstalled, and UncleCarbon does not currently offer a way to relinquish
-Device Owner, so **removing it requires a factory reset**.
+Device Owner, so **removing it requires a factory reset**. Do the steps below
+in order: several hardening settings in the
+[checklist](#post-installation-hardening-checklist) turn ADB off, so finish
+everything that needs ADB first.
 
-1. **Build and install** the APK:
+GrapheneOS menu names occasionally change between releases. If a path below
+does not match your device, search Settings for the option name.
 
-   ```bash
-   ./gradlew assembleDebug
-   adb install app/build/outputs/apk/debug/app-debug.apk
-   ```
+### 1. Prepare the device
 
-   ADB requires temporarily enabling developer options and USB debugging.
+Android accepts `dpm set-device-owner` from ADB only when:
 
-2. **Check the device state.** Android accepts `dpm set-device-owner` from ADB
-   only when no Device Owner is set, no accounts are registered on the device
-   (including accounts created by apps through Android's account system), and
-   no secondary users or work profile exist. If any of these are present,
-   factory-reset the device and provision before adding users, profiles or
-   accounts.
+- no Device Owner is already set,
+- no accounts are registered on the device (including accounts that apps
+  create through Android's account system), and
+- no secondary users or work profile exist.
 
-3. **Provision:**
+The simplest route is a freshly installed or factory-reset GrapheneOS device:
+complete the setup wizard without adding accounts, users or profiles, and
+install other apps only after provisioning.
 
-   ```bash
-   adb shell dpm set-device-owner com.hamoon.unclecarbon/.receivers.AdminReceiver
-   ```
+### 2. Enable USB debugging on the phone
 
-4. **Verify:**
+1. Open **Settings > About phone** and tap **Build number** seven times to
+   unlock the hidden Developer options.
+2. Open **Settings > System > Developer options** and turn on
+   **USB debugging**.
+3. Connect the phone to your computer and accept the **Allow USB debugging?**
+   prompt on the phone.
 
-   ```bash
-   adb shell dpm list-owners
-   # or: adb shell dumpsys device_policy
-   ```
+### 3. Install ADB on your computer
 
-   The "Bug Reporting & Logs" screen also shows "Device Owner: PROVISIONED",
-   and the dashboard checklist marks "Device Owner Provisioned".
+ADB (Android Debug Bridge) is part of the Android SDK Platform-Tools. It is
+included with Android Studio, or you can download the standalone
+[SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools)
+package.
 
-5. **First launch.** When Android enables the admin receiver as Device Owner,
-   UncleCarbon requests a screen lock of at least 6 characters with Android's
-   "numeric complex" quality (no repeating or ordered digit sequences; Android
-   prompts if the current lock does not comply), blocks Safe Mode, re-enables
-   the backup service and grants itself `READ_PHONE_STATE`. Then open the app,
-   grant runtime permissions and special access on the System Platform Access
-   screen, and configure only the features you need. You may disable USB
-   debugging afterwards; the debugging block turns it off, and Lockdown Mode
-   keeps it off permanently.
+If the `adb` command is not found, add the `platform-tools` folder to your
+`PATH`. On Windows, with Android Studio's default SDK location (open a new
+command prompt afterwards):
+
+```bat
+setx PATH "%PATH%;%USERPROFILE%\AppData\Local\Android\sdk\platform-tools"
+```
+
+`setx` truncates values longer than 1024 characters, so if your `PATH` is long,
+add the folder through System Properties > Environment Variables instead, or
+run `adb` by its full path. On macOS and Linux, add the folder to `PATH` in
+your shell profile, for example
+`export PATH="$PATH:$HOME/Library/Android/sdk/platform-tools"` (macOS) or
+`export PATH="$PATH:$HOME/Android/Sdk/platform-tools"` (Linux).
+
+Check the connection with `adb devices`; the phone should be listed as
+`device`, not `unauthorized`.
+
+### 4. Install UncleCarbon
+
+Build the APK (see [Building](#building)) or use a release APK you trust, then
+install it:
+
+```bash
+adb install -r /path/to/UncleCarbon.apk
+# for a local debug build: adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+### 5. Provision UncleCarbon as Device Owner
+
+```bash
+adb shell dpm set-device-owner com.hamoon.unclecarbon/.receivers.AdminReceiver
+```
+
+Use exactly this component name. Commands copied from other projects (for
+example `com.android.keyboard/.admin.DeviceAdminReceiver`) provision a
+different app.
+
+### 6. Verify
+
+```bash
+adb shell dpm list-owners
+# or: adb shell dumpsys device_policy
+```
+
+The "Bug Reporting & Logs" screen also shows "Device Owner: PROVISIONED", and
+the dashboard checklist marks "Device Owner Provisioned".
+
+### 7. Optional: set the GrapheneOS auto-reboot timer over ADB
+
+GrapheneOS reboots a locked device back to the before-first-unlock state when
+the auto-reboot timer expires (18 hours by default). To shorten it to 8 hours
+while ADB is still connected:
+
+```bash
+adb shell settings put global settings_reboot_after_timeout 28800000   # 8 h in milliseconds
+adb shell settings get global settings_reboot_after_timeout            # should print 28800000
+```
+
+This is a GrapheneOS setting, not an UncleCarbon one. You can set the same
+value without ADB in **Settings > Security & privacy > Exploit protection >
+Auto reboot**; check there that it shows 8 hours.
+
+### 8. First launch
+
+When Android enables the admin receiver as Device Owner, UncleCarbon requests a
+screen lock of at least 6 characters with Android's "numeric complex" quality
+(no repeating or ordered digit sequences; Android prompts if the current lock
+does not comply), blocks Safe Mode, re-enables the backup service and grants
+itself `READ_PHONE_STATE`.
+
+Open the app, grant runtime permissions and special access on the System
+Platform Access screen, and configure only the features you need. Then work
+through the
+[post-installation hardening checklist](#post-installation-hardening-checklist).
 
 **Upgrading from builds that used `com.hamoon.uncleted`.** The application ID
 changed to `com.hamoon.unclecarbon`, so Android treats UncleCarbon as a
 different app. It cannot update the old package in place, the old package
 stays Device Owner, and settings, tokens and keys do not carry over. Switching
 requires a factory reset and fresh provisioning.
+
+## Post-installation hardening checklist
+
+These are GrapheneOS settings, plus one UncleCarbon tile, that complement
+UncleCarbon. Most are features of GrapheneOS itself; UncleCarbon does not
+change them for you. Do them after you have finished with ADB, because some of
+them disable it.
+
+- [ ] **Set a new device PIN**: **Settings > Security & privacy > Device
+  lock**. Use at least 6 digits without repeating or ordered sequences, which
+  also satisfies the password policy UncleCarbon applies as Device Owner.
+- [ ] **Set up a duress password**: in the same Device lock settings. Entering
+  the GrapheneOS duress PIN or password at an unlock prompt wipes the device.
+  It must differ from your normal PIN.
+- [ ] **Scramble the PIN layout**: **Settings > Security & privacy > Device
+  lock > Scramble PIN input layout**, enable.
+- [ ] **Revoke ADB authorizations**: **Settings > System > Developer options >
+  Revoke USB debugging authorisations**.
+- [ ] **Turn off Developer options**: switch at the top of **Developer
+  options**. UncleCarbon's debugging block or Lockdown Mode, if enabled, keeps
+  debugging off.
+- [ ] **Restrict the USB-C port**: **Settings > Security & privacy > Exploit
+  protection > USB-C port**, set to **Charging-only**, or to **Off** if that
+  suits you; with Off, the phone only charges while it is powered off. Either
+  setting also blocks ADB over USB.
+- [ ] **Enable 2G network protection**: **Settings > Security & privacy > More
+  security & privacy > Mobile network security > 2G network protection**,
+  enable. UncleCarbon's baseband sentinel only alerts; this toggle is what
+  actually stops 2G connections.
+- [ ] **Keep the auto-reboot timer on**: **Settings > Security & privacy >
+  Exploit protection > Auto reboot** (see
+  [step 7](#7-optional-set-the-grapheneos-auto-reboot-timer-over-adb)).
+- [ ] **Let the updater reboot automatically**: **Settings > System > System
+  updates > Automatic reboot**, enable, so downloaded OS updates are installed
+  without waiting for you to reboot.
+- [ ] **Optionally replace the Airplane mode tile**: edit Quick Settings (swipe
+  down twice and tap the pencil icon), remove the system **Airplane mode**
+  tile, and add UncleCarbon's tile labelled **Airplane mode** in its place.
+
+  > [!CAUTION]
+  > UncleCarbon's "Airplane mode" tile is a decoy for use under duress.
+  > **A single tap factory-resets the phone immediately, with no
+  > confirmation.** You, or anyone using your phone, may tap it out of habit.
+  > Real airplane mode stays available in **Settings > Network & internet >
+  > Airplane mode**. Only add this tile if you accept that risk.
+
+- [ ] **Installing apps**: for apps from Google Play, Aurora Store
+  ([auroraoss.com](https://auroraoss.com)), an open-source Google Play client,
+  is recommended. It is a third-party project, not part of UncleCarbon or
+  GrapheneOS. Install apps after provisioning, since some apps add accounts,
+  which would block `dpm set-device-owner`.
 
 ## Permissions
 
