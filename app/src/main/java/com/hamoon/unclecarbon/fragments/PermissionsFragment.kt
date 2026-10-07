@@ -43,12 +43,32 @@ class PermissionsFragment : Fragment() {
 
             Log.d(TAG, "Permission results: $grantedCount/$totalCount granted")
 
+            val backgroundLocationPending = needsBackgroundLocation()
             if (grantedCount == totalCount) {
-                Toast.makeText(requireContext(), "All permissions granted!", Toast.LENGTH_SHORT).show()
+                if (!backgroundLocationPending) {
+                    Toast.makeText(requireContext(), "All permissions granted!", Toast.LENGTH_SHORT).show()
+                }
             } else {
                 val deniedPermissions = permissions.filterValues { !it }.keys
                 Log.w(TAG, "Denied permissions: $deniedPermissions")
                 Toast.makeText(requireContext(), "Some permissions were denied. The app may not function properly.", Toast.LENGTH_LONG).show()
+            }
+            updateButtonStates()
+            if (backgroundLocationPending) {
+                requestBackgroundLocation()
+            }
+        }
+
+    // Android 11+ ignores (denies) the whole request when background location is
+    // asked for together with foreground location, so it is requested on its own
+    // once foreground location has been granted.
+    private val requestBackgroundLocationLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            Log.d(TAG, "Background location granted: $granted")
+            if (granted) {
+                Toast.makeText(requireContext(), "Background location granted!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), "Background location was not allowed. Choose \"Allow all the time\" in Settings > Apps > UncleCarbon > Permissions > Location.", Toast.LENGTH_LONG).show()
             }
             updateButtonStates()
         }
@@ -221,9 +241,8 @@ class PermissionsFragment : Fragment() {
 
         permissionsToRequest.addAll(corePermissions)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            permissionsToRequest.add(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-        }
+        // ACCESS_BACKGROUND_LOCATION is deliberately not part of this request; see
+        // requestBackgroundLocationLauncher.
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
@@ -264,9 +283,33 @@ class PermissionsFragment : Fragment() {
             } else {
                 requestMultiplePermissionsLauncher.launch(permissionsNotGranted.toTypedArray())
             }
+        } else if (needsBackgroundLocation()) {
+            requestBackgroundLocation()
         } else {
             Toast.makeText(requireContext(), "All runtime permissions already granted!", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    /** Foreground location is granted but background ("Allow all the time") is not. */
+    private fun needsBackgroundLocation(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+        val context = requireContext()
+        val foregroundGranted = PermissionUtils.hasForegroundLocationPermission(context)
+        val backgroundGranted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_BACKGROUND_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        return foregroundGranted && !backgroundGranted
+    }
+
+    private fun requestBackgroundLocation() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Allow Location All the Time")
+            .setMessage("The geofence, location sentinels and emergency location reports run while UncleCarbon is closed. On the next screen, choose \"Allow all the time\".")
+            .setPositiveButton("Continue") { _, _ ->
+                requestBackgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+            }
+            .setNegativeButton("Cancel", null)
+            .showProtected(requireActivity())
     }
 
     private fun enableDeviceAdmin() {
